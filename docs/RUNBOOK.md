@@ -41,7 +41,7 @@
 
 ## Backup / Restore
 
-**Политика (OWNER-DECISIONS):** daily backups, retention 7 daily + 4 weekly (30 дней).
+**Политика (OWNER-DECISIONS):** daily backups, retention 30 дней (Variant A).
 
 ### Backup
 
@@ -54,17 +54,16 @@
 ```
 
 Скрипт создаёт:
-- `mywave_ai_YYYYMMDD_daily.sql.gz` — каждый день;
-- `mywave_ai_YYYYMMDD_weekly.sql.gz` — по воскресеньям.
+- `mywave_ai_YYYYMMDD.sql.gz` — каждый день.
 
-Ротация: daily старше 7 дней удаляются; weekly — последние 4.
+Ротация: файлы старше 30 дней удаляются.
 
 ### Restore
 
 ```bash
 # Остановить app, восстановить, перезапустить
 docker compose stop app
-./scripts/restore_postgres.sh /backups/mywave_ai_20260305_daily.sql.gz
+./scripts/restore_postgres.sh /backups/mywave_ai_20260305.sql.gz
 docker compose start app
 ```
 
