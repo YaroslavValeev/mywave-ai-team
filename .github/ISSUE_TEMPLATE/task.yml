@@ -1,0 +1,52 @@
+name: TASK
+description: Задача для AGM/оркестратора (как #TASK в Telegram)
+title: "[TASK] "
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Шаблон задачи. Используй для задач, которые идут в Pipeline → Roundtable → Court.
+  - type: textarea
+    id: title
+    attributes:
+      label: Название
+      placeholder: Краткое название задачи
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Цель
+      placeholder: Что должно быть достигнуто
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Ожидаемый результат
+      placeholder: Конкретный результат (артефакты, статус)
+  - type: textarea
+    id: context
+    attributes:
+      label: Контекст/ссылки/файлы
+      placeholder: Дополнительный контекст
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Ограничения
+      placeholder: Временные, технические ограничения
+  - type: dropdown
+    id: criticality
+    attributes:
+      label: Критичность
+      options:
+        - LOW
+        - MEDIUM
+        - HIGH
+        - CRITICAL
+  - type: textarea
+    id: done
+    attributes:
+      label: Критерий "готово"
+      placeholder: Definition of Done

@@ -39,14 +39,33 @@
 3. Проверить `POSTGRES_PASSWORD` в `.env` совпадает с тем, что в `docker-compose.yml`.
 4. При необходимости пересоздать: `docker compose down -v` (осторожно — удалит данные), затем `docker compose up -d`.
 
-## Бэкапы (daily 7/30)
+## Backup / Restore
 
-Рекомендация (см. OWNER-DECISIONS): daily backups, retention 7 дней + 4 недельных (30 дней).
+**Политика (OWNER-DECISIONS):** daily backups, retention 7 daily + 4 weekly (30 дней).
 
-Пример cron на сервере:
+### Backup
+
 ```bash
-# Ежедневно в 03:00
-0 3 * * * docker compose exec -T postgres pg_dump -U mywave mywave_ai | gzip > /backups/mywave_ai_$(date +\%Y\%m\%d).sql.gz
+# Вручную (из корня проекта)
+./scripts/backup_postgres.sh /backups
+
+# Cron — ежедневно в 03:00
+0 3 * * * cd /path/to/mywave-ai-team && ./scripts/backup_postgres.sh /backups
 ```
 
-Ротация: удалять файлы старше 7 дней, кроме одного в неделю (воскресенье) — хранить 4 недели.
+Скрипт создаёт:
+- `mywave_ai_YYYYMMDD_daily.sql.gz` — каждый день;
+- `mywave_ai_YYYYMMDD_weekly.sql.gz` — по воскресеньям.
+
+Ротация: daily старше 7 дней удаляются; weekly — последние 4.
+
+### Restore
+
+```bash
+# Остановить app, восстановить, перезапустить
+docker compose stop app
+./scripts/restore_postgres.sh /backups/mywave_ai_20260305_daily.sql.gz
+docker compose start app
+```
+
+**Внимание:** restore перезаписывает текущие данные в БД.
