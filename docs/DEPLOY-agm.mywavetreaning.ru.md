@@ -35,9 +35,13 @@ docker run --rm caddy:2 caddy hash-password --plaintext "ТВОЙ_СИЛЬНЫЙ
 
 Скопировать вывод (bcrypt hash).
 
-### 3.2 Обновить Caddyfile
+### 3.2 Создать Caddyfile (боевой файл не в репо)
 
-Заменить `<BASICAUTH_HASH>` в `Caddyfile` на полученный хэш.
+```bash
+cp Caddyfile.example Caddyfile
+```
+
+Заменить `<BASICAUTH_HASH>` в `Caddyfile` на полученный хэш (см. п. 3.1).
 
 ### 3.3 .env на сервере
 

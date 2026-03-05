@@ -1,5 +1,8 @@
-# Caddyfile.example — скопируй в Caddyfile и замени <BASICAUTH_HASH>
-# Сгенерируй хэш: docker run --rm caddy:2 caddy hash-password --plaintext "ТВОЙ_СИЛЬНЫЙ_ПАРОЛЬ"
+# Caddyfile.example — шаблон для agm.mywavetreaning.ru
+# 1. Скопировать: cp Caddyfile.example Caddyfile
+# 2. Сгенерировать хэш: docker run --rm caddy:2 caddy hash-password --plaintext "ТВОЙ_ПАРОЛЬ"
+# 3. Заменить <BASICAUTH_HASH> в Caddyfile на полученный хэш
+# Боевой Caddyfile не коммитить в репо (gitignored)
 
 agm.mywavetreaning.ru {
 

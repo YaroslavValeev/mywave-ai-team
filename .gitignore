@@ -42,6 +42,9 @@ ENV/
 htmlcov/
 .tox/
 
+# Caddy — боевой Caddyfile с хэшем не хранить в репо (только Caddyfile.example)
+Caddyfile
+
 # Docker/volumes
 pgdata/
 caddy_data/
