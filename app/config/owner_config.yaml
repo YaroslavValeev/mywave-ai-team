@@ -1,0 +1,38 @@
+# OWNER-CONFIG (жёсткий) — MyWave AI-TEAM MVP v0
+version: "1.0"
+
+domains_priority:
+  - Site_MyWave
+  - Content_news
+  - events
+  - Ruza
+  - SnowPolia
+  - ExtremeMedia
+  - Turiev_Hutor
+
+top_goals:
+  - site
+  - content_news
+  - events
+  - ExtremeMedia
+
+metrics:
+  - revenue
+  - leads
+  - conversion
+  - growth
+  - operational_cost_reduction
+
+quality_mode: QUALITY
+
+limits:
+  max_rework_cycles: 2
+  max_owner_questions: 3
+
+artifacts_default: .md
+
+storage:
+  postgres: true
+  retention_days: 90
+
+access: owner_only

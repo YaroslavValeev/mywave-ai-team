@@ -1,0 +1,106 @@
+# config/routing.yaml
+version: "1.1"
+
+defaults:
+  roundtable_reviewers: 3
+  max_rework_cycles: 2
+  pipeline_steps_default: 4
+  pipeline_steps_high: 6
+
+domains:
+  PRODUCT_DEV:
+    task_types:
+      software_bugfix:
+        criticality: HIGH
+        pipeline: [PM, FE_BE, ARCH, QA]
+        roundtable: [RC, QA, SEC_IF_SENSITIVE]
+        execute_gate: OWNER_APPROVAL_IF_PROD_OR_PII
+      feature_delivery:
+        criticality: MEDIUM
+        pipeline: [PS, PM, UX, FE_BE, ARCH, QA]
+        roundtable: [RC, QA, SEC_OPTIONAL]
+        execute_gate: OWNER_APPROVAL_IF_PROD
+      deploy_prod:
+        criticality: CRITICAL
+        pipeline: [DEVOPS, QA, ARCH]
+        roundtable: [SEC, RC]
+        execute_gate: OWNER_APPROVAL_ALWAYS
+
+  MEDIA_OPS:
+    task_types:
+      content_pipeline:
+        criticality: HIGH
+        pipeline: [CONTENT, PROMPT, DATA, ARCH]
+        roundtable: [BRAND, RC, LEGAL_OPTIONAL]
+        execute_gate: OWNER_APPROVAL_IF_PUBLISH
+      publish_major:
+        criticality: CRITICAL
+        pipeline: [CONTENT, BRAND, RC]
+        roundtable: [LEGAL_OPTIONAL]
+        execute_gate: OWNER_APPROVAL_ALWAYS
+
+  EVENTS:
+    task_types:
+      event_runbook:
+        criticality: HIGH
+        pipeline: [EVENT, PM, FIN, LEGAL, ARCH]
+        roundtable: [RC, BRAND, SEC_IF_PII]
+        execute_gate: OWNER_APPROVAL_IF_PUBLIC_OR_CONTRACT
+      judging_rules:
+        criticality: HIGH
+        pipeline: [PS, EVENT, DATA, LEGAL, ARCH]
+        roundtable: [RC, LEGAL, SEC]
+        execute_gate: OWNER_APPROVAL_IF_PUBLIC
+
+  GAME:
+    task_types:
+      economy_balance:
+        criticality: HIGH
+        pipeline: [PS, DATA, RC, ARCH]
+        roundtable: [RC2, BRAND]
+        execute_gate: OWNER_APPROVAL_IF_PUBLISH_OR_MONEY
+      art_store_bundle:
+        criticality: MEDIUM
+        pipeline: [BRAND, CONTENT, UX, PROMPT]
+        roundtable: [RC, LEGAL_OPTIONAL]
+        execute_gate: OWNER_APPROVAL_IF_PUBLIC
+
+  SPONSOR_PLATFORM:
+    task_types:
+      mvp_scoring:
+        criticality: HIGH
+        pipeline: [PS, ARCH, DATA, BE, QA]
+        roundtable: [FIN, LEGAL, RC]
+        execute_gate: OWNER_APPROVAL_IF_CONTRACTS_OR_MONEY
+
+  RND_EXTREME:
+    task_types:
+      judge_console_mvp:
+        criticality: HIGH
+        pipeline: [ARCH, ML_PROMPT, BE, DEVOPS, QA]
+        roundtable: [RC, SEC, FIN]
+        execute_gate: OWNER_APPROVAL_IF_VIDEO_PII_OR_PUBLIC
+
+  INFRA:
+    task_types:
+      invest_model:
+        criticality: HIGH
+        pipeline: [FIN, LEGAL, PS, ARCH]
+        roundtable: [RC, LEGAL, BRAND]
+        execute_gate: OWNER_APPROVAL_IF_PUBLIC_NUMBERS
+
+  AUTHORITY_CONTENT:
+    task_types:
+      book_outline:
+        criticality: MEDIUM
+        pipeline: [CONTENT, PS, BRAND]
+        roundtable: [RC]
+        execute_gate: OWNER_APPROVAL_IF_PUBLIC
+
+  CLIENTOPS:
+    task_types:
+      studio_bot_admin:
+        criticality: HIGH
+        pipeline: [PS, PM, BE, QA, SEC]
+        roundtable: [LEGAL, RC]
+        execute_gate: OWNER_APPROVAL_IF_PII_OR_PROD

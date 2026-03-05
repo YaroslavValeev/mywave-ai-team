@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task #{{ task.id }} — MyWave AI-TEAM</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        pre { background: #0d0d1a; padding: 1rem; overflow-x: auto; }
+        .section { margin-top: 1.5rem; }
+    </style>
+</head>
+<body>
+    <h1>Task #{{ task.id }}</h1>
+    <p><a href="/tasks">← К списку</a></p>
+
+    <div class="section">
+        <h2>Инфо</h2>
+        <p><strong>Status:</strong> {{ task.status }}</p>
+        <p><strong>Domain:</strong> {{ task.domain or '-' }}</p>
+        <p><strong>Type:</strong> {{ task.task_type or '-' }}</p>
+        <p><strong>Criticality:</strong> {{ task.criticality or '-' }}</p>
+        <p><strong>Plan/Execute:</strong> {{ task.plan_or_execute or '-' }}</p>
+    </div>
+
+    <div class="section">
+        <h2>Owner text</h2>
+        <pre>{{ owner_text_display or '-' }}</pre>
+    </div>
+
+    <div class="section">
+        <h2>Таймлайн статусов</h2>
+        <ul>
+            {% for e in timeline %}
+            <li>{{ e.at.strftime('%Y-%m-%d %H:%M') if e.at else '-' }} — {{ e.status }}: {{ e.note }}</li>
+            {% else %}
+            <li>—</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Decision log</h2>
+        <ul>
+            {% for d in decisions %}
+            <li>{{ d.decision }} (owner_approval: {{ d.owner_approval }}) — {{ d.at.strftime('%Y-%m-%d %H:%M') if d.at else '-' }}</li>
+            {% else %}
+            <li>Нет решений</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Handoffs / отчёты .md</h2>
+        <ul>
+            {% for h in handoffs %}
+            <li>{{ h.step }}: {{ h.md_path or '-' }}</li>
+            {% else %}
+            <li>Нет handoffs</li>
+            {% endfor %}
+        </ul>
+        {% if task.report_path %}
+        <p><strong>Final report:</strong> {{ task.report_path }}</p>
+        {% endif %}
+    </div>
+
+    {% if summary_display %}
+    <div class="section">
+        <h2>Summary</h2>
+        <pre>{{ summary_display }}</pre>
+    </div>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,56 @@
+# docker-compose.yml — app + postgres + Caddy reverse proxy
+# agm.mywavetreaning.ru: Caddy → BasicAuth → app (X-API-Key прокидывается автоматически)
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: mywave
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: mywave_ai
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8080"
+    volumes:
+      - ./app/artifacts:/app/app/artifacts
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: mywave_ai
+      POSTGRES_USER: mywave
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mywave -d mywave_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      OWNER_API_KEY: ${OWNER_API_KEY}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  pgdata: {}
+  caddy_data: {}
+  caddy_config: {}

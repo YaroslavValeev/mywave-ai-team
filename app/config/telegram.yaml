@@ -1,0 +1,14 @@
+# app/config/telegram.yaml — копируй из telegram.yaml.example и заполни
+bot_token: ""
+owner_chat_id: ""
+tone: "partner"
+buttons:
+  approve: "✅ Approve"
+  rework: "🔁 Rework"
+  clarify: "❓ Clarify"
+  full: "📄 Full report"
+callbacks:
+  approve: "a:{task_id}"
+  rework: "r:{task_id}"
+  clarify: "c:{task_id}"
+  full: "f:{task_id}"

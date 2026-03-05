@@ -1,0 +1,45 @@
+# config/policy.yaml
+version: "1.1"
+
+autonomy_mode: "semi"
+plan_execute_model:
+  plan: ["analysis","spec","draft","code_plan","estimates","checklists","prompts"]
+  execute: ["deploy_prod","publish_major","pricing_payment","contracts","pii_processing","destructive_ops"]
+
+criticality:
+  always_critical_if:
+    - "deploy_prod"
+    - "publish_major"
+    - "pricing_payment"
+    - "contracts"
+    - "pii_processing"
+    - "destructive_ops"
+
+limits:
+  roundtable_reviewers_default: 3
+  max_rework_cycles: 2
+  telegram_summary_max_chars: 1200
+
+logging:
+  redact_secrets: true
+  redact_pii: true
+  retention_days: 90
+  fields_required:
+    - task_id
+    - domain
+    - task_type
+    - criticality
+    - plan_or_execute
+    - status
+    - version
+    - decisions
+    - assumptions
+    - risks
+
+security:
+  never_send:
+    - ".env"
+    - "tokens"
+    - "private_keys"
+  pii_minimization: true
+  approval_required_for_execute: true

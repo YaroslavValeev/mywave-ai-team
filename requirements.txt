@@ -1,0 +1,9 @@
+aiogram>=3.0
+crewai>=0.40
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+alembic
+pyyaml
+python-dotenv

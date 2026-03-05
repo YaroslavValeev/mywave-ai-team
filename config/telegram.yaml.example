@@ -1,0 +1,14 @@
+# config/telegram.yaml.example
+bot_token: "PUT_TELEGRAM_BOT_TOKEN"
+owner_chat_id: "PUT_OWNER_CHAT_ID"
+tone: "partner"
+buttons:
+  approve: "✅ Approve"
+  rework: "🔁 Rework"
+  clarify: "❓ Clarify"
+  full: "📄 Full report"
+callbacks:
+  approve: "a:{task_id}"
+  rework: "r:{task_id}"
+  clarify: "c:{task_id}"
+  full: "f:{task_id}"

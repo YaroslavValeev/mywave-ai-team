@@ -1,0 +1,23 @@
+# Caddyfile — agm.mywavetreaning.ru
+# 1. Сгенерируй хэш: docker run --rm caddy:2 caddy hash-password --plaintext "ТВОЙ_ПАРОЛЬ"
+# 2. Замени <BASICAUTH_HASH> ниже на полученный хэш
+
+agm.mywavetreaning.ru {
+
+  basicauth {
+    owner <BASICAUTH_HASH>
+  }
+
+  encode zstd gzip
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "no-referrer"
+  }
+
+  reverse_proxy app:8080 {
+    header_up X-API-Key {env.OWNER_API_KEY}
+  }
+}
