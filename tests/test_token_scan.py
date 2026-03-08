@@ -13,7 +13,7 @@ def _scan_content(content: str, patterns: list[str]) -> bool:
 
 
 def test_token_scan_detects_ghp():
-    """ghp_ паттерн обнаруживается."""
+    """ghp_ паттерн обнаруживается (CI token-scan исключает этот файл)."""
     patterns = [r"ghp_", r"github_pat_", r"sk-[a-zA-Z0-9]{20,}", r"xoxb-[a-zA-Z0-9]{10,}", r"-----BEGIN (RSA )?PRIVATE KEY"]
     assert _scan_content("token=ghp_FAKE123", patterns) is True
     assert _scan_content("xoxb-abc123xyz12", patterns) is True

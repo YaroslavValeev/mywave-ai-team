@@ -16,7 +16,8 @@ jobs:
           set -e
           FOUND=$(grep -rE 'ghp_|github_pat_|sk-[a-zA-Z0-9]{20,}|xoxb-[a-zA-Z0-9]{10,}|-----BEGIN (RSA |)PRIVATE KEY' . \
             --include='*.py' --include='*.yaml' --include='*.yml' --include='*.md' --include='*.json' --include='*.sh' \
-            --exclude-dir=.git --exclude-dir=__pycache__ --exclude-dir=.pytest_cache 2>/dev/null || true)
+            --exclude-dir=.git --exclude-dir=__pycache__ --exclude-dir=.pytest_cache \
+            --exclude='test_token_scan.py' 2>/dev/null || true)
           if [ -n "$FOUND" ]; then
             echo "FAIL: Token/sensitive pattern found. Remove secrets."
             echo "$FOUND"
@@ -42,6 +43,6 @@ jobs:
 
       - name: Run pytest (SQLite smoke)
         env:
-          DATABASE_URL: sqlite:///:memory:
+          DATABASE_URL: "sqlite:///:memory:"
           OWNER_API_KEY: test_key_for_ci
         run: pytest tests/ -q --tb=short
