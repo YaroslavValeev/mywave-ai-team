@@ -18,6 +18,9 @@ class TaskStatus(str, Enum):
     IN_ROUNDTABLE = "IN_ROUNDTABLE"
     IN_COURT = "IN_COURT"
     WAIT_OWNER = "WAIT_OWNER"
+    APPROVED_WAIT_MERGE = "APPROVED_WAIT_MERGE"  # v0.2: Owner approved, ждём ручной merge
+    NEED_INFO = "NEED_INFO"
+    REWORK = "REWORK"
     DONE = "DONE"
     ARCHIVED = "ARCHIVED"
 
@@ -36,6 +39,9 @@ class Task(Base):
     rework_cycles: Mapped[int] = mapped_column(Integer, default=0)
     report_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    pr_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    commit_sha: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    ci_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     risk_table_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

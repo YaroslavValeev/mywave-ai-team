@@ -29,3 +29,10 @@
 - Ротация: автоматическое удаление файлов старше 30 дней.
 
 **Причина:** восстановление при потере данных; 30 дней — практичный баланс для VPS; соответствует требованию "7/30" (7 — минимум, 30 — целевой retention).
+
+## Политики v0.2.1 (Production Hardening)
+
+- **PR/Merge policy:** merge только Owner вручную в GitHub UI. Runner merge запрещён.
+- **Secrets policy:** GH_TOKEN только локально (`.env.local`), на сервер не попадать.
+- **Audit policy:** request_id обязателен, MCP tool invocations логируются в audit_events.
+- **Raw PII:** выключен по умолчанию, dual auth включён (см. разделы выше).

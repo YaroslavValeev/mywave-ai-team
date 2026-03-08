@@ -1,0 +1,33 @@
+# app/config/automation_triggers.yaml — источники событий (v1.2)
+# Automation Trigger Layer: GitHub, Webhook, Schedule, Dashboard.
+# Цель: events → tasks (не только Telegram-intake).
+
+version: "1.0"
+
+triggers:
+  github:
+    enabled: false  # TODO: Cursor Automations / GitHub App
+    events:
+      - issue_opened
+      - issue_labeled
+      - pr_opened
+    label_trigger: "#TASK"
+    action: create_task_from_issue
+
+  webhook:
+    enabled: false
+    path: /webhook/event
+    secret_env: WEBHOOK_SECRET
+    action: create_task_from_payload
+
+  schedule:
+    enabled: false
+    cron: []  # [{"expr": "0 9 * * 1", "action": "weekly_report"}]
+
+  dashboard:
+    enabled: true
+    button: "Run pipeline"
+    action: run_pipeline_for_task
+
+# Дефолтное действие при событии
+default_action: create_task

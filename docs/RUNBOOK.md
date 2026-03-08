@@ -68,3 +68,18 @@ docker compose start app
 ```
 
 **Внимание:** restore перезаписывает текущие данные в БД.
+
+## API / audit (v0.2)
+
+**Логи API-запросов:** каждый запрос к `/api/*` пишется в `audit_events`:
+- `event_type`: `api_request`
+- `payload`: `{actor, route, task_id, status_code, latency_ms}`
+
+**Пример audit_events:**
+```
+event_type=api_request payload={"actor":"owner","route":"/api/tasks","task_id":null,"status_code":200,"latency_ms":12}
+event_type=api_request payload={"actor":"owner","route":"/api/tasks/1","task_id":1,"status_code":200,"latency_ms":5}
+event_type=OWNER_APPROVED payload={"decision":"approve"}
+```
+
+**Дебаг:** смотреть логи app, Postgres, и `audit_events` при проблемах с MCP/Runner.

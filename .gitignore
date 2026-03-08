@@ -1,5 +1,6 @@
-# Secrets
+# Secrets (v0.2.1: никогда в репо)
 .env
+.env.local
 *.env.local
 .env.*.local
 

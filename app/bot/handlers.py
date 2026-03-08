@@ -33,6 +33,20 @@ def build_owner_buttons(task_id: int) -> InlineKeyboardBuilder:
     return b
 
 
+def build_owner_buttons_with_merged(task_id: int) -> InlineKeyboardBuilder:
+    """Кнопки + I merged (v0.2)."""
+    cfg = get_telegram_config()
+    btns = cfg.get("buttons", {})
+    b = InlineKeyboardBuilder()
+    b.button(text=btns.get("approve", "✅ Approve"), callback_data=f"a:{task_id}")
+    b.button(text=btns.get("rework", "🔁 Rework"), callback_data=f"r:{task_id}")
+    b.button(text=btns.get("clarify", "❓ Clarify"), callback_data=f"c:{task_id}")
+    b.button(text="✅ I merged", callback_data=f"m:{task_id}")
+    b.button(text=btns.get("full", "📄 Full report"), callback_data=f"f:{task_id}")
+    b.adjust(2, 2, 1)
+    return b
+
+
 def is_owner(chat_id: int) -> bool:
     cfg = get_telegram_config()
     owner_id = cfg.get("owner_chat_id")
@@ -174,6 +188,14 @@ async def handle_owner_callback(cb: CallbackQuery):
             await cb.answer()
             return
 
+        if code == "m":
+            log_decision(repo, task_id, decision="merged", owner_approval=True)
+            log_audit(repo, "OWNER_MERGED", task_id=task_id, payload={"decision": "i_merged"})
+            repo.update_task(task_id, status="DONE")
+            await cb.message.answer(redact(f"✅ Task #{task_id}: merge подтверждён. Задача закрыта."))
+            await cb.answer()
+            return
+
         owner_approval = code == "a"
         log_decision(repo, task_id, decision=code, owner_approval=owner_approval)
         if code == "a":
@@ -182,10 +204,21 @@ async def handle_owner_callback(cb: CallbackQuery):
             log_audit(repo, "OWNER_REWORK", task_id=task_id, payload={"decision": "rework"})
         else:
             log_audit(repo, "OWNER_CLARIFY", task_id=task_id, payload={"decision": "clarify"})
-        repo.update_task(task_id, status="DONE" if code == "a" else "IN_PIPELINE")
+
+        has_pr = bool(task.pr_url)
+        if code == "a":
+            new_status = "APPROVED_WAIT_MERGE" if has_pr else "DONE"
+        elif code == "r":
+            new_status = "REWORK"
+        else:
+            new_status = "NEED_INFO"
+        repo.update_task(task_id, status=new_status)
 
         if code == "a":
-            await cb.message.answer(redact(f"✅ Task #{task_id} утверждён."))
+            if has_pr:
+                await cb.message.answer(redact(f"✅ Task #{task_id} одобрен. Смерджи PR в GitHub, затем нажми «I merged»."))
+            else:
+                await cb.message.answer(redact(f"✅ Task #{task_id} утверждён."))
         elif code == "r":
             await cb.message.answer(redact(f"🔁 Task #{task_id}: запрошен rework. Запускаю повторный цикл..."))
             asyncio.create_task(_run_orchestration(task_id, cb.message.chat.id, cb.bot))
@@ -197,4 +230,4 @@ async def handle_owner_callback(cb: CallbackQuery):
 
 def register_handlers(dp: Dispatcher):
     dp.message.register(handle_task_intake, F.text & (F.text.startswith("# TASK") | F.text.startswith("#TASK")))
-    dp.callback_query.register(handle_owner_callback, F.data.startswith(("a:", "r:", "c:", "f:")))
+    dp.callback_query.register(handle_owner_callback, F.data.startswith(("a:", "r:", "c:", "f:", "m:")))

@@ -83,6 +83,9 @@ class TaskRepository:
         summary: Optional[str] = None,
         risk_table_json: Optional[dict] = None,
         rework_cycles: Optional[int] = None,
+        pr_url: Optional[str] = None,
+        commit_sha: Optional[str] = None,
+        ci_url: Optional[str] = None,
     ) -> Optional[Task]:
         task = self.get_task(task_id)
         if not task:
@@ -105,6 +108,12 @@ class TaskRepository:
             task.risk_table_json = risk_table_json
         if rework_cycles is not None:
             task.rework_cycles = rework_cycles
+        if pr_url is not None:
+            task.pr_url = pr_url
+        if commit_sha is not None:
+            task.commit_sha = commit_sha
+        if ci_url is not None:
+            task.ci_url = ci_url
         self.session.commit()
         self.session.refresh(task)
         return task
