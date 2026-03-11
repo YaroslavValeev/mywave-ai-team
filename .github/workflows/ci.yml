@@ -44,5 +44,5 @@ jobs:
       - name: Run pytest (SQLite smoke)
         env:
           DATABASE_URL: "sqlite:///:memory:"
-          OWNER_API_KEY: test_key_for_ci
+          OWNER_API_KEY: "test_key_for_ci"
         run: pytest tests/ -q --tb=short
