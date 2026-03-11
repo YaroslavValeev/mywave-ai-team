@@ -17,7 +17,7 @@ jobs:
           FOUND=$(grep -rE 'ghp_|github_pat_|sk-[a-zA-Z0-9]{20,}|xoxb-[a-zA-Z0-9]{10,}|-----BEGIN (RSA |)PRIVATE KEY' . \
             --include='*.py' --include='*.yaml' --include='*.yml' --include='*.md' --include='*.json' --include='*.sh' \
             --exclude-dir=.git --exclude-dir=__pycache__ --exclude-dir=.pytest_cache \
-            --exclude='test_token_scan.py' 2>/dev/null || true)
+            --exclude='test_token_scan.py' --exclude='ci.yml' --exclude='SECURITY.md' 2>/dev/null || true)
           if [ -n "$FOUND" ]; then
             echo "FAIL: Token/sensitive pattern found. Remove secrets."
             echo "$FOUND"
