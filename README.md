@@ -15,9 +15,13 @@ app/
   orchestrator/  # AGM: triage, pipeline, roundtable, court
   storage/       # SQLAlchemy + миграции
   dashboard/     # FastAPI + Jinja
-  config/        # routing.yaml, policy.yaml, telegram.yaml, owner_config.yaml
+  gateway/       # (v1.2) секреты, capabilities, dangerous actions
+  mcp_server/    # (v1.2) private MCP tools для Cursor/агентов
+  runners/       # (v1.2) Cursor CLI runner
+  config/        # routing, policy, telegram, owner_config, skills_allowlist, automation_triggers, mcp_tools
   artifacts/     # генерация .md
   shared/        # audit, critical_flags
+skills/          # (v1.2) локальные skills (allowlist)
 tests/
 docker-compose.yml
 Dockerfile
@@ -77,11 +81,20 @@ pytest tests/ -v
 - `app/config/routing.yaml` — маршрутизация по доменам
 - `app/config/policy.yaml` — критичность, лимиты, безопасность
 - `app/config/telegram.yaml` — кнопки, callbacks (или .env)
+- `app/config/skills_allowlist.yaml` — (v1.2) allowlist skills
+- `app/config/automation_triggers.yaml` — (v1.2) webhooks, schedule
+- `app/config/mcp_tools.yaml` — (v1.2) MCP tools config
 
 ## Dashboard Auth (HF-1)
 
 - Все эндпоинты (кроме `/health`) требуют заголовок `X-API-Key: <OWNER_API_KEY>`
 - Без `OWNER_API_KEY` в .env приложение не стартует (fail-fast)
+
+## v1.2 — Gateway, MCP, Runners
+
+- [docs/MCP.md](docs/MCP.md) — подключение MCP tools к Cursor
+- [docs/CURSOR-RUNNER.md](docs/CURSOR-RUNNER.md) — запуск Cursor CLI на сервере
+- [docs/SECURITY-SKILLS.md](docs/SECURITY-SKILLS.md) — политика skills (allowlist)
 
 ## TODO v0.1
 

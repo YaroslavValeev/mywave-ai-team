@@ -2,7 +2,7 @@
 import pytest
 
 from app.shared.critical_flags import check_critical_execute, infer_flags_from_task
-from app.bot.handlers import build_owner_buttons
+from app.bot.handlers import build_owner_buttons, build_owner_buttons_with_merged
 
 
 def test_critical_execute_triggers_wait_owner():
@@ -40,6 +40,14 @@ def test_buttons_contain_callbacks():
     assert "r:42" in callbacks
     assert "c:42" in callbacks
     assert "f:42" in callbacks
+
+
+def test_buttons_with_merged_contain_i_merged():
+    """build_owner_buttons_with_merged содержит m: (I merged)."""
+    kb = build_owner_buttons_with_merged(task_id=42)
+    markup = kb.as_markup()
+    callbacks = [btn.callback_data for row in markup.inline_keyboard for btn in row if btn.callback_data]
+    assert "m:42" in callbacks
 
 
 def test_approve_flow_audit_and_decision(db_session):

@@ -1,0 +1,33 @@
+# app/config/mcp_tools.yaml — конфиг MCP tools (v1.2)
+# Инструменты для Cursor/агентов: tasks, artifacts, pipeline, PR, logs, health.
+
+version: "1.0"
+
+server:
+  name: mywave-ai-team
+  version: "1.2.0"
+  transport: stdio
+
+tools:
+  - task_create
+  - task_update
+  - task_get
+  - artifacts_list
+  - artifacts_get
+  - pipeline_run
+  - pr_create
+  - logs_get
+  - health
+
+# Ограничения доступа (минимальный scope)
+security:
+  require_api_key: true
+  allowed_scopes:
+    - tasks:read
+    - tasks:write
+    - artifacts:read
+    - pipeline:run
+    - pr:create
+  deny:
+    - raw_secrets
+    - env_dump

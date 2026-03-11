@@ -1,0 +1,29 @@
+# app/config/skills_allowlist.yaml — политика skills (v1.2)
+# Allowlist: только skills из нашего репо. Запрещён pull из публичных хабов.
+# Основание: риски supply-chain, credentials в skills (ClawHub/OpenClaw).
+
+version: "1.0"
+
+policy:
+  default: deny
+  source: allowlist_only
+
+allowlist:
+  # Skills из app/ или локального каталога
+  - path: app/
+    type: local
+    review_required: true
+  - path: skills/
+    type: local
+    review_required: true
+
+# Запрещённые источники
+deny:
+  - "*.clawhub.*"
+  - "marketplace"
+  - "public_registry"
+
+# Новый skill = PR + code review (см. docs/SECURITY-SKILLS.md)
+on_new_skill:
+  require_pr: true
+  require_review: true
