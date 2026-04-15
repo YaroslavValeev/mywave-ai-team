@@ -8,6 +8,10 @@ import sys
 # Добавить корень проекта в path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Загрузить .env из корня проекта (при локальном запуске)
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
+
 from app.storage.repositories import init_db, get_session_factory
 from app.bot.run import run_bot
 
