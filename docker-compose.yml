@@ -8,6 +8,10 @@ services:
     env_file:
       - .env
     environment:
+      # Канон office-lite: образ из Dockerfile = requirements-minimal без crewai → по умолчанию rule_based.
+      # Для office-full: в .env задать ORCHESTRATION_ENGINE=auto и собирать образ с requirements.txt (см. docs/CANONICAL-RUNTIME.md).
+      ORCHESTRATION_ENGINE: ${ORCHESTRATION_ENGINE:-rule_based}
+      DATABASE_URL: postgresql+psycopg2://mywave:${POSTGRES_PASSWORD}@postgres:5432/mywave_ai
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_USER: mywave
@@ -18,8 +22,12 @@ services:
         condition: service_healthy
     expose:
       - "8080"
+    ports:
+      - "8080:8080"
     volumes:
       - ./app/artifacts:/app/app/artifacts
+    # create_all() не добавляет колонки к уже существующим таблицам — нужны миграции Alembic
+    command: ["sh", "-c", "alembic upgrade head && python -m app.main"]
     restart: unless-stopped
 
   postgres:
