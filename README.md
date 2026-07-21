@@ -46,19 +46,24 @@ docker compose up -d
 # Dashboard: http://localhost:8080 (заголовок X-API-Key)
 ```
 
-## Деплой agm.mywavetreaning.ru (production)
+## Деплой production (Dashboard + bot)
 
 Caddy: reverse proxy + HTTPS + BasicAuth. Порт 8080 не публикуется.
 
-**Подробно:** [docs/DEPLOY-agm.mywavetreaning.ru.md](docs/DEPLOY-agm.mywavetreaning.ru.md)
+**Prod URL (целевой):** `https://agm.mywavewake.ru`  
+*(старый `agm.mywavetreaning.ru` — deprecated, можно не продлевать домен)*
+
+**Подробно:** [docs/DEPLOY-agm.mywavetreaning.ru.md](docs/DEPLOY-agm.mywavetreaning.ru.md) (шаги те же; в Caddyfile/DNS используйте `agm.mywavewake.ru`)
 
 Кратко:
-1. DNS: A-запись `agm` → IP сервера timeweb
+1. DNS: A-запись `agm` на домене **mywavewake.ru** → IP сервера
 2. Порты 80/443 открыты
-3. `cp Caddyfile.example Caddyfile`, в `Caddyfile` заменить `<BASICAUTH_HASH>` (см. `caddy hash-password`)
-4. `.env`: OWNER_API_KEY, DASHBOARD_URL=https://agm.mywavetreaning.ru
+3. `cp Caddyfile.example Caddyfile`, в `Caddyfile` хост `agm.mywavewake.ru` и `<BASICAUTH_HASH>`
+4. `.env`: OWNER_API_KEY, `DASHBOARD_URL=https://agm.mywavewake.ru`
 5. `docker compose up -d`
-6. Вход: https://agm.mywavetreaning.ru/tasks (логин `owner` + пароль)
+6. Вход: https://agm.mywavewake.ru/tasks (логин `owner` + пароль)
+
+**Локально:** `DASHBOARD_URL=http://127.0.0.1:8080`, Dashboard: `http://127.0.0.1:8080/tasks?api_key=OWNER_API_KEY`
 
 ## Smoke test
 
