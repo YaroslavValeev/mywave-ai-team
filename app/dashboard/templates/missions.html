@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Operating Console — Missions</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; background: #121826; color: #e5e7eb; }
+    a { color: #60a5fa; }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; }
+    .card { border: 1px solid #334155; border-radius: 10px; padding: 1rem; background: #0f172a; }
+    .badge { display:inline-block; padding:0.15rem 0.5rem; border-radius:999px; font-size:0.8rem; background:#1f2937; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align:left; padding:0.5rem; border-bottom:1px solid #233047; vertical-align: top; }
+    th { color:#94a3b8; font-weight:600; }
+    .muted { color: #94a3b8; font-size: 0.82rem; }
+    .viewbar { margin: 0.5rem 0 1rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .viewbar a { padding: 0.35rem 0.75rem; border-radius: 8px; text-decoration: none; border: 1px solid #334155; }
+    .viewbar a.active { background: #1d4ed8; border-color: #3b82f6; color: #eff6ff; }
+  </style>
+</head>
+<body>
+  <h1>Owner Operating Console</h1>
+  <p><a href="/{{ api_key_query }}">Dashboard</a> · <a href="/office{{ api_key_query }}">Office View</a></p>
+
+  <div class="viewbar">
+    <span class="muted">Режим списка:</span>
+    <a href="/missions{{ access_query_business }}" class="{{ 'active' if view_mode == 'business' else '' }}">Business View</a>
+    <a href="/missions{{ access_query_system }}" class="{{ 'active' if view_mode == 'system' else '' }}">System View</a>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Missions</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Статус</th>
+            <th>Тип работы</th>
+            <th>Следующий шаг</th>
+            <th>Готовое действие</th>
+            <th>Влияние</th>
+            {% if view_mode == 'system' %}
+            <th>Шаг</th><th>Прогресс</th>
+            {% endif %}
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in missions %}
+          <tr>
+            <td><strong>{{ m.headline }}</strong><div class="muted">#{{ m.id }}</div></td>
+            <td>
+              <span class="badge">{{ m.status }}</span>
+              {% if m.exploration_waiting %}<span class="badge" style="background:#0c4a6e;color:#bae6fd;">exploration</span>{% endif %}
+              {% if m.needs_approval %}<span class="badge" style="background:#7c2d12;color:#fed7aa;">needs owner</span>{% endif %}
+            </td>
+            <td><span class="badge">{{ m.owner_workstream }}</span></td>
+            <td class="muted">{{ m.next_business_step[:200] }}{% if m.next_business_step|length > 200 %}…{% endif %}</td>
+            <td>
+              {% if m.has_execution_pack %}<span class="badge" style="background:#0b3b2e;color:#d1fae5;" title="Execution Pack после суда">pack</span>{% endif %}
+              {% if m.has_execution_ready %}<span class="badge" style="background:#14532d;color:#bbf7d0;" title="Dry-run: промпты для Cursor">cursor</span>{% endif %}
+              {% if not m.has_execution_pack and not m.has_execution_ready %}<span class="muted">—</span>{% endif %}
+            </td>
+            <td><span class="badge">{{ m.impact_display }}</span></td>
+            {% if view_mode == 'system' %}
+            <td>{{ m.friendly_phase }}</td>
+            <td>{{ m.progress }}</td>
+            {% endif %}
+            <td><a href="/mission/{{ m.id }}{{ api_key_query }}">Открыть</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="{{ 9 if view_mode == 'system' else 7 }}">Нет миссий</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <aside class="card">
+      <h2>Exploration</h2>
+      <ul>
+        {% for a in exploration_pending %}
+        <li><a href="/mission/{{ a.id }}{{ api_key_query }}">#{{ a.id }}</a> — {{ a.headline[:60] }}</li>
+        {% else %}
+        <li>Нет миссий в ожидании выбора сценария</li>
+        {% endfor %}
+      </ul>
+
+      <h2>Approvals</h2>
+      <ul>
+        {% for a in approvals %}
+        <li><a href="/mission/{{ a.id }}{{ api_key_query }}">#{{ a.id }}</a> — {{ a.headline[:60] }}</li>
+        {% else %}
+        <li>Нет задач, требующих approve</li>
+        {% endfor %}
+      </ul>
+
+      <h2>System Status</h2>
+      <p><strong>Общий:</strong> {{ health.status }}</p>
+      <p><strong>Active workflows:</strong> {{ running_count }}</p>
+      <p><strong>Paused:</strong> {{ paused_count }}</p>
+      <ul>
+        {% for name, check in health.checks.items() %}
+        <li>{{ name }}: {{ check.status }}</li>
+        {% endfor %}
+      </ul>
+    </aside>
+  </div>
+</body>
+</html>
+
