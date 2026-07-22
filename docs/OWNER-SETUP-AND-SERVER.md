@@ -101,10 +101,14 @@ Telegram polling с RU-сервера: задайте `TELEGRAM_PROXY_URL` на 
 
 **Факты (июль 2026):** на `62.113.42.227` уже nginx (mywavewake). Docker изначально не установлен. EU-мост: SOCKS5 `72.56.99.214:1080` (3proxy, auth strong). Caddy на 80/443 **не использовать**.
 
-### 5.0 DNS (панель timeweb / DNS домена)
+### 5.0 DNS (панель timeweb / DNS домена **mywavewake.ru**)
 
 A-запись: `agm` → `62.113.42.227`  
-Проверка: `nslookup agm.mywavetreaning.ru` → должен показать этот IP.
+Итоговый хост: **`agm.mywavewake.ru`** (не `mywavetreaning.ru` — это устаревшее имя из старых docs).
+
+Проверка: `nslookup agm.mywavewake.ru` → должен показать `62.113.42.227`.
+
+`DASHBOARD_URL=https://agm.mywavewake.ru`
 
 ### 5.1 Telegram proxy (проверено)
 
