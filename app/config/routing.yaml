@@ -112,3 +112,11 @@ domains:
         pipeline: [PS, PM, BE, QA, SEC]
         roundtable: [LEGAL, RC]
         execute_gate: OWNER_APPROVAL_IF_PII_OR_PROD
+
+  BUSINESS:
+    task_types:
+      revenue_execution:
+        criticality: HIGH
+        pipeline: [PS, PM, CONTENT, DATA, FIN, LEGAL]
+        roundtable: [FIN, RC, LEGAL]
+        execute_gate: OWNER_APPROVAL_IF_CONTRACTS_OR_MONEY

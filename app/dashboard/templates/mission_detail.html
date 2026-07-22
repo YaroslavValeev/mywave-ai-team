@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ mission_title }} — Mission #{{ task.id }}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; background: #121826; color: #e5e7eb; }
+    a { color: #60a5fa; }
+    .grid { display:grid; grid-template-columns: 2fr 1fr; gap:1rem; }
+    .card { border:1px solid #334155; border-radius:10px; padding:1rem; background:#0f172a; }
+    .step { display:flex; justify-content:space-between; padding:0.35rem 0; border-bottom:1px dashed #233047; }
+    .done { color:#86efac; }
+    .waiting_owner { color:#fdba74; }
+    .running { color:#93c5fd; }
+    .actions form { display:inline-block; margin-right:0.5rem; margin-top:0.4rem; }
+    button { border:0; border-radius:7px; padding:0.45rem 0.75rem; cursor:pointer; font-weight:600; }
+    .viewbar { margin: 1rem 0; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .viewbar a { padding: 0.35rem 0.75rem; border-radius: 8px; text-decoration: none; border: 1px solid #334155; }
+    .viewbar a.active { background: #1d4ed8; border-color: #3b82f6; color: #eff6ff; }
+    .hero-next { font-size: 1.05rem; line-height: 1.45; padding: 0.75rem; background: #1e293b; border-radius: 8px; border-left: 4px solid #38bdf8; margin-top: 0.5rem; }
+    .muted { color: #94a3b8; font-size: 0.9rem; }
+    .artifact-hints { font-size: 0.82rem; color: #94a3b8; margin: 0.25rem 0 0.75rem 1rem; list-style: disc; }
+  </style>
+</head>
+<body>
+  <h1>{{ mission_title }}</h1>
+  <p class="muted">Миссия #{{ task.id }}{% if project %} · проект: {{ project.name }}{% endif %}</p>
+  <p><a href="/missions{{ api_key_query }}">← Missions</a> · <a href="/tasks/{{ task.id }}{{ api_key_query }}">Классическая карточка</a></p>
+
+  <div class="viewbar">
+    <span class="muted">Режим:</span>
+    <a href="/mission/{{ task.id }}{{ access_query_business }}" class="{{ 'active' if view_mode == 'business' else '' }}">Business View</a>
+    <a href="/mission/{{ task.id }}{{ access_query_system }}" class="{{ 'active' if view_mode == 'system' else '' }}">System View</a>
+  </div>
+
+  {% if exploration_waiting %}
+  <section class="card" style="margin-bottom:1rem;border-left:4px solid #38bdf8;background:#0c1222;">
+    <h2>Сценарии exploration</h2>
+    <p class="muted">Актуальный шаг: выбор сценария. Пока <code>selected_option_id</code> не задан, pipeline и суд не считаются текущим этапом (колонки triage ниже — из маршрутизации, не «завершённый court»).</p>
+    <p><strong>Статус задачи:</strong> {{ task.status }} · <strong>Домен triage:</strong> {{ task.domain or '—' }}</p>
+    {% if exploration_options %}
+    <ul style="list-style:none;padding-left:0;">
+      {% for opt in exploration_options %}
+      <li style="margin:0.5rem 0;padding:0.5rem;background:#111827;border-radius:8px;">
+        <strong>{{ opt.get('id', '—') }}</strong> — {{ opt.get('title', '') }}<br/>
+        <span class="muted">{{ opt.get('result', '') }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">Список сценариев пуст в business_action_json — перезапустите оркестрацию или откройте задачу после выдачи сценариев.</p>
+    {% endif %}
+    <p class="muted">Выбор: кнопки в Telegram или <code>POST /api/exploration/select</code> с <code>task_id</code> и <code>option_id</code>.</p>
+  </section>
+  {% endif %}
+
+  {% if has_execution_from_scenario %}
+  <section class="card" style="margin-bottom:1rem;border-left:4px solid #22c55e;background:#0c1222;">
+    <h2>Подготовка к Cursor (dry-run)</h2>
+    <p class="muted">Статус <strong>{{ task.status }}</strong>. Это не вердикт суда: структура и промпты собраны до запуска реальной работы в репозитории.</p>
+    {% set sel = execution_from_scenario.get('selected_option') if execution_from_scenario is mapping else {} %}
+    {% if sel is mapping and sel.get('title') %}
+    <p><strong>Сценарий:</strong> {{ sel.get('title', '—') }}</p>
+    {% endif %}
+    <p><a href="/mission/{{ task.id }}/execution-from-scenario.md{{ api_key_query }}">Скачать весь план (.md)</a>
+    · <span class="muted">JSON: <code>business_action_json.execution_from_scenario</code></span></p>
+
+    <h3>Структура проекта (план)</h3>
+    <ul style="margin:0.25rem 0 0.75rem 1.1rem;">
+      {% for line in execution_from_scenario.get('project_structure', []) %}
+      <li><code>{{ line }}</code></li>
+      {% else %}
+      <li class="muted">—</li>
+      {% endfor %}
+    </ul>
+
+    <h3>Задачи агентам</h3>
+    <ul style="list-style:none;padding-left:0;">
+      {% for row in execution_from_scenario.get('agent_tasks', []) %}
+      {% if row is mapping %}
+      <li style="margin:0.4rem 0;padding:0.5rem;background:#111827;border-radius:8px;">
+        <strong>{{ row.get('agent', '—') }}</strong> — {{ row.get('task', '') }}
+      </li>
+      {% endif %}
+      {% else %}
+      <li class="muted">—</li>
+      {% endfor %}
+    </ul>
+
+    <h3>Cursor-промпты</h3>
+    <p class="muted">Запускайте по порядку в Cursor на целевом репозитории.</p>
+    {% for p in execution_from_scenario.get('cursor_prompts', []) %}
+    {% if p is mapping %}
+    <div style="margin:0.75rem 0;padding:0.75rem;background:#0f172a;border:1px solid #334155;border-radius:8px;">
+      <p style="margin:0 0 0.35rem 0;"><strong>{{ loop.index }}. {{ p.get('agent', 'agent') }}</strong>
+        <button type="button" style="float:right;background:#334155;color:#e2e8f0;border:0;border-radius:6px;padding:0.25rem 0.5rem;font-size:0.8rem;cursor:pointer;" onclick="copyExecPrompt({{ loop.index }})">Копировать</button></p>
+      <pre id="exec-prompt-{{ loop.index }}" style="white-space:pre-wrap;word-break:break-word;margin:0;font-size:0.88rem;">{{ p.get('prompt', '') }}</pre>
+    </div>
+    {% endif %}
+    {% else %}
+    <p class="muted">—</p>
+    {% endfor %}
+    {% if execution_from_scenario.get('system_note') %}
+    <p class="muted" style="margin-top:0.75rem;"><strong>Примечание:</strong> {{ execution_from_scenario.get('system_note') }}</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if view_mode == 'business' and owner_protocol %}
+  {% set st = owner_protocol.get('status') or {} %}
+  {% set code = st.get('code', 'OK') %}
+  <section class="card" style="margin-bottom:1rem;border-left:4px solid {% if code == 'STOP' %}#ef4444{% elif code == 'WARNING' %}#f59e0b{% else %}#22c55e{% endif %};">
+    <h2>Как работать сегодня</h2>
+    <p><strong>Статус:</strong> {{ st.get('title', '—') }} — {{ st.get('message', '') }}</p>
+    {% if st.get('details') %}
+    <ul class="muted" style="margin:0.35rem 0 0.5rem 1.1rem;">
+      {% for d in st.get('details') %}<li>{{ d }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    <p class="muted" style="margin-top:0.5rem;">Короткий протокол на день:</p>
+    <ol style="margin:0.25rem 0 0 1.1rem;line-height:1.45;">
+      {% for line in owner_protocol.get('checklist', []) %}
+      <li>{{ line }}</li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+
+  {% if view_mode == 'business' %}
+  <section class="card" style="margin-bottom:1rem;">
+    <h2>Бизнес-результат</h2>
+    <p><strong>Тип работы:</strong> {{ owner_workstream }}</p>
+    <p><strong>Бизнес-цель:</strong> {{ business_goal_display or '— (задайте цель проекта или уточните в intake)' }}</p>
+    <p><strong>Ценность:</strong> {{ business_value_text }}</p>
+    <p><strong>Влияние:</strong> {{ impact_display }}{% if impact_score is not none %} (score {{ '%.2f'|format(impact_score) }}){% endif %}</p>
+    {% if business_action.get('action_type') %}
+    <p class="muted">Класс действия: {{ business_action.get('action_type') }} · ожидаемый исход: {{ business_action.get('expected_outcome', '—') }}</p>
+    {% endif %}
+  </section>
+
+  <section class="card" style="margin-bottom:1rem;">
+    <h2>Что делать сейчас</h2>
+    <div class="hero-next">{{ next_business_step }}</div>
+  </section>
+
+  <section class="card" style="margin-bottom:1rem;">
+    <h2>Влияние на проект</h2>
+    <p>{{ impact_on_project }}</p>
+  </section>
+
+  <section class="card" style="margin-bottom:1rem;">
+    <h2>Деньги и результат</h2>
+    <p><strong>Лиды:</strong> {{ revenue_summary.get('leads', 0) }} · <strong>Продажи:</strong> {{ revenue_summary.get('sales', 0) }}</p>
+    <p><strong>Доход:</strong> {{ revenue_summary.get('revenue_total', 0) }}</p>
+    {% if revenue_summary.get('warnings') %}
+    <p class="muted">Warnings: {{ revenue_summary.get('warnings')|join('; ') }}</p>
+    {% endif %}
+  </section>
+
+  <section class="card" style="margin-bottom:1rem;">
+    <h2>Оптимизация / Рост</h2>
+    <p><strong>Что сейчас даёт результат:</strong>
+      {% if growth_insight.get('top_packs') %}
+        {% for p in growth_insight.get('top_packs') %}{{ p.get('pack_type') }}{% if not loop.last %}, {% endif %}{% endfor %}
+      {% else %}—{% endif %}
+    </p>
+    <p><strong>Этот тип действия приносит деньги:</strong>
+      {% if pack_learning.get('revenue_signal', 0) > 0 %}да{% else %}нет{% endif %}
+      · <strong>надёжность сигнала:</strong> {{ pack_learning.get('reliability', 'низкая') }}
+    </p>
+    <p class="muted">{{ pack_learning.get('notes_for_builder', 'Сигнал пока недостаточный.') }}</p>
+    {% if growth_insight.get('recommendations') %}
+    <p><strong>Рекомендации:</strong></p>
+    <ul>
+      {% for r in growth_insight.get('recommendations') %}<li>{{ r }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+
+  {% set dyn = growth_insight.get('pack_dynamics') or [] %}
+  {% if dyn %}
+  <section class="card" style="margin-bottom:1rem;">
+    <h2>Динамика</h2>
+    <p class="muted">Тренд по сравнению 7d vs 30d · confidence от объёма (≥8 — полный сигнал).</p>
+    <ul style="list-style:none; padding-left:0;">
+      {% for p in dyn %}
+      {% if p.get('generated', 0) > 0 or p.get('trend') != 'stable' %}
+      <li style="margin:0.35rem 0;">
+        {% if p.get('trend') == 'improving' %}<span title="7d лучше 30d">↑ растёт (7d)</span>
+        {% elif p.get('trend') == 'declining' %}<span title="7d слабее 30d">↓ падает (30d)</span>
+        {% else %}<span title="Нет устойчивого сдвига">→ без сильного тренда</span>{% endif %}
+        · <strong>{{ p.get('pack_type') }}</strong>
+        <span class="muted">· conf {{ '%.2f'|format(p.get('confidence', 0)|float) }} · n={{ p.get('generated', 0) }}</span>
+      </li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <section class="card" style="margin-bottom:1rem;">
+    <h2>Execution Pack (после суда / GM)</h2>
+    <p class="muted">Отдельно от блока «Подготовка к Cursor» выше: pack появляется после pipeline и court, когда сформировано готовое бизнес-действие.</p>
+    {% if execution_pack %}
+    <p><strong>{{ execution_pack.get('action_title', 'Execution Pack') }}</strong></p>
+    <p class="muted">{{ execution_pack.get('why', '') }}</p>
+    <p><a href="/mission/{{ task.id }}/execution-pack{{ api_key_query }}">Открыть Execution Pack</a></p>
+
+    <h3>Насколько этот тип действия обычно срабатывает</h3>
+    <p><strong>Тип:</strong> {{ pack_learning.get('pack_type', execution_pack.get('pack_type', '-')) }}</p>
+    <p><strong>Надёжность:</strong> {{ pack_learning.get('reliability', 'низкая') }}</p>
+    <p><strong>Полезность:</strong> {{ pack_learning.get('historical_usefulness', 0) }}
+      · <strong>failure:</strong> {{ pack_learning.get('failure_rate', 0) }}</p>
+    <p class="muted">{{ pack_learning.get('notes_for_builder', 'Сигнал пока недостаточный.') }}</p>
+    {% else %}
+    <p class="muted">Execution pack пока не сформирован{% if has_execution_from_scenario %} (для этой миссии есть dry-run выше — это нормально){% endif %}.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if project and view_mode == 'business' %}
+  <p class="muted">Стадия: {{ project.stage or '—' }} · фокус: {{ project.owner_focus_level or '—' }}</p>
+  {% endif %}
+
+  <div class="grid">
+    <section class="card">
+      <h2>{% if view_mode == 'business' %}Ход работы{% else %}Workflow View{% endif %}</h2>
+      {% if exploration_waiting %}
+      <p class="muted" style="margin-bottom:0.75rem;">Шаги ниже отражают прогресс до выбора сценария (этапы pipeline/court не выполнялись).</p>
+      {% endif %}
+      <p>Статус: <strong>{{ workflow.status }}</strong>
+        · {% if view_mode == 'business' %}Этап{% else %}Текущий шаг{% endif %}: <strong>{{ workflow.current_step_display }}</strong>
+        · Прогресс: <strong>{{ workflow.progress_done }}/{{ workflow.progress_total }}</strong></p>
+      {% for s in workflow.steps %}
+      <div class="step {{ s.status }}">
+        <span>{% if view_mode == 'business' %}{{ s.display_name }}{% else %}{{ s.name }}{% endif %}</span>
+        <span>{{ s.status }}</span>
+      </div>
+      {% endfor %}
+
+      <h2>Approvals</h2>
+      {% if exploration_waiting %}
+      <p>Сначала выберите сценарий exploration (см. блок выше). Approve применяется после прохождения pipeline/court.</p>
+      {% elif task.status == 'EXECUTION_READY' %}
+      <p>Сейчас нужен <strong>запуск в Cursor</strong> по промптам выше, не approve суда. После появления артефактов можно снова запустить оркестрацию.</p>
+      {% elif needs_approval %}
+      <p>Требуется решение Owner: миссия ожидает approve.</p>
+      {% else %}
+      <p>Сейчас блокирующих approvals нет.</p>
+      {% endif %}
+      <div class="actions">
+        {% if not exploration_waiting and task.status != 'EXECUTION_READY' %}
+        <form method="post" action="/approve{{ api_key_query }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#10b981;color:#062014;">Approve</button></form>
+        <form method="post" action="/tasks/{{ task.id }}/rework{{ api_key_query }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#f59e0b;color:#2b1600;">Reject/Rework</button></form>
+        <form method="post" action="/tasks/{{ task.id }}/clarify{{ api_key_query }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#38bdf8;color:#062034;">Clarify</button></form>
+        {% endif %}
+        <form method="post" action="/pause{{ api_key_query }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#64748b;color:#e2e8f0;">Pause</button></form>
+        <form method="post" action="/resume{{ api_key_query }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#a78bfa;color:#1f1235;">Resume</button></form>
+        <form method="post" action="/cancel{{ api_key_query }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#ef4444;color:#fff1f2;">Cancel</button></form>
+      </div>
+
+      {% if view_mode == 'system' %}
+      <h2>Бизнес-данные (сырой контур)</h2>
+      <p>Business: <strong>{{ business_type }}</strong> · Impact: <strong>{{ impact_level }}</strong></p>
+      {% if gm_decision %}
+      <p class="muted">GM template: {{ gm_decision.get('workflow_template', '—') }}</p>
+      {% endif %}
+      {% endif %}
+
+      <h2>Owner Decisions</h2>
+      <ul>
+        {% for d in approvals %}
+        <li>{{ d.at or '-' }} · {{ d.decision }} · owner_approval={{ d.owner_approval }}</li>
+        {% else %}
+        <li>Решений пока нет</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <aside class="card">
+      <h2>Артефакты</h2>
+      <ul style="list-style:none;padding:0;">
+        {% for a in artifacts %}
+        <li style="margin-bottom:0.75rem;">
+          <a href="{{ a.url }}">#{{ a.id }} {{ a.step_name }}</a>
+          {% if a.action_hints %}
+          <ul class="artifact-hints">
+            {% for h in a.action_hints %}<li>{{ h }}</li>{% endfor %}
+          </ul>
+          {% endif %}
+        </li>
+        {% else %}
+        <li>Артефактов пока нет</li>
+        {% endfor %}
+      </ul>
+
+      <h2>System Status</h2>
+      {% if view_mode == 'system' %}
+      <p>Task status: <strong>{{ task.status }}</strong></p>
+      <p>Runner state: <strong>{{ workflow.runner.state or 'idle' }}</strong></p>
+      <p>Runner phase: <strong>{{ workflow.runner.phase or 'idle' }}</strong></p>
+      {% else %}
+      <p class="muted">Технические детали раннера — в System View.</p>
+      {% endif %}
+
+      <h2>Latest Events</h2>
+      <ul>
+        {% for e in recent_events %}
+        <li>{{ e.created_at or '-' }} · {{ e.event_type }}</li>
+        {% else %}
+        <li>Событий нет</li>
+        {% endfor %}
+      </ul>
+    </aside>
+  </div>
+  <script>
+    function copyExecPrompt(n) {
+      var el = document.getElementById('exec-prompt-' + n);
+      if (!el || !navigator.clipboard) return;
+      navigator.clipboard.writeText(el.textContent || '').then(function () {
+        alert('Промпт скопирован');
+      });
+    }
+  </script>
+</body>
+</html>

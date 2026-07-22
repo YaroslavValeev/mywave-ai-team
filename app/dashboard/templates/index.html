@@ -12,7 +12,16 @@
 </head>
 <body>
     <h1>MyWave AI-TEAM Dashboard v0</h1>
-    <p><a href="/tasks">Список задач</a></p>
+    <p><a href="/office{{ api_key_query }}">Офис MyWave: игровой интерфейс</a></p>
+    <p><a href="/tasks{{ api_key_query }}">Классический список задач</a></p>
+    <p><a href="/missions{{ api_key_query }}">Owner Operating Console</a></p>
     <p>Основной канал: Telegram bot DM</p>
+    <h2>Состояние системы</h2>
+    <p><strong>Общий статус:</strong> {{ health.status }}</p>
+    <ul>
+        {% for name, check in health.checks.items() %}
+        <li><strong>{{ name }}:</strong> {{ check.status }} — {{ check.message }}</li>
+        {% endfor %}
+    </ul>
 </body>
 </html>

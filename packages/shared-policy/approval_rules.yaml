@@ -1,0 +1,24 @@
+version: "0.1-draft"
+approval:
+  read_only_requires_approval: false
+  critical_actions:
+    - codebase_write
+    - git_commit
+    - git_push
+    - patch_application
+    - deploy_release_prod
+    - file_write_outside_sandbox
+    - external_api_action
+    - telegram_production_send
+    - personal_data_operation
+    - money_legal_public_action
+    - destructive_operation
+  decision_outcomes:
+    - approve
+    - rework
+    - clarify
+  states:
+    requested: REQUESTED
+    approved: APPROVED
+    rejected: REJECTED
+    expired: EXPIRED

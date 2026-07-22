@@ -1,0 +1,14 @@
+# docker-compose.server.yml — RU VPS с уже работающим nginx (без Caddy).
+# На RU порт 8080 часто занят → публикуем 127.0.0.1:8088.
+# !override заменяет ports из docker-compose.yml (иначе Compose склеивает оба и падает на 8080).
+#
+# Запуск:
+#   docker compose -f docker-compose.yml -f docker-compose.server.yml up -d --build
+services:
+  app:
+    ports: !override
+      - "127.0.0.1:8088:8080"
+
+  caddy:
+    profiles:
+      - never

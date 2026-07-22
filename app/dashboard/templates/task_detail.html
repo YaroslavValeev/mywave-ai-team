@@ -9,23 +9,95 @@
         a { color: #4fc3f7; }
         pre { background: #0d0d1a; padding: 1rem; overflow-x: auto; }
         .section { margin-top: 1.5rem; }
+        .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
+        .actions form { margin: 0; }
+        button { cursor: pointer; border: 0; border-radius: 0.4rem; padding: 0.6rem 1rem; font-weight: 600; }
+        .approve { background: #26a69a; color: #fff; }
+        .rework { background: #ffb300; color: #1a1a1a; }
+        .clarify { background: #4fc3f7; color: #0d0d1a; }
+        .merged { background: #9ccc65; color: #102a12; }
     </style>
 </head>
 <body>
     <h1>Task #{{ task.id }}</h1>
-    <p><a href="/tasks">← К списку</a></p>
+    <p><a href="/tasks{{ api_key_query }}">← К списку</a></p>
+    <p><a href="/office/tasks/{{ task.id }}{{ api_key_query }}">Открыть игровую сцену этой миссии</a></p>
 
     <div class="section">
         <h2>Инфо</h2>
-        <p><strong>Status:</strong> {{ task.status }}</p>
-        <p><strong>Domain:</strong> {{ task.domain or '-' }}</p>
-        <p><strong>Type:</strong> {{ task.task_type or '-' }}</p>
-        <p><strong>Criticality:</strong> {{ task.criticality or '-' }}</p>
-        <p><strong>Plan/Execute:</strong> {{ task.plan_or_execute or '-' }}</p>
+        <p><strong>Статус:</strong> {{ task.status }}</p>
+        <p><strong>Домен:</strong> {{ task.domain or '-' }}</p>
+        <p><strong>Тип:</strong> {{ task.task_type or '-' }}</p>
+        <p><strong>Критичность:</strong> {{ task.criticality or '-' }}</p>
+        <p><strong>План / Исполнение:</strong> {{ task.plan_or_execute or '-' }}</p>
     </div>
 
+    {% if verdict_hidden_for_execution_ready %}
     <div class="section">
-        <h2>Owner text</h2>
+        <p class="muted"><strong>Важно:</strong> найден старый court verdict, но миссия сейчас в <code>EXECUTION_READY</code>. Текущий шаг — запустить dry-run план в Cursor, а не проходить approve суда.</p>
+    </div>
+    {% endif %}
+
+    {% if exploration_waiting %}
+    <div class="section">
+        <h2>Exploration — выберите сценарий</h2>
+        <p>Миссия в <strong>WAIT_OWNER</strong> до выбора сценария. Домен/тип в карточке ниже — из triage, не завершённый court.</p>
+        {% if exploration_options %}
+        <ul>
+          {% for opt in exploration_options %}
+          <li><strong>{{ opt.get('id', '—') }}</strong> — {{ opt.get('title', '') }} — {{ opt.get('result', '') }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        <p>Выбор через Telegram или <code>POST /api/exploration/select</code>.</p>
+    </div>
+    {% endif %}
+
+    {% if has_execution_from_scenario %}
+    <div class="section">
+        <h2>Подготовка к Cursor (dry-run)</h2>
+        <p><strong>Статус:</strong> {{ task.status }} — промпты и план в JSON, не вердикт суда.</p>
+        <p><a href="/mission/{{ task.id }}/execution-from-scenario.md{{ api_key_query }}">Скачать план (.md)</a>
+        · <a href="/mission/{{ task.id }}{{ api_key_query }}">Полная карточка Mission</a></p>
+        <h3>Cursor-промпты (по порядку)</h3>
+        {% for p in execution_from_scenario.get('cursor_prompts', []) %}
+        {% if p is mapping %}
+        <div style="margin:0.75rem 0;padding:0.75rem;background:#0d0d1a;border-radius:8px;border:1px solid #2a2a40;">
+            <p style="margin:0 0 0.35rem 0;"><strong>{{ loop.index }}. {{ p.get('agent', 'agent') }}</strong>
+            <button type="button" class="approve" style="float:right;font-size:0.8rem;padding:0.25rem 0.5rem;" onclick="copyTaskExecPrompt({{ loop.index }})">Копировать</button></p>
+            <pre id="task-exec-prompt-{{ loop.index }}" style="white-space:pre-wrap;word-break:break-word;margin:0;">{{ p.get('prompt', '') }}</pre>
+        </div>
+        {% endif %}
+        {% else %}
+        <p>—</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if can_decide %}
+    <div class="section">
+        <h2>Действия владельца</h2>
+        <div class="actions">
+            <form method="post" action="/tasks/{{ task.id }}/approve{{ api_key_query }}">
+                <button class="approve" type="submit">Утвердить</button>
+            </form>
+            <form method="post" action="/tasks/{{ task.id }}/rework{{ api_key_query }}">
+                <button class="rework" type="submit">На доработку</button>
+            </form>
+            <form method="post" action="/tasks/{{ task.id }}/clarify{{ api_key_query }}">
+                <button class="clarify" type="submit">Нужно уточнение</button>
+            </form>
+            {% if can_mark_merged %}
+            <form method="post" action="/tasks/{{ task.id }}/merged{{ api_key_query }}">
+                <button class="merged" type="submit">Подтвердить merge</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="section">
+        <h2>Текст владельца</h2>
         <pre>{{ owner_text_display or '-' }}</pre>
     </div>
 
@@ -41,10 +113,10 @@
     </div>
 
     <div class="section">
-        <h2>Decision log</h2>
+        <h2>Журнал решений</h2>
         <ul>
             {% for d in decisions %}
-            <li>{{ d.decision }} (owner_approval: {{ d.owner_approval }}) — {{ d.at.strftime('%Y-%m-%d %H:%M') if d.at else '-' }}</li>
+            <li>{{ d.decision }} (утверждение owner: {{ d.owner_approval }}) — {{ d.at.strftime('%Y-%m-%d %H:%M') if d.at else '-' }}</li>
             {% else %}
             <li>Нет решений</li>
             {% endfor %}
@@ -55,21 +127,42 @@
         <h2>Handoffs / отчёты .md</h2>
         <ul>
             {% for h in handoffs %}
-            <li>{{ h.step }}: {{ h.md_path or '-' }}</li>
+            <li>
+                {{ h.step }}:
+                {% if h.url %}
+                <a href="{{ h.url }}">Открыть</a> — {{ h.md_path or '-' }}
+                {% else %}
+                {{ h.md_path or '-' }}
+                {% endif %}
+            </li>
             {% else %}
             <li>Нет handoffs</li>
             {% endfor %}
         </ul>
-        {% if task.report_path %}
-        <p><strong>Final report:</strong> {{ task.report_path }}</p>
+        {% if verdict_hidden_for_exploration %}
+        <p class="muted"><strong>Вердикт суда скрыт:</strong> сначала выберите сценарий exploration (в БД может оставаться старый артефакт от прошлого прогона).</p>
+        {% elif verdict_hidden_for_execution_ready %}
+        <p class="muted"><strong>Вердикт суда скрыт:</strong> миссия в <code>EXECUTION_READY</code>, сейчас актуален dry-run и запуск в Cursor. Этот verdict относится к прошлому циклу.</p>
+        {% elif verdict_url %}
+        <p><strong>Финальный вердикт суда:</strong> <a href="{{ verdict_url }}">Открыть</a> — {{ verdict_path }}</p>
+        {% endif %}
+        {% if report_url %}
+        <p><strong>Финальный отчёт:</strong> <a href="{{ report_url }}">Открыть</a> — {{ task.report_path }}</p>
         {% endif %}
     </div>
 
     {% if summary_display %}
     <div class="section">
-        <h2>Summary</h2>
+        <h2>Итог</h2>
         <pre>{{ summary_display }}</pre>
     </div>
     {% endif %}
+    <script>
+        function copyTaskExecPrompt(n) {
+            var el = document.getElementById('task-exec-prompt-' + n);
+            if (!el || !navigator.clipboard) return;
+            navigator.clipboard.writeText(el.textContent || '').then(function () { alert('Скопировано'); });
+        }
+    </script>
 </body>
 </html>

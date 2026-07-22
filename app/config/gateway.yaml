@@ -1,0 +1,64 @@
+# Gateway (OpenClaw-style): кто может что запрашивать и откуда берётся секрет.
+# Агенты и MCP не читают .env напрямую — только через app.gateway.
+version: "1"
+
+scopes:
+  github:
+    description: "GitHub API / gh CLI (PR, репозиторий)"
+    server_resolvable: true
+    actions:
+      pr:
+        env_any_of: ["GH_TOKEN", "GITHUB_TOKEN"]
+      read:
+        env_any_of: ["GH_TOKEN", "GITHUB_TOKEN"]
+
+  database:
+    description: "Подключение к БД приложения"
+    server_resolvable: true
+    actions:
+      app:
+        env_any_of: ["DATABASE_URL"]
+
+  openai:
+    description: "OpenAI API (LLM / CrewAI)"
+    server_resolvable: true
+    actions:
+      api:
+        env_any_of: ["OPENAI_API_KEY"]
+
+  telegram:
+    description: "Telegram Bot API"
+    server_resolvable: true
+    actions:
+      bot:
+        env_any_of: ["TELEGRAM_BOT_TOKEN"]
+
+  dashboard:
+    description: "Owner API / Dashboard"
+    server_resolvable: true
+    actions:
+      owner_auth:
+        env_any_of: ["OWNER_API_KEY"]
+
+  filesystem_local:
+    description: "ФС и процессы на машине владельца (инвентарь проектов, локальный поиск)"
+    server_resolvable: false
+    runtime: local_runner
+    actions:
+      scan:
+        note: "Секреты не хранятся на сервере; capability выдаётся только локальному runner с отдельной политикой."
+
+  google_cloud:
+    description: "Google Cloud / Workspace (списки проектов и т.д.)"
+    server_resolvable: true
+    actions:
+      api:
+        env_any_of: ["GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_OAUTH_ACCESS_TOKEN"]
+
+  mcp:
+    description: "Вызовы MCP / внешних tool-серверов от имени системы"
+    server_resolvable: true
+    actions:
+      invoke:
+        env_any_of: ["OWNER_API_KEY"]
+        note: "Идентификация через тот же owner key к Control API."

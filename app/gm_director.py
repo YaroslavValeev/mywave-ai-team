@@ -98,6 +98,14 @@ class GMDirectorInput(BaseModel):
     business_action: dict[str, Any] = Field(default_factory=dict)
 
 
+class ScenarioOption(BaseModel):
+    id: str
+    title: str
+    what: str
+    result: str
+    risk: str
+
+
 def _text_mass(brief: TaskBrief) -> tuple[int, int]:
     raw = f"{brief.title}\n{brief.goal}\n{brief.input_summary}\n{brief.desired_outcome}\n{brief.context_summary}"
     att_n = len(brief.attachments or [])
@@ -433,3 +441,37 @@ def apply_gm_layer(resp: NormalizeIntakeResponse) -> NormalizeIntakeResponse:
         },
     )
     return resp.model_copy(update={"gm_decision": gm})
+
+
+def build_exploration_scenarios(owner_text: str) -> dict[str, Any]:
+    raw = (owner_text or "").strip()
+    options = [
+        ScenarioOption(
+            id="s1",
+            title="MVP по одной стране",
+            what="Пилот по 1 стране: собрать источники, создать 1 страницу и 1 канал лидов.",
+            result="Первый валидированный спрос и базовая воронка лидов.",
+            risk="Сигнал может быть шумным из-за узкого охвата.",
+        ).model_dump(),
+        ScenarioOption(
+            id="s2",
+            title="Агрегатор с партнёрской витриной",
+            what="Подключить 10-20 источников и собрать витрину предложений.",
+            result="Более широкий входящий поток и основа для коммерческих переговоров.",
+            risk="Больше зависимости от качества источников и синхронизации данных.",
+        ).model_dump(),
+        ScenarioOption(
+            id="s3",
+            title="Контентный запуск + SEO",
+            what="Сделать структуру стран, контент и SEO-страницы.",
+            result="Устойчивый органический поток и основа для долгого роста.",
+            risk="Дольше до первых денег по сравнению с MVP-пилотом.",
+        ).model_dump(),
+    ]
+    return {
+        "exploration_mode": True,
+        "owner_prompt": raw[:200] if raw else "Новая идея проекта",
+        "options": options,
+        "recommended_option_id": "s1",
+        "recommendation": "Начать с s1 (MVP): минимальная стоимость ошибки и быстрый цикл learning -> execution.",
+    }

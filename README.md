@@ -2,7 +2,8 @@
 
 **AI Office System** — control-plane: Telegram → задача → оркестрация по ролям → approve → артефакты.  
 **Канон runtime, профили `office-full` / `office-lite`, границы MVP:** [docs/CANONICAL-RUNTIME.md](docs/CANONICAL-RUNTIME.md).  
-**Первый живой сценарий (Telegram → артефакты):** [docs/CANONICAL-SCENARIO-V1.md](docs/CANONICAL-SCENARIO-V1.md).
+**Первый живой сценарий (Telegram → артефакты):** [docs/CANONICAL-SCENARIO-V1.md](docs/CANONICAL-SCENARIO-V1.md).  
+**Deploy и секреты (owner playbook):** [docs/OWNER-SETUP-AND-SERVER.md](docs/OWNER-SETUP-AND-SERVER.md).
 
 Иерархическая multi-agent система **«Конвейер → Круглый стол → Суд (AGM)»** для MyWave.
 
@@ -31,6 +32,8 @@ docker-compose.yml
 Dockerfile
 ```
 
+**Legacy (deprecated):** `src/main.py` и `docker/Dockerfile` — старый путь запуска только бота. Канонический entrypoint: `python -m app.main` (см. корневой `Dockerfile`).
+
 ## Локальный запуск (без Caddy)
 
 Для разработки — app слушает 8080 напрямую. Добавь в `docker-compose.override.yml`:
@@ -48,6 +51,39 @@ cp .env.example .env
 # Заполнить TELEGRAM_BOT_TOKEN, OWNER_CHAT_ID, POSTGRES_PASSWORD, OWNER_API_KEY
 docker compose up -d
 # Dashboard: http://localhost:8080 (заголовок X-API-Key)
+```
+
+**Профили Docker** (подробно: [docs/CANONICAL-RUNTIME.md](docs/CANONICAL-RUNTIME.md)):
+
+| Команда | Профиль |
+|---------|---------|
+| `docker compose up -d --build` | office-lite (default) |
+| `DOCKER_BUILD_TARGET=full docker compose up -d --build` | office-full (+ crewai, нужен `OPENAI_API_KEY`) |
+
+### Ежедневный локальный режим (Windows, стабильно)
+
+Готовые скрипты в `scripts/`:
+
+- `local_stack_start.ps1` — запуск `postgres + app (+ caddy)` в фоне
+- `local_stack_status.ps1` — статус и последние логи `app`
+- `local_stack_stop.ps1` — остановка стека (`-All` для `docker compose down`)
+- `install_startup_task.ps1` — автозапуск при входе в Windows (Task Scheduler)
+- `uninstall_startup_task.ps1` — удалить автозапуск
+
+Примеры:
+
+```powershell
+# 1) Ручной запуск
+powershell -ExecutionPolicy Bypass -File .\scripts\local_stack_start.ps1
+
+# 2) Проверка
+powershell -ExecutionPolicy Bypass -File .\scripts\local_stack_status.ps1
+
+# 3) Установить автозапуск при логине
+powershell -ExecutionPolicy Bypass -File .\scripts\install_startup_task.ps1
+
+# 4) Остановить (мягко, без down)
+powershell -ExecutionPolicy Bypass -File .\scripts\local_stack_stop.ps1
 ```
 
 ## Деплой agm.mywavetreaning.ru (production)

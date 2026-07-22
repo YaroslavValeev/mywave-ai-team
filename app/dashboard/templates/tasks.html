@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tasks — MyWave AI-TEAM</title>
+    <title>Задачи — MyWave AI-TEAM</title>
     <style>
         body { font-family: system-ui, sans-serif; margin: 2rem; background: #1a1a2e; color: #eee; }
         a { color: #4fc3f7; }
@@ -14,15 +14,16 @@
 </head>
 <body>
     <h1>Задачи</h1>
-    <p><a href="/">Назад</a></p>
+    <p><a href="/{{ api_key_query }}">Назад</a></p>
+    <p><a href="/office{{ api_key_query }}">Открыть игровой интерфейс офиса</a></p>
     <table>
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Domain</th>
-                <th>Status</th>
-                <th>Criticality</th>
-                <th>Created</th>
+                <th>Домен</th>
+                <th>Статус</th>
+                <th>Критичность</th>
+                <th>Создано</th>
                 <th></th>
             </tr>
         </thead>
@@ -34,7 +35,7 @@
                 <td>{{ t.status }}</td>
                 <td>{{ t.criticality }}</td>
                 <td>{{ t.created_at[:19] if t.created_at else '-' }}</td>
-                <td><a href="/tasks/{{ t.id }}">Детали</a></td>
+                <td><a href="/tasks/{{ t.id }}{{ api_key_query }}">Детали</a></td>
             </tr>
             {% else %}
             <tr><td colspan="6">Нет задач</td></tr>

@@ -1,0 +1,23 @@
+# docker-compose.server-full.yml — office-full на RU (nginx, без Caddy, порт 8088)
+# Требует OPENAI_API_KEY (или OPENAI_BASE_URL) в .env
+# CREWAI_MODEL / CREWAI_DEFAULT_MODEL (рекомендуется gpt-4.1-nano)
+#
+# Запуск:
+#   docker compose -f docker-compose.yml -f docker-compose.server-full.yml up -d --build
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: full
+    environment:
+      ORCHESTRATION_ENGINE: ${ORCHESTRATION_ENGINE:-auto}
+      ORCHESTRATION_ALLOW_FALLBACK: ${ORCHESTRATION_ALLOW_FALLBACK:-true}
+      CREWAI_MODEL: ${CREWAI_MODEL:-gpt-4.1-nano}
+      CREWAI_DEFAULT_MODEL: ${CREWAI_DEFAULT_MODEL:-gpt-4.1-nano}
+    ports: !override
+      - "127.0.0.1:8088:8080"
+
+  caddy:
+    profiles:
+      - never

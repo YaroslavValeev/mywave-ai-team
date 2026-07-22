@@ -1,6 +1,6 @@
 # MCP — подключение Tools к Cursor/агентам
 
-Private MCP Server для MyWave AI-TEAM. Инструменты: tasks, artifacts, pipeline, PR, logs, health.
+Private MCP Server для MyWave AI-TEAM. Инструменты: tasks, artifacts, pipeline, owner actions (approve/rework/clarify/merge), runs, execution events, logs, health.
 
 ## Что это даёт
 
@@ -18,6 +18,13 @@ Cursor-агенты работают с AI-TEAM напрямую через MCP 
 | `pipeline_run` | Запустить пайплайн |
 | `pr_create` | Создать PR (через gateway) |
 | `logs_get` | Логи по task_id (без секретов) |
+| `tasks_list` | Список задач (GET /api/tasks) |
+| `task_mark_merged` | Подтвердить ручной merge |
+| `task_approve` | Owner approve (как Telegram/Dashboard) |
+| `task_rework` | Owner rework |
+| `task_clarify` | Owner clarify |
+| `runs_list` | Персистентные проходы оркестрации |
+| `execution_events_list` | События исполнения SoT (limit опционально) |
 | `health` | Статус окружения |
 
 ## Подключение в Cursor

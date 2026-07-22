@@ -1,0 +1,112 @@
+import os
+
+from sqlalchemy import text
+
+from app.config import get_orchestration_config, get_telegram_config
+from app.orchestrator.crewai_bridge import is_crewai_enabled
+from app.shared.auth import get_owner_api_key
+from app.storage.repositories import get_engine
+
+
+def collect_system_health() -> dict:
+    checks = {
+        "database": _check_database(),
+        "auth": _check_auth(),
+        "gateway": _check_gateway(),
+        "telegram": _check_telegram(),
+        "orchestration": _check_orchestration(),
+        "runner": _check_runner(),
+    }
+    overall = "ok"
+    if any(item["status"] == "error" for item in checks.values()):
+        overall = "error"
+    elif any(item["status"] == "warn" for item in checks.values()):
+        overall = "warn"
+    return {"status": overall, "checks": checks}
+
+
+def _check_database() -> dict:
+    try:
+        with get_engine().connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ok", "message": "Database connection is healthy."}
+    except Exception as exc:
+        return {"status": "error", "message": f"Database check failed: {exc}"}
+
+
+def _check_auth() -> dict:
+    if get_owner_api_key():
+        return {"status": "ok", "message": "OWNER_API_KEY is configured."}
+    return {"status": "error", "message": "OWNER_API_KEY is missing."}
+
+
+def _check_gateway() -> dict:
+    """OpenClaw-style gateway: реестр capabilities из app/config/gateway.yaml."""
+    try:
+        from app.gateway import gateway_health
+
+        status, message = gateway_health()
+        return {"status": status, "message": message}
+    except Exception as exc:
+        return {"status": "warn", "message": f"Gateway check failed: {exc}"}
+
+
+def _check_telegram() -> dict:
+    cfg = get_telegram_config()
+    token = cfg.get("bot_token") or os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = cfg.get("owner_chat_id") or os.getenv("OWNER_CHAT_ID")
+    if token and chat_id:
+        return {"status": "ok", "message": "Telegram bot token and owner chat id are configured."}
+    return {"status": "warn", "message": "Telegram notifications are not fully configured."}
+
+
+def _check_orchestration() -> dict:
+    cfg = get_orchestration_config()
+    engine = cfg.get("engine", "auto")
+    if engine == "rule_based":
+        return {"status": "ok", "message": "Rule-based orchestration is active."}
+
+    try:
+        from crewai import Agent  # type: ignore
+    except Exception as exc:
+        status = "warn" if cfg.get("allow_fallback", True) else "error"
+        hint = (
+            " Установи пакет crewai в образ или верни rule-based: ORCHESTRATION_ENGINE=rule_based в .env."
+        )
+        return {"status": status, "message": f"CrewAI runtime unavailable: {exc}.{hint}"}
+
+    model = cfg.get("crewai_model") or os.getenv("OPENAI_MODEL_NAME") or os.getenv("MODEL")
+    if not model and not os.getenv("OPENAI_API_KEY"):
+        status = "warn" if cfg.get("allow_fallback", True) else "error"
+        return {"status": status, "message": "CrewAI enabled but model/api key not configured."}
+
+    mode = "enabled" if is_crewai_enabled() else "inactive"
+    return {"status": "ok", "message": f"CrewAI runtime is {mode}; model={model or 'default'}."}
+
+
+def _check_runner() -> dict:
+    repo = os.getenv("GITHUB_REPOSITORY")
+    token = os.getenv("GH_TOKEN") or os.getenv("GITHUB_TOKEN")
+    if not token:
+        try:
+            from app.gateway.secrets import github_token
+
+            token = github_token()
+        except Exception:
+            token = None
+    cursor_hint = ""
+    try:
+        from app.runners.cursor_runner.runner import get_runner_config
+
+        cr = get_runner_config()
+        cursor_hint = (
+            f" Cursor CLI: {cr.get('cursor_binary')}"
+            f" ({'найден' if cr.get('cursor_binary_exists') else 'не найден в PATH'})."
+        )
+    except Exception as exc:
+        cursor_hint = f" Cursor runner config unavailable: {exc}."
+
+    if repo and token:
+        return {"status": "ok", "message": "Runner PR integration is configured." + cursor_hint}
+    msg = "Runner PR integration is partial: GITHUB_REPOSITORY or GH_TOKEN missing (проверьте gateway и env)."
+    return {"status": "warn", "message": msg + cursor_hint}
