@@ -161,6 +161,10 @@ async def api_create_task(request: Request):
                 criticality=triage_result.get("criticality"),
                 plan_or_execute=triage_result.get("plan_or_execute"),
             )
+        auto_run = body.get("auto_run") in (True, "true", "1", 1, "yes")
+        if auto_run:
+            # PH / HTTP clients: create + orchestrate in one call
+            return run_task_orchestration(repo, task.id, source="api_auto_run")
         return {
             "id": task.id,
             "mission_id": task.id,

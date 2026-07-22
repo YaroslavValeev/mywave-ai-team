@@ -124,11 +124,13 @@ Agents → Molt по-прежнему: `MOLT_TRANSPORT_MODE=http`, `MOLT_HTTP_BA
 ## Критерий готовности этапа B
 
 - [x] Umbrella видит Agents `@ main` (junction `services/agents_live`)
-- [x] `AgentsControlClient` + `scripts/smoke_agents_control.py`
+- [x] `AgentsControlClient` + `scripts/smoke_agents_control.py` (+ `--full` / `--approve`)
 - [x] PH: `agents_control_bridge` + crosswalk `agent_actions.agents_task_id` + hooks propose/apply
 - [x] Molt `/ready` учитывает Agents health (если `AGENTS_CONTROL_ENABLED=1`)
-- [ ] Живой E2E Owner: PH propose → Agents WAIT_OWNER → apply/approve → Molt execution
-- [ ] Нет второго независимого task engine (проверить на E2E)
+- [x] Живой E2E Owner: create → WAIT_OWNER → approve → DONE (#4, #6 на прод)
+- [x] POST `/api/tasks` + `auto_run: true` (после deploy rebuild)
+- [ ] PH desktop live propose→approve against prod (Owner PC)
+- [ ] Agents→Molt HTTP execution on local stack (`MOLT_TRANSPORT_MODE=http`)
 
 ## Риски
 
