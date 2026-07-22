@@ -26,9 +26,13 @@
 
 ## Следующие шаги слияния (без big-bang)
 
-1. Umbrella `services/agents` → git submodule / path pointer на этот remote.
-2. Molt HTTP service вызывает Agents Control API (`/api/tasks/...`) как единственный governance entry.
-3. Personal_Helper UI ходит в тот же API (parity с Telegram/Dashboard).
-4. `packages/shared-core` в umbrella — единственный SoT client; Agents остаётся owner store.
+Подробный контракт: [INTEGRATION_THREE_LAYERS.md](INTEGRATION_THREE_LAYERS.md).
+
+1. Umbrella: Agents pointer/junction на prod clone `@ main` (`scripts/integration/link_agents_pointer.ps1`).
+2. HTTP-клиент: `packages/agents-http-client` → PH и Molt.
+3. Personal_Helper → Control API (`AGENTS_CONTROL_ENABLED=1`).
+4. Molt → Control API health/status (не второй task engine); Agents→Molt через `MOLT_HTTP_*`.
+5. Smoke: PH create → WAIT_OWNER → approve → execution.
+6. Позже: git submodule / физический layout `apps/` без смены контракта.
 
 Rollback: продолжать использовать только этот репозиторий как сейчас (MVP control-plane).
