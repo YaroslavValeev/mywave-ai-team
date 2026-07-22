@@ -27,9 +27,9 @@
 
 | Данные | Где взять | Как установить |
 |--------|-----------|----------------|
-| DNS A `agm` → IP сервера | Панель DNS `mywavetreaning.ru` (timeweb) | A-запись `agm` = публичный IP VPS |
+| DNS A `agm` → IP сервера | Панель DNS `mywavewake.ru` (timeweb) | A-запись `agm` = публичный IP VPS |
 | BasicAuth пароль Caddy | Придумать сильный пароль | `docker run --rm caddy:2 caddy hash-password --plaintext "ВАШ_ПАРОЛЬ"` → hash в `Caddyfile` |
-| `DASHBOARD_URL` | Фиксированный | `DASHBOARD_URL=https://agm.mywavetreaning.ru` |
+| `DASHBOARD_URL` | Фиксированный | `DASHBOARD_URL=https://agm.mywavewake.ru` |
 
 ### 1.3 Опциональные (office-full / LLM / runner)
 
@@ -136,19 +136,19 @@ cp .env.example .env
 nano .env
 # См. блок переменных ниже
 
-# 3) App+Postgres на 127.0.0.1:8080 (Caddy отключён профилем)
-docker compose -f docker-compose.yml -f docker-compose.server.yml up -d --build
-docker compose -f docker-compose.yml -f docker-compose.server.yml ps
-docker compose -f docker-compose.yml -f docker-compose.server.yml logs -f app
+# 3) App+Postgres на 127.0.0.1:8088 (nginx снаружи; office-full)
+docker compose -f docker-compose.yml -f docker-compose.server-full.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.server-full.yml ps
+docker compose -f docker-compose.yml -f docker-compose.server-full.yml logs -f app
 
-# 4) nginx vhost
-cp deploy/nginx-agm.mywavetreaning.ru.conf /etc/nginx/sites-available/agm.mywavetreaning.ru
-ln -sf /etc/nginx/sites-available/agm.mywavetreaning.ru /etc/nginx/sites-enabled/
+# 4) nginx vhost (канон: agm.mywavewake.ru)
+cp deploy/nginx-agm.mywavewake.ru.conf /etc/nginx/sites-available/agm.mywavewake.ru
+ln -sf /etc/nginx/sites-available/agm.mywavewake.ru /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
-certbot --nginx -d agm.mywavetreaning.ru
+certbot --nginx -d agm.mywavewake.ru
 
 # 5) Проверки
-curl -s -H "X-API-Key: ВАШ_OWNER_API_KEY" https://agm.mywavetreaning.ru/api/system/health
+curl -s -H "X-API-Key: ВАШ_OWNER_API_KEY" https://agm.mywavewake.ru/api/system/health
 # Telegram: #TASK Проверка prod 10/10
 ```
 
@@ -159,11 +159,11 @@ TELEGRAM_BOT_TOKEN=...
 OWNER_CHAT_ID=510686579
 OWNER_API_KEY=...
 POSTGRES_PASSWORD=...
-DASHBOARD_URL=https://agm.mywavetreaning.ru
+DASHBOARD_URL=https://agm.mywavewake.ru
 DASHBOARD_LINK_SECRET=...
 TELEGRAM_PROXY_URL=socks5://YaroslavValeev:MyWaveParser2026@72.56.99.214:1080
 GITHUB_REPOSITORY=YaroslavValeev/mywave-ai-team
-ORCHESTRATION_ENGINE=rule_based
+ORCHESTRATION_ENGINE=auto
 ```
 
 Для office-full: `DOCKER_BUILD_TARGET=full`, `ORCHESTRATION_ENGINE=auto`, `OPENAI_API_KEY`, `CREWAI_MODEL=gpt-4.1-nano`.
@@ -193,8 +193,17 @@ curl -s -H "X-API-Key: $OWNER_API_KEY" https://agm.mywavewake.ru/api/system/heal
 cd /opt/mywave/ai-team
 bash scripts/install_backup_cron.sh
 # разовая проверка:
-COMPOSE_PROJECT_DIR=/opt/mywave/ai-team bash scripts/backup_postgres.sh /opt/mywave/backups/ai-team
+COMPOSE_PROJECT_DIR=/opt/mywave/ai-team \
+  COMPOSE_FILE=docker-compose.yml:docker-compose.server-full.yml \
+  bash scripts/backup_postgres.sh /opt/mywave/backups/ai-team
 ls -la /opt/mywave/backups/ai-team/
+```
+
+### 5.5 Ops-check (одним скриптом)
+
+```bash
+cd /opt/mywave/ai-team
+bash scripts/server_ops_check.sh
 ```
 
 Слои PH / Agents / Molt: [LAYER_MAP.md](migration/LAYER_MAP.md).
@@ -222,17 +231,18 @@ docker compose up -d --build
 
 ### Владелец (сервер)
 
-- [ ] `.env`: `TELEGRAM_BOT_TOKEN`, `OWNER_CHAT_ID`, `OWNER_API_KEY`, `POSTGRES_PASSWORD`, `DASHBOARD_URL`
-- [ ] DNS `agm.mywavetreaning.ru` → IP сервера
-- [ ] `Caddyfile` с bcrypt hash (не коммитить)
-- [ ] `curl` HTTPS: 401 без auth, 200 с BasicAuth на `/tasks`
-- [ ] `GET /api/system/health` с `X-API-Key` → OK
-- [ ] Telegram `#TASK` → оркестрация → **WAIT_OWNER** + кнопки
+- [x] `.env`: `TELEGRAM_BOT_TOKEN`, `OWNER_CHAT_ID`, `OWNER_API_KEY`, `POSTGRES_PASSWORD`, `DASHBOARD_URL=https://agm.mywavewake.ru`
+- [x] DNS `agm.mywavewake.ru` → `62.113.42.227` + nginx → `127.0.0.1:8088`
+- [x] `TELEGRAM_PROXY_URL` через EU SOCKS `72.56.99.214:1080`
+- [x] `GET /api/system/health` с `X-API-Key` → OK
+- [x] Telegram `#TASK` → оркестрация → **WAIT_OWNER** + кнопки
+- [ ] Cron бэкапа: `bash scripts/install_backup_cron.sh` (если ещё не ставили после pull)
+- [ ] Опционально: ротация `TELEGRAM_BOT_TOKEN` в BotFather (если токен светился в чате)
 
-### Опционально (office-full)
+### office-full (прод сейчас)
 
-- [ ] `DOCKER_BUILD_TARGET=full`, `OPENAI_API_KEY`, `ORCHESTRATION_ENGINE=auto`
-- [ ] Health показывает orchestration engine `auto` / crewai available
+- [x] `docker-compose.server-full.yml`, `OPENAI_API_KEY`, `ORCHESTRATION_ENGINE=auto`, `CREWAI_MODEL=gpt-4.1-nano`
+- [x] Health: CrewAI runtime enabled
 
 ---
 
