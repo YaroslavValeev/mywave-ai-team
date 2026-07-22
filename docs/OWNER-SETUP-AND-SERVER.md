@@ -81,11 +81,11 @@ scp .env user@SERVER_IP:/path/to/MyWave_AI_TEAM_Presets_v1_1/.env
 
 | Роль | Хост | IP | Назначение |
 |------|------|-----|------------|
-| **App + Dashboard + Postgres + Caddy** | mywave-bot-server | `62.113.42.227` | `agm.mywavetreaning.ru`, сайт, боты в своих папках |
-| **EU Telegram bridge** | Friendly Cygnus | `72.56.99.214` | Доступ к Telegram API из РФ без VPN на клиенте |
-| DNS A `agm` | → | `62.113.42.227` | Панель DNS `mywavetreaning.ru` |
+| **App + Dashboard + Postgres** (nginx снаружи) | mywave-bot-server | `62.113.42.227` | `agm.mywavewake.ru`, сайт, боты в своих папках |
+| **EU Telegram bridge** | shared-eu-socks | `72.56.99.214:1080` | SOCKS5 → Telegram API из РФ |
+| DNS A `agm` | → | `62.113.42.227` | Панель DNS `mywavewake.ru` |
 
-`DASHBOARD_URL=https://agm.mywavetreaning.ru`
+`DASHBOARD_URL=https://agm.mywavewake.ru`
 
 Telegram polling с RU-сервера: задайте `TELEGRAM_PROXY_URL` на socks5/http **к мосту** (порт — тот, что настроен на 72.56.99.214). Если мост уже проброшен на localhost RU-машины — `socks5://127.0.0.1:PORT`.
 
