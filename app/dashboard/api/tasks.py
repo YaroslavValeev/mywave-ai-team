@@ -79,6 +79,7 @@ async def api_list_tasks():
                     "id": t.id,
                     "mission_id": t.id,
                     "domain": t.domain,
+                    "task_type": t.task_type,
                     "status": t.status,
                     "criticality": t.criticality,
                     "business_type": t.business_type,
