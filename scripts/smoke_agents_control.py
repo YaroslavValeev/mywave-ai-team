@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
-"""Smoke: Agents Control API health + create + list (не требует approve).
+"""Smoke: Agents Control API health / create / pipeline / approve.
 
-Usage:
-  export AGENTS_CONTROL_API_URL=https://agm.mywavewake.ru
-  export AGENTS_API_KEY=...   # or OWNER_API_KEY
-  python scripts/smoke_agents_control.py
-
-  # только health:
-  python scripts/smoke_agents_control.py --health-only
+Usage (on RU or PC, with .env sourced or env vars set):
+  python3 scripts/smoke_agents_control.py --health-only
+  python3 scripts/smoke_agents_control.py --text "#TASK smoke"
+  python3 scripts/smoke_agents_control.py --pipeline 4
+  python3 scripts/smoke_agents_control.py --approve 4 --note "ok"
+  python3 scripts/smoke_agents_control.py --full --text "#TASK smoke B full"
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,9 +25,18 @@ if str(CLIENT) not in sys.path:
 from agents_http_client import AgentsControlClient, AgentsControlError  # noqa: E402
 
 
+def _pp(label: str, data: object, limit: int = 800) -> None:
+    print(f"{label}:", json.dumps(data, ensure_ascii=False)[:limit])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Smoke Agents Control API")
     parser.add_argument("--health-only", action="store_true")
+    parser.add_argument("--full", action="store_true", help="create → pipeline → wait WAIT_OWNER")
+    parser.add_argument("--pipeline", type=int, metavar="TASK_ID", help="POST pipeline/run")
+    parser.add_argument("--approve", type=int, metavar="TASK_ID", help="POST approve")
+    parser.add_argument("--note", default="smoke approve", help="approve note")
+    parser.add_argument("--wait-sec", type=int, default=180, help="max wait for WAIT_OWNER in --full")
     parser.add_argument(
         "--text",
         default="#TASK smoke_agents_control from scripts",
@@ -48,25 +56,72 @@ def main() -> int:
     except AgentsControlError as exc:
         print(f"FAIL health: {exc}", file=sys.stderr)
         return 1
-    print("health:", json.dumps(health, ensure_ascii=False)[:500])
+    _pp("health", health, 500)
     if health.get("status") != "ok":
         return 1
     if args.health_only:
         print("OK health-only")
         return 0
 
+    if args.pipeline is not None:
+        try:
+            out = client.run_pipeline(args.pipeline)
+            _pp("pipeline", out)
+            detail = client.get_task(args.pipeline)
+            _pp("get_task", detail, 500)
+        except AgentsControlError as exc:
+            print(f"FAIL pipeline: {exc} body={exc.body}", file=sys.stderr)
+            return 1
+        print("OK pipeline")
+        return 0
+
+    if args.approve is not None:
+        try:
+            out = client.approve(args.approve, note=args.note)
+            _pp("approve", out)
+        except AgentsControlError as exc:
+            print(f"FAIL approve: {exc} body={exc.body}", file=sys.stderr)
+            return 1
+        print("OK approve")
+        return 0
+
     try:
         task = client.create_task(owner_text=args.text)
-        print("created:", json.dumps(task, ensure_ascii=False)[:800])
+        _pp("created", task)
         tid = task.get("id") or task.get("task_id")
-        if tid is not None:
-            detail = client.get_task(tid)
-            print("get_task:", json.dumps(detail, ensure_ascii=False)[:500])
+        if tid is None:
+            print("FAIL: no task id in create response", file=sys.stderr)
+            return 1
+        detail = client.get_task(tid)
+        _pp("get_task", detail, 500)
     except AgentsControlError as exc:
         print(f"FAIL create/get: {exc} body={exc.body}", file=sys.stderr)
         return 1
 
-    print("OK smoke_agents_control")
+    if not args.full:
+        print("OK smoke_agents_control (create only)")
+        return 0
+
+    try:
+        _pp("pipeline", client.run_pipeline(tid))
+    except AgentsControlError as exc:
+        print(f"FAIL pipeline: {exc} body={exc.body}", file=sys.stderr)
+        return 1
+
+    deadline = time.time() + max(30, args.wait_sec)
+    status = None
+    while time.time() < deadline:
+        detail = client.get_task(tid)
+        status = detail.get("status")
+        print(f"status={status}")
+        if status in ("WAIT_OWNER", "DONE", "APPROVED", "EXECUTE", "MERGED"):
+            break
+        time.sleep(5)
+    _pp("final", detail, 600)
+    if status == "WAIT_OWNER":
+        print("OK full → WAIT_OWNER (approve via Telegram or --approve)")
+        return 0
+    print(f"WARN full ended with status={status}", file=sys.stderr)
     return 0
 
 
