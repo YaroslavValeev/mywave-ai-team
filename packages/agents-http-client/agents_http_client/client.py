@@ -93,6 +93,7 @@ class AgentsControlClient:
         task_type: str = "general",
         payload: Optional[dict[str, Any]] = None,
         criticality: str = "normal",
+        auto_run: bool = False,
     ) -> dict[str, Any]:
         if owner_text:
             body: dict[str, Any] = {"owner_text": owner_text}
@@ -103,7 +104,17 @@ class AgentsControlClient:
                 "payload": payload or {},
                 "criticality": criticality,
             }
-        return self._request("POST", "/api/tasks", body)
+        if auto_run:
+            body["auto_run"] = True
+        created = self._request("POST", "/api/tasks", body)
+        if auto_run and isinstance(created, dict):
+            tid = created.get("id") or created.get("task_id")
+            if tid is not None and created.get("status") == "NEW":
+                # Fallback when API ignores auto_run (older deploy)
+                piped = self.run_pipeline(tid)
+                if isinstance(piped, dict) and piped.get("status"):
+                    created = {**created, **piped, "id": tid, "mission_id": tid}
+        return created
 
     def run_pipeline(self, task_id: int | str) -> dict[str, Any]:
         return self._request("POST", f"/api/tasks/{task_id}/pipeline/run")
