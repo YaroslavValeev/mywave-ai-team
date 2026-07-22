@@ -73,3 +73,47 @@ def test_approve_flow_audit_and_decision(db_session):
 
     decisions = db_session.query(Decision).filter(Decision.task_id == task.id).all()
     assert any(d.decision == "a" and d.owner_approval for d in decisions)
+
+
+def test_run_task_orchestration_keeps_wait_owner_when_roundtable_requires_it(db_session, tmp_path, monkeypatch):
+    """Даже PLAN-задача остаётся в WAIT_OWNER, если roundtable явно требует owner gate."""
+    from app.dashboard import api_router
+    from app.orchestrator import sync_run as sync_run_module
+    from app.storage.repositories import TaskRepository
+
+    repo = TaskRepository(db_session)
+    task = repo.create_task(owner_text="# TASK studio bot admin")
+    report_path = tmp_path / "final_report.md"
+    report_path.write_text("# Report\n\ncontent", encoding="utf-8")
+
+    monkeypatch.setattr(
+        sync_run_module,
+        "run_triage",
+        lambda _text: {
+            "domain": "CLIENTOPS",
+            "task_type": "studio_bot_admin",
+            "criticality": "HIGH",
+            "plan_or_execute": "PLAN",
+            "execute_gate": "OWNER_APPROVAL_IF_PII_OR_PROD",
+        },
+    )
+    monkeypatch.setattr(sync_run_module, "run_pipeline", lambda *_args, **_kwargs: {"handoffs": [{"step": "PS", "payload": {}, "md_path": "ps.md"}]})
+    monkeypatch.setattr(
+        sync_run_module,
+        "run_roundtable",
+        lambda *_args, **_kwargs: {
+            "risk_table": [{"issue": "owner gate", "owner_approval_needed": True}],
+            "reviewers": ["SEC", "LEGAL"],
+        },
+    )
+    monkeypatch.setattr(sync_run_module, "run_court", lambda *_args, **_kwargs: {"report_path": str(report_path), "summary": "summary"})
+
+    result = api_router.run_task_orchestration(repo, task.id, source="test")
+
+    assert result["status"] == "WAIT_OWNER"
+    assert repo.get_task(task.id).status == "WAIT_OWNER"
+
+    pending = repo.get_open_pending_approval(task.id)
+    assert pending is not None
+    assert pending.status == "REQUESTED"
+    assert pending.decision_id is None

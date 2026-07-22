@@ -1,0 +1,30 @@
+version: "0.1-draft"
+routing_contract:
+  required_task_fields:
+    - domain
+    - task_type
+    - criticality
+    - plan_or_execute
+    - execute_gate
+  required_outputs:
+    - pipeline_steps
+    - roundtable_reviewers
+    - owner_approval_needed
+  domains:
+    - PRODUCT_DEV
+    - MEDIA_OPS
+    - EVENTS
+    - GAME
+    - INFRA
+    - SPONSOR_PLATFORM
+    - RND_EXTREME
+    - AUTHORITY_CONTENT
+    - CLIENTOPS
+  plan_or_execute:
+    - PLAN
+    - EXECUTE
+  criticality:
+    - LOW
+    - MEDIUM
+    - HIGH
+    - CRITICAL

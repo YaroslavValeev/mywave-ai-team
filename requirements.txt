@@ -8,3 +8,4 @@ alembic
 pyyaml
 python-dotenv
 httpx
+aiohttp-socks>=0.8.4

@@ -1,5 +1,6 @@
 # src/main.py
-# Минимальный entrypoint (заглушка). Подключи CrewAI внутри orchestrator.
+# DEPRECATED: legacy entrypoint. Use `python -m app.main` instead.
+# Kept for backward compatibility with docker/Dockerfile (legacy path).
 
 import asyncio
 from bot.telegram_gateway import run_bot

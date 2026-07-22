@@ -3,6 +3,7 @@
 .env.local
 *.env.local
 .env.*.local
+.env.server.local
 
 # Python
 __pycache__/
@@ -58,6 +59,7 @@ caddy_config/
 # Artifacts (generated)
 app/artifacts/handoffs/
 app/artifacts/reports/
+app/artifacts/tasks/
 *.db
 *.sqlite
 *.sqlite3

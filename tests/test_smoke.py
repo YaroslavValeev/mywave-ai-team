@@ -35,7 +35,19 @@ def test_triage():
     r = run_triage("# TASK\nНазвание: Деплой сайта\nЦель: выкатить прод")
     assert "domain" in r
     assert r.get("plan_or_execute") in ("PLAN", "EXECUTE")
-    assert r.get("domain") in ("PRODUCT_DEV", "MEDIA_OPS", "EVENTS", "GAME", "INFRA", "RND_EXTREME", "RUZA", "CLIENTOPS", "SPONSOR_PLATFORM", "AUTHORITY_CONTENT")
+    assert r.get("domain") in (
+        "PRODUCT_DEV",
+        "MEDIA_OPS",
+        "EVENTS",
+        "GAME",
+        "INFRA",
+        "RND_EXTREME",
+        "RUZA",
+        "CLIENTOPS",
+        "SPONSOR_PLATFORM",
+        "AUTHORITY_CONTENT",
+        "BUSINESS",
+    )
 
 
 def test_create_task(db_session):

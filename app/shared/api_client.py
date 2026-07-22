@@ -48,8 +48,22 @@ def _request(method: str, path: str, request_id: Optional[str] = None, **kwargs)
         return -1, None, str(e)
 
 
+def gateway_catalog() -> tuple[Optional[dict], Optional[str]]:
+    """GET /api/gateway/catalog — OpenClaw-style capabilities без секретов."""
+    code, body, err = _request("GET", "/api/gateway/catalog")
+    if err:
+        return None, err
+    if code == 200 and isinstance(body, dict):
+        return body, None
+    return None, f"HTTP {code}: {body}"
+
+
 def health() -> tuple[bool, str]:
-    """GET /health. Returns (ok, message)."""
+    """GET /api/system/health with auth, fallback to bare /health."""
+    code, body, err = _request("GET", "/api/system/health")
+    if err is None and code == 200 and isinstance(body, dict):
+        return body.get("status") != "error", str(body)
+
     url = BASE_URL.rstrip("/") + "/health"
     try:
         with httpx.Client(timeout=5) as client:
@@ -57,6 +71,16 @@ def health() -> tuple[bool, str]:
         return r.status_code == 200, r.text
     except Exception as e:
         return False, str(e)
+
+
+def tasks_list() -> tuple[Optional[list], Optional[str]]:
+    """GET /api/tasks."""
+    code, body, err = _request("GET", "/api/tasks")
+    if err:
+        return None, err
+    if code == 200 and isinstance(body, list):
+        return body, None
+    return None, f"HTTP {code}: {body}"
 
 
 def task_create(domain: str, task_type: str, payload: Optional[dict] = None, criticality: Optional[str] = None) -> tuple[Optional[dict], Optional[str]]:
@@ -94,6 +118,76 @@ def task_update(task_id: int, status: Optional[str] = None, pr_url: Optional[str
     return None, f"HTTP {code}: {body}"
 
 
+def task_mark_merged(task_id: int) -> tuple[Optional[dict], Optional[str]]:
+    """POST /api/tasks/{id}/merged."""
+    code, body, err = _request("POST", f"/api/tasks/{task_id}/merged")
+    if err:
+        return None, err
+    if 200 <= code < 300:
+        return body or {"ok": True}, None
+    return None, f"HTTP {code}: {body}"
+
+
+def task_approve(task_id: int) -> tuple[Optional[dict], Optional[str]]:
+    """POST /api/tasks/{id}/approve — паритет с Telegram / Dashboard."""
+    code, body, err = _request("POST", f"/api/tasks/{task_id}/approve")
+    if err:
+        return None, err
+    if 200 <= code < 300:
+        return body or {"ok": True}, None
+    return None, f"HTTP {code}: {body}"
+
+
+def task_rework(task_id: int) -> tuple[Optional[dict], Optional[str]]:
+    """POST /api/tasks/{id}/rework."""
+    code, body, err = _request("POST", f"/api/tasks/{task_id}/rework")
+    if err:
+        return None, err
+    if 200 <= code < 300:
+        return body or {"ok": True}, None
+    return None, f"HTTP {code}: {body}"
+
+
+def task_clarify(task_id: int) -> tuple[Optional[dict], Optional[str]]:
+    """POST /api/tasks/{id}/clarify."""
+    code, body, err = _request("POST", f"/api/tasks/{task_id}/clarify")
+    if err:
+        return None, err
+    if 200 <= code < 300:
+        return body or {"ok": True}, None
+    return None, f"HTTP {code}: {body}"
+
+
+def task_runs_list(task_id: int) -> tuple[Optional[dict], Optional[str]]:
+    """GET /api/tasks/{id}/runs."""
+    code, body, err = _request("GET", f"/api/tasks/{task_id}/runs")
+    if err:
+        return None, err
+    if code == 200 and isinstance(body, dict):
+        return body, None
+    return None, f"HTTP {code}: {body}"
+
+
+def task_execution_events_list(task_id: int, limit: int = 100) -> tuple[Optional[dict], Optional[str]]:
+    """GET /api/tasks/{id}/execution-events."""
+    code, body, err = _request("GET", f"/api/tasks/{task_id}/execution-events?limit={int(limit)}")
+    if err:
+        return None, err
+    if code == 200 and isinstance(body, dict):
+        return body, None
+    return None, f"HTTP {code}: {body}"
+
+
+def mission_thread_get(mission_id: int, limit: int = 200) -> tuple[Optional[dict], Optional[str]]:
+    """GET /api/missions/{id}/thread — единая нить audit + чат + handoffs."""
+    code, body, err = _request("GET", f"/api/missions/{int(mission_id)}/thread?limit={int(limit)}")
+    if err:
+        return None, err
+    if code == 200 and isinstance(body, dict):
+        return body, None
+    return None, f"HTTP {code}: {body}"
+
+
 def task_get(task_id: int, raw: bool = False) -> tuple[Optional[dict], Optional[str]]:
     """GET /api/tasks/{id}."""
     path = f"/api/tasks/{task_id}"
@@ -126,6 +220,26 @@ def artifacts_get(task_id: int, artifact_id: int) -> tuple[Optional[str], Option
         return None, err
     if code == 200 and isinstance(body, dict) and "content" in body:
         return body["content"], None
+    return None, f"HTTP {code}: {body}"
+
+
+def task_documents_list(task_id: int) -> tuple[Optional[list], Optional[str]]:
+    """GET /api/tasks/{id}/documents."""
+    code, body, err = _request("GET", f"/api/tasks/{task_id}/documents")
+    if err:
+        return None, err
+    if code == 200 and isinstance(body, dict) and "documents" in body:
+        return body["documents"], None
+    return None, f"HTTP {code}: {body}"
+
+
+def task_document_get(task_id: int, document_key: str) -> tuple[Optional[dict], Optional[str]]:
+    """GET /api/tasks/{id}/documents/{document_key}."""
+    code, body, err = _request("GET", f"/api/tasks/{task_id}/documents/{document_key}")
+    if err:
+        return None, err
+    if code == 200 and isinstance(body, dict) and "content" in body:
+        return body, None
     return None, f"HTTP {code}: {body}"
 
 

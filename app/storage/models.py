@@ -237,6 +237,17 @@ class OwnerOverride(Base):
     meta_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
 
+class IntakeDraft(Base):
+    """Persistent Smart Intake pending buttons (survives bot restart)."""
+
+    __tablename__ = "intake_drafts"
+
+    draft_id: Mapped[str] = mapped_column(String(8), primary_key=True)
+    payload_json: Mapped[dict] = mapped_column(JSON, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class Handoff(Base):
     __tablename__ = "handoffs"
 

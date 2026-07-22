@@ -4,7 +4,6 @@ import io
 import logging
 import os
 import time
-import uuid
 from urllib.parse import quote
 
 from aiogram import Bot, Dispatcher, F
@@ -29,7 +28,6 @@ from app.business_execution.growth_engine import build_growth_insight, format_gr
 
 logger = logging.getLogger(__name__)
 
-_SMART_PENDING: dict[str, dict] = {}
 _CLARIFY_REPLY_CTX: dict[int, tuple[float, dict | None]] = {}
 PENDING_TTL_SEC = int(os.getenv("INTAKE_PENDING_TTL_SEC", "900"))
 
@@ -132,27 +130,24 @@ def is_owner(chat_id: int) -> bool:
 
 
 def _pending_put(payload: dict) -> str:
-    pid = uuid.uuid4().hex[:8]
-    payload["expires_at"] = time.monotonic() + PENDING_TTL_SEC
-    _SMART_PENDING[pid] = payload
-    return pid
+    Session = get_session_factory()
+    with Session() as session:
+        repo = TaskRepository(session)
+        return repo.put_intake_draft(payload, ttl_sec=PENDING_TTL_SEC)
 
 
 def _pending_peek(pid: str) -> dict | None:
-    p = _SMART_PENDING.get(pid)
-    if not p:
-        return None
-    if time.monotonic() > p["expires_at"]:
-        _SMART_PENDING.pop(pid, None)
-        return None
-    return p
+    Session = get_session_factory()
+    with Session() as session:
+        repo = TaskRepository(session)
+        return repo.peek_intake_draft(pid)
 
 
 def _pending_pop(pid: str) -> dict | None:
-    p = _pending_peek(pid)
-    if p:
-        _SMART_PENDING.pop(pid, None)
-    return p
+    Session = get_session_factory()
+    with Session() as session:
+        repo = TaskRepository(session)
+        return repo.pop_intake_draft(pid)
 
 
 def _reply_context_from_message(message: Message) -> dict | None:

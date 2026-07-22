@@ -41,3 +41,36 @@ def get_dashboard_config() -> dict:
     if url := os.getenv("DASHBOARD_URL"):
         cfg["base_url"] = url
     return cfg
+
+
+def get_gateway_config() -> dict:
+    """Реестр OpenClaw-style capabilities (app/config/gateway.yaml)."""
+    return _load_yaml("gateway")
+
+
+def _int_env(name: str, default: int) -> int:
+    try:
+        return int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+def get_orchestration_config() -> dict:
+    return {
+        # По умолчанию auto: сначала CrewAI + роли STEP_PROFILES; при недоступности LLM — fallback (см. ORCHESTRATION_ALLOW_FALLBACK).
+        "engine": os.getenv("ORCHESTRATION_ENGINE", "auto").strip().lower() or "auto",
+        "allow_fallback": os.getenv("ORCHESTRATION_ALLOW_FALLBACK", "true").strip().lower() not in {"0", "false", "no"},
+        "telegram_retry_attempts": int(os.getenv("TELEGRAM_RETRY_ATTEMPTS", "4")),
+        "telegram_retry_base_seconds": float(os.getenv("TELEGRAM_RETRY_BASE_SECONDS", "1.5")),
+        "retention_days": int(os.getenv("RETENTION_DAYS", str(get_policy().get("logging", {}).get("retention_days", 90)))),
+        "crewai_model": os.getenv("CREWAI_MODEL", "").strip(),
+        "crewai_provider": os.getenv("CREWAI_PROVIDER", "").strip(),
+        "crewai_temperature": float(os.getenv("CREWAI_TEMPERATURE", "0.2")),
+        "crewai_timeout": int(os.getenv("CREWAI_TIMEOUT", "120")),
+        "crewai_max_tokens": _int_env("CREWAI_MAX_TOKENS", 8192),
+        "crewai_use_responses_api": os.getenv("CREWAI_USE_RESPONSES_API", "false").strip().lower() in {"1", "true", "yes"},
+        "owner_brief_limit": _int_env("ORCHESTRATION_OWNER_BRIEF_LIMIT", 12000),
+        "attachment_max_per_file": _int_env("ORCHESTRATION_ATTACHMENT_MAX_CHARS_PER_FILE", 60000),
+        "attachment_max_total": _int_env("ORCHESTRATION_ATTACHMENT_MAX_TOTAL", 240000),
+        "rule_fallback_excerpt_per_file": _int_env("ORCHESTRATION_RULE_EXCERPT_PER_FILE", 8000),
+    }

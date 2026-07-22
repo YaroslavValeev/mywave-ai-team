@@ -1,0 +1,24 @@
+version: "0.1-draft"
+entities:
+  Project:
+    required: [project_id, slug, name, status, owner_id, created_at, updated_at]
+  Task:
+    required: [task_id, project_id, owner_text, status, domain, task_type, criticality, plan_or_execute, execute_gate, created_at, updated_at]
+  Run:
+    required: [run_id, task_id, orchestrator, status, phase, started_at]
+  Decision:
+    required: [decision_id, task_id, run_id, decision_type, created_by, created_at]
+  Approval:
+    required: [approval_id, task_id, decision_id, required, status, requested_at]
+  Artifact:
+    required: [artifact_id, task_id, run_id, kind, title, path, created_at]
+  MemoryEntry:
+    required: [memory_id, project_id, scope, content, created_at]
+  Channel:
+    required: [channel_id, type, external_ref, capabilities, status]
+  Agent:
+    required: [agent_id, role, layer, capabilities, policy_scope, status]
+  PolicyRule:
+    required: [rule_id, scope, condition, effect, priority, enabled]
+  ExecutionEvent:
+    required: [event_id, task_id, run_id, event_type, phase, payload, created_at]

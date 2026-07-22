@@ -1,0 +1,13 @@
+# docker-compose.server.yml — RU VPS с уже работающим nginx (без Caddy).
+# App слушает только 127.0.0.1:8080; HTTPS/DNS — через nginx + certbot.
+#
+# Запуск:
+#   docker compose -f docker-compose.yml -f docker-compose.server.yml up -d --build
+services:
+  app:
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  caddy:
+    profiles:
+      - never

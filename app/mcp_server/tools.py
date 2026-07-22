@@ -3,6 +3,11 @@
 
 TOOLS_SPEC = [
     {
+        "name": "tasks_list",
+        "description": "Получить список задач",
+        "inputSchema": {"type": "object", "properties": {}},
+    },
+    {
         "name": "task_create",
         "description": "Создать задачу в AI-TEAM (task_id, domain, task_type, payload)",
         "inputSchema": {
@@ -31,12 +36,82 @@ TOOLS_SPEC = [
         },
     },
     {
-        "name": "task_get",
-        "description": "Получить задачу по task_id",
+        "name": "task_mark_merged",
+        "description": "Подтвердить ручной merge задачи Owner'ом",
         "inputSchema": {
             "type": "object",
             "properties": {"task_id": {"type": "string"}},
             "required": ["task_id"],
+        },
+    },
+    {
+        "name": "task_approve",
+        "description": "Owner approve (паритет Telegram/Dashboard POST /api/tasks/{id}/approve)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"task_id": {"type": "string"}},
+            "required": ["task_id"],
+        },
+    },
+    {
+        "name": "task_rework",
+        "description": "Owner rework (POST /api/tasks/{id}/rework)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"task_id": {"type": "string"}},
+            "required": ["task_id"],
+        },
+    },
+    {
+        "name": "task_clarify",
+        "description": "Owner clarify (POST /api/tasks/{id}/clarify)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"task_id": {"type": "string"}},
+            "required": ["task_id"],
+        },
+    },
+    {
+        "name": "runs_list",
+        "description": "Персистентные проходы оркестрации (GET /api/tasks/{id}/runs)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"task_id": {"type": "string"}},
+            "required": ["task_id"],
+        },
+    },
+    {
+        "name": "execution_events_list",
+        "description": "События исполнения SoT (GET /api/tasks/{id}/execution-events)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string"},
+                "limit": {"type": "integer"},
+            },
+            "required": ["task_id"],
+        },
+    },
+    {
+        "name": "task_get",
+        "description": "Получить задачу по task_id или mission_id (одинаковые идентификаторы)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"task_id": {"type": "string"}, "mission_id": {"type": "string"}, "raw": {"type": "boolean"}},
+            "anyOf": [{"required": ["task_id"]}, {"required": ["mission_id"]}],
+        },
+    },
+    {
+        "name": "mission_thread",
+        "description": "Единая нить миссии: audit + чат + handoffs (GET /api/missions/{id}/thread)",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "mission_id": {"type": "string"},
+                "task_id": {"type": "string"},
+                "limit": {"type": "integer"},
+            },
+            "anyOf": [{"required": ["task_id"]}, {"required": ["mission_id"]}],
         },
     },
     {
@@ -92,6 +167,11 @@ TOOLS_SPEC = [
     {
         "name": "health",
         "description": "Статус окружения (DB, dashboard, gateway)",
+        "inputSchema": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "gateway_catalog",
+        "description": "OpenClaw-style каталог capabilities (без секретов): какие интеграции сконфигурированы",
         "inputSchema": {"type": "object", "properties": {}},
     },
 ]

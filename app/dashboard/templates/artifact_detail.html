@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} — MyWave AI-TEAM</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        pre { background: #0d0d1a; padding: 1rem; overflow-x: auto; white-space: pre-wrap; }
+        .meta { color: #b0bec5; margin: 0.5rem 0 1rem; }
+    </style>
+</head>
+<body>
+    <p>
+        <a href="{{ office_url }}">← К миссии в Офисе</a>
+        &nbsp;|&nbsp;
+        <a href="/tasks/{{ task_id }}{{ api_key_query }}">К классической задаче</a>
+    </p>
+    <h1>{{ title }}</h1>
+    <p class="meta">{{ subtitle }}</p>
+    <p><strong>Путь:</strong> {{ path }}</p>
+    <pre>{{ content }}</pre>
+</body>
+</html>

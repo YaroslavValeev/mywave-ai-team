@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Callable, Literal, Optional
 
 from app.shared import api_client
+from app.runners.cursor_runner.local_env import merge_gateway_secrets_into_env
 
 logger = logging.getLogger(__name__)
 
@@ -20,15 +21,16 @@ RunnerMode = Literal["manual", "patch", "cursor_agent"]
 
 
 def _run(cmd: list[str], cwd: Path, env: Optional[dict] = None) -> tuple[int, str, str]:
-    """Выполнить команду. Returns (code, stdout, stderr)."""
+    """Выполнить команду. Env согласован с gateway (GH/OPENAI при отсутствии в окружении)."""
     try:
+        merged = merge_gateway_secrets_into_env(env)
         r = subprocess.run(
             cmd,
             cwd=cwd,
             capture_output=True,
             text=True,
             timeout=300,
-            env={**os.environ, **(env or {})},
+            env=merged,
         )
         return r.returncode, r.stdout or "", r.stderr or ""
     except subprocess.TimeoutExpired:
@@ -122,7 +124,10 @@ async def run_pr_loop(
     code, pytest_out, pytest_err = _run(
         ["python", "-m", "pytest", "tests/", "-q", "--tb=short"],
         workspace,
-        env={"DATABASE_URL": "sqlite:///:memory:", "OWNER_API_KEY": os.getenv("OWNER_API_KEY", "test")},
+        env={
+            "DATABASE_URL": "sqlite:///:memory:",
+            "OWNER_API_KEY": os.getenv("OWNER_API_KEY", "test"),
+        },
     )
     pytest_ok = code == 0
 
@@ -151,12 +156,13 @@ async def run_pr_loop(
     if code != 0:
         return {"success": False, "error": f"git push failed: {err_out}"}
 
-    gh_token = os.getenv("GH_TOKEN") or os.getenv("GITHUB_TOKEN")
+    merged_base = merge_gateway_secrets_into_env()
+    gh_token = merged_base.get("GH_TOKEN") or merged_base.get("GITHUB_TOKEN")
     if not gh_token:
         api_client.task_update(task_id, status="WAIT_OWNER", pr_url="", commit_sha=commit_sha, ci_url=None)
         return {"success": True, "pr_url": "", "commit_sha": commit_sha, "ci_url": "", "error": "GH_TOKEN not set, PR not created"}
 
-    env = {**os.environ, "GH_TOKEN": gh_token}
+    env = {**merged_base, "GH_TOKEN": gh_token}
     code, out, err_out = _run(
         ["gh", "pr", "create", "--title", f"[task-{task_id}] DEV REPORT", "--body", report, "--base", "main"],
         workspace,

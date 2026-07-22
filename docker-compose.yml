@@ -1,15 +1,19 @@
 # docker-compose.yml — app + postgres + Caddy reverse proxy
 # agm.mywavetreaning.ru: Caddy → BasicAuth → app (X-API-Key прокидывается автоматически)
+#
+# Профили образа app (см. docs/CANONICAL-RUNTIME.md):
+#   DOCKER_BUILD_TARGET=lite  — office-lite, rule_based (по умолчанию)
+#   DOCKER_BUILD_TARGET=full  — office-full, crewai; задайте ORCHESTRATION_ENGINE=auto и OPENAI_API_KEY в .env
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      target: ${DOCKER_BUILD_TARGET:-lite}
     env_file:
       - .env
     environment:
-      # Канон office-lite: образ из Dockerfile = requirements-minimal без crewai → по умолчанию rule_based.
-      # Для office-full: в .env задать ORCHESTRATION_ENGINE=auto и собирать образ с requirements.txt (см. docs/CANONICAL-RUNTIME.md).
+      # lite: rule_based (образ без crewai). full: задайте ORCHESTRATION_ENGINE=auto в .env.
       ORCHESTRATION_ENGINE: ${ORCHESTRATION_ENGINE:-rule_based}
       DATABASE_URL: postgresql+psycopg2://mywave:${POSTGRES_PASSWORD}@postgres:5432/mywave_ai
       POSTGRES_HOST: postgres

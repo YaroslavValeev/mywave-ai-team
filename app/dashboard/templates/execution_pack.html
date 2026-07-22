@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Execution Pack — Mission #{{ task.id }}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; background: #121826; color: #e5e7eb; }
+    .card { border:1px solid #334155; border-radius:10px; padding:1rem; background:#0f172a; max-width: 920px; margin-bottom: 1rem; }
+    a { color:#60a5fa; }
+    ul { margin-top:0.3rem; }
+    .muted { color:#94a3b8; }
+    .actions form { display:inline-block; margin-right:0.4rem; margin-top:0.4rem; }
+    button { border:0; border-radius:8px; padding:0.45rem 0.75rem; cursor:pointer; font-weight:600; }
+    textarea,input,select { width:100%; background:#111827; color:#e5e7eb; border:1px solid #334155; border-radius:8px; padding:0.45rem; }
+    label { display:block; margin-top:0.5rem; font-size:0.9rem; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+    .tag { display:inline-block; padding:0.1rem 0.45rem; border-radius:999px; background:#1f2937; font-size:0.78rem; }
+  </style>
+</head>
+<body>
+  <p>
+    <a href="/mission/{{ task.id }}{{ api_key_query }}">← Вернуться к миссии</a>
+    · <a href="/mission/{{ task.id }}/execution-pack.md{{ api_key_query }}">Экспорт в .md</a>
+  </p>
+
+  <section class="card">
+    <h1>ГОТОВОЕ ДЕЙСТВИЕ</h1>
+    <p class="muted">Mission #{{ task.id }}{% if project_name %} · {{ project_name }}{% endif %}</p>
+    <p><strong>Действие:</strong> {{ pack.get('action_title', '-') }}</p>
+    <p><strong>Зачем:</strong> {{ pack.get('why', '-') }}</p>
+    <p><span class="tag">{{ pack.get('pack_type', 'generic_pack') }}</span> ·
+       <span class="tag">Статус: {{ action.get('status', 'pending') }}</span></p>
+
+    <h3>Готовые шаги</h3>
+    <ul>{% for s in pack.get('ready_steps', []) %}<li>{{ s }}</li>{% else %}<li>—</li>{% endfor %}</ul>
+
+    <h3>Артефакты</h3>
+    <ul>{% for a in pack.get('artifacts', []) %}<li>{{ a }}</li>{% else %}<li>—</li>{% endfor %}</ul>
+
+    <p><strong>Как выполнить:</strong> {{ pack.get('how_to_execute', '-') }}</p>
+    <p><strong>Оценка времени:</strong> {{ pack.get('time_estimate', '-') }}</p>
+    <p><strong>Ожидаемый результат:</strong> {{ pack.get('expected_result', '-') }}</p>
+
+    <div class="actions">
+      <form method="post" action="/mission/{{ task.id }}/execution-pack/action{{ api_key_query }}">
+        <input type="hidden" name="status" value="in_progress">
+        <button style="background:#38bdf8;color:#062034;">Начать</button>
+      </form>
+      <form method="post" action="/mission/{{ task.id }}/execution-pack/action{{ api_key_query }}">
+        <input type="hidden" name="status" value="done">
+        <button style="background:#10b981;color:#062014;">Выполнено</button>
+      </form>
+      <form method="post" action="/mission/{{ task.id }}/execution-pack/action{{ api_key_query }}">
+        <input type="hidden" name="status" value="skipped">
+        <input type="hidden" name="owner_feedback" value="не делал">
+        <button style="background:#64748b;color:#e2e8f0;">Не делал</button>
+      </form>
+      <form method="post" action="/mission/{{ task.id }}/execution-pack/action{{ api_key_query }}">
+        <input type="hidden" name="status" value="skipped">
+        <input type="hidden" name="owner_feedback" value="не сработало">
+        <button style="background:#ef4444;color:#fff1f2;">Не сработало</button>
+      </form>
+      <button type="button" onclick="copyPlan()" style="background:#a78bfa;color:#1f1235;">Скопировать план действий</button>
+    </div>
+
+    <h3>Появился результат?</h3>
+    <div class="actions">
+      <form method="post" action="/mission/{{ task.id }}/execution-pack/action{{ api_key_query }}">
+        <input type="hidden" name="status" value="done">
+        <input type="hidden" name="money_result" value="none">
+        <button style="background:#64748b;color:#e2e8f0;">Нет</button>
+      </form>
+      <form method="post" action="/mission/{{ task.id }}/execution-pack/action{{ api_key_query }}">
+        <input type="hidden" name="status" value="done">
+        <input type="hidden" name="money_result" value="lead">
+        <input type="hidden" name="result_type" value="lead">
+        <button style="background:#22c55e;color:#052e16;">Лид</button>
+      </form>
+      <form method="post" action="/mission/{{ task.id }}/execution-pack/action{{ api_key_query }}">
+        <input type="hidden" name="status" value="done">
+        <input type="hidden" name="money_result" value="sale">
+        <input type="hidden" name="result_type" value="sale">
+        <button style="background:#16a34a;color:#f0fdf4;">Продажа</button>
+      </form>
+      <form method="post" action="/mission/{{ task.id }}/execution-pack/action{{ api_key_query }}">
+        <input type="hidden" name="status" value="done">
+        <input type="hidden" name="money_result" value="contact">
+        <input type="hidden" name="result_type" value="partner">
+        <button style="background:#06b6d4;color:#083344;">Контакт</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Результат выполнения</h2>
+    <form method="post" action="/mission/{{ task.id }}/execution-pack/action{{ api_key_query }}">
+      <input type="hidden" name="status" value="done">
+      <div class="grid">
+        <div>
+          <label>Тип результата</label>
+          <select name="result_type">
+            <option value="lead">lead</option>
+            <option value="sale">sale</option>
+            <option value="content">content</option>
+            <option value="partner">partner</option>
+          </select>
+        </div>
+        <div>
+          <label>Значение результата</label>
+          <input name="result_value" placeholder="например: 3 лида / 1 партнёр" />
+        </div>
+      </div>
+      <label>Что получилось? (коротко)</label>
+      <textarea name="result_summary" rows="3" placeholder="Что реально произошло после выполнения"></textarea>
+      <label>Feedback Owner</label>
+      <textarea name="owner_feedback" rows="2" placeholder="сработало / не сработало / почему"></textarea>
+      <label>Notes</label>
+      <textarea name="notes" rows="2" placeholder="дополнительные заметки"></textarea>
+
+      <h3>Лид (если есть)</h3>
+      <div class="grid">
+        <div><label>Канал</label><input name="lead_channel" placeholder="telegram / сайт / партнёр" /></div>
+        <div><label>Примерная ценность</label><input name="lead_value_estimate" placeholder="например 50000" /></div>
+      </div>
+      <label>Описание лида</label><textarea name="lead_notes" rows="2" placeholder="кто, что хочет"></textarea>
+
+      <h3>Продажа (если есть)</h3>
+      <div class="grid">
+        <div><label>Сумма</label><input name="sale_amount" placeholder="например 120000" /></div>
+        <div><label>Комментарий</label><input name="sale_notes" placeholder="детали сделки" /></div>
+      </div>
+      <p><button style="background:#10b981;color:#062014;" type="submit">Сохранить результат</button></p>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Action Tracking</h2>
+    <ul>
+      <li>action_id: {{ action.get('action_id', '-') }}</li>
+      <li>status: {{ action.get('status', '-') }}</li>
+      <li>started_at: {{ action.get('started_at', '-') }}</li>
+      <li>completed_at: {{ action.get('completed_at', '-') }}</li>
+      <li>result_summary: {{ action.get('result_summary', '-') }}</li>
+      <li>owner_feedback: {{ action.get('owner_feedback', '-') }}</li>
+    </ul>
+
+    <h3>Execution Metrics</h3>
+    <ul>
+      <li>actions_started: {{ metrics.get('actions_started', 0) }}</li>
+      <li>actions_completed: {{ metrics.get('actions_completed', 0) }}</li>
+      <li>useful_actions: {{ metrics.get('useful_actions', 0) }}</li>
+      <li>useless_actions: {{ metrics.get('useless_actions', 0) }}</li>
+    </ul>
+
+    <h3>Execution Scoring</h3>
+    <ul>
+      <li>specificity: {{ scoring.get('specificity', 0) }}</li>
+      <li>actionability: {{ scoring.get('actionability', 0) }}</li>
+      <li>result_probability: {{ scoring.get('result_probability', 0) }}</li>
+    </ul>
+
+    <h3>Качество шаблона</h3>
+    <ul>
+      <li>Тип: {{ learning.get('pack_type', pack.get('pack_type', '-')) }}</li>
+      <li>Надёжность: {{ learning.get('reliability', 'низкая') }}</li>
+      <li>Confidence: {{ learning.get('confidence', 0) }}</li>
+      <li>Historical usefulness: {{ learning.get('historical_usefulness', 0) }}</li>
+      <li>Failure rate: {{ learning.get('failure_rate', 0) }}</li>
+    </ul>
+    <p class="muted">{{ learning.get('notes_for_builder', 'Сигнал пока недостаточный.') }}</p>
+
+    <h3>Revenue Tracking</h3>
+    <ul>
+      <li>Leads: {{ revenue.get('leads', 0) }}</li>
+      <li>Sales: {{ revenue.get('sales', 0) }}</li>
+      <li>Revenue total: {{ revenue.get('revenue_total', 0) }}</li>
+    </ul>
+    {% if revenue.get('warnings') %}<p class="muted">Warnings: {{ revenue.get('warnings')|join('; ') }}</p>{% endif %}
+  </section>
+
+  <script>
+    function copyPlan() {
+      const lines = [
+        "Действие: {{ pack.get('action_title', '-') }}",
+        "Зачем: {{ pack.get('why', '-') }}",
+        "Готовые шаги:",
+        {% for s in pack.get('ready_steps', []) %}
+        "- {{ s }}",
+        {% endfor %}
+        "Как выполнить: {{ pack.get('how_to_execute', '-') }}",
+        "Ожидаемый результат: {{ pack.get('expected_result', '-') }}",
+      ];
+      navigator.clipboard.writeText(lines.join("\n"));
+      alert("План действий скопирован.");
+    }
+  </script>
+</body>
+</html>
