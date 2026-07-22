@@ -127,9 +127,9 @@ Agents → Molt по-прежнему: `MOLT_TRANSPORT_MODE=http`, `MOLT_HTTP_BA
 - [x] `AgentsControlClient` + `scripts/smoke_agents_control.py` (+ `--full` / `--approve`)
 - [x] PH: `agents_control_bridge` + crosswalk `agent_actions.agents_task_id` + hooks propose/apply
 - [x] Molt `/ready` учитывает Agents health (если `AGENTS_CONTROL_ENABLED=1`)
-- [x] Живой E2E Owner: create → WAIT_OWNER → approve → DONE (#4, #6 на прод)
-- [x] POST `/api/tasks` + `auto_run: true` (после deploy rebuild)
-- [ ] PH desktop live propose→approve against prod (Owner PC)
+- [x] Живой E2E Owner: create → WAIT_OWNER → approve → DONE (#4, #6, #7 auto_run на прод)
+- [x] POST `/api/tasks` + `auto_run: true` (deployed)
+- [ ] PH desktop live propose→approve against prod — см. [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md)
 - [ ] Agents→Molt HTTP execution on local stack (`MOLT_TRANSPORT_MODE=http`)
 
 ## Риски
