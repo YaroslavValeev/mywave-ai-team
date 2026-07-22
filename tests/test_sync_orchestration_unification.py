@@ -2,7 +2,7 @@ import asyncio
 
 
 def test_api_run_task_orchestration_delegates_to_sync_run(db_session, monkeypatch):
-    from app.dashboard import api_router
+    from app.dashboard.api import common as api_common
     from app.storage.repositories import TaskRepository
 
     repo = TaskRepository(db_session)
@@ -17,8 +17,8 @@ def test_api_run_task_orchestration_delegates_to_sync_run(db_session, monkeypatc
         assert control is None
         return {"ok": True, "status": "DONE", "report_path": "x.md", "summary": "ok"}
 
-    monkeypatch.setattr(api_router, "run_sync_orchestration", fake_sync)
-    result = api_router.run_task_orchestration(repo, task.id, source="api")
+    monkeypatch.setattr(api_common, "run_sync_orchestration", fake_sync)
+    result = api_common.run_task_orchestration(repo, task.id, source="api")
 
     assert called["ok"] is True
     assert result["status"] == "DONE"

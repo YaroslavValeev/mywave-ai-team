@@ -1,7 +1,9 @@
 # MERGE PLAN
 
-Статус: execution plan v1  
-Дата: 2026-04-07
+Статус: execution in progress (Agents control-plane live on agm.mywavewake.ru, 2026-07-22)  
+Дата: 2026-04-07 / update 2026-07-22
+
+См. также: [LAYER_MAP.md](LAYER_MAP.md) — роль этого репо и umbrella `NEW2026/AI-Team`.
 
 ## 1) Цель доведения проекта до конца
 

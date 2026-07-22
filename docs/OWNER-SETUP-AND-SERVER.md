@@ -168,6 +168,37 @@ ORCHESTRATION_ENGINE=rule_based
 
 Для office-full: `DOCKER_BUILD_TARGET=full`, `ORCHESTRATION_ENGINE=auto`, `OPENAI_API_KEY`, `CREWAI_MODEL=gpt-4.1-nano`.
 
+### 5.3 Переключение на office-full (CrewAI + gpt-4.1-nano)
+
+На RU после стабильного lite:
+
+```bash
+cd /opt/mywave/ai-team
+git pull origin main   # или рабочая ветка
+# в .env:
+#   ORCHESTRATION_ENGINE=auto
+#   ORCHESTRATION_ALLOW_FALLBACK=true
+#   CREWAI_MODEL=gpt-4.1-nano
+#   CREWAI_DEFAULT_MODEL=gpt-4.1-nano
+#   OPENAI_API_KEY=...
+
+docker compose -f docker-compose.yml -f docker-compose.server-full.yml up -d --build
+curl -s -H "X-API-Key: $OWNER_API_KEY" https://agm.mywavewake.ru/api/system/health
+# orchestration.message должен отражать auto/CrewAI path (с fallback на rule-based)
+```
+
+### 5.4 Бэкапы Postgres (ежедневно 03:00)
+
+```bash
+cd /opt/mywave/ai-team
+bash scripts/install_backup_cron.sh
+# разовая проверка:
+COMPOSE_PROJECT_DIR=/opt/mywave/ai-team bash scripts/backup_postgres.sh /opt/mywave/backups/ai-team
+ls -la /opt/mywave/backups/ai-team/
+```
+
+Слои PH / Agents / Molt: [LAYER_MAP.md](migration/LAYER_MAP.md).
+
 ### Rollback
 
 ```bash

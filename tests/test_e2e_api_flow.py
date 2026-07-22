@@ -71,10 +71,10 @@ def test_e2e_api_flow_create_pipeline_approve_wait_merge_and_done(db_session, tm
 
 
 def test_e2e_api_flow_uploads_txt_and_docx_as_task_documents(db_session, tmp_path, monkeypatch):
-    from app.dashboard import api_router as api_router_module
+    from app.dashboard.api import common as api_common
     from app.orchestrator import pipeline as pipeline_module
 
-    monkeypatch.setattr(api_router_module, "ARTIFACTS_DIR", tmp_path)
+    monkeypatch.setattr(api_common, "ARTIFACTS_DIR", tmp_path)
     monkeypatch.setattr(pipeline_module, "ARTIFACTS_DIR", tmp_path)
 
     client = TestClient(app, raise_server_exceptions=False)

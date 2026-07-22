@@ -234,7 +234,7 @@ def test_api_exploration_select_fallback(client, auth_headers, db_session, monke
         assert task_id_arg == task.id
         return {"ok": True, "status": "WAIT_OWNER", "report_path": "x.md", "summary": "ok"}
 
-    monkeypatch.setattr("app.dashboard.api_router.run_task_orchestration", fake_run)
+    monkeypatch.setattr("app.dashboard.api.intake.run_task_orchestration", fake_run)
     r = client.post(
         "/api/exploration/select",
         headers=auth_headers,

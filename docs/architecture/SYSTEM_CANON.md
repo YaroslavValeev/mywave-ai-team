@@ -5,7 +5,10 @@
 Назначение: каноническая модель единой системы из трёх слоёв.
 
 > **Важно:** этот документ описывает **целевую (target) архитектуру** слияния Personal_Helper / Agents / Molt.  
-> Текущий репозиторий `MyWave_AI_TEAM_Presets` реализует **единый монолитный control-plane** в `app/` — см. [PROJECT-STATUS.md](../PROJECT-STATUS.md) и [MERGE_PLAN.md](../migration/MERGE_PLAN.md) для плана миграции.
+> Текущий репозиторий `MyWave_AI_TEAM_Presets` реализует **Governance Layer (Agents)** и live control-plane на `agm.mywavewake.ru`.  
+> Umbrella workspace Owner: `f:\Проекты MyWave\NEW2026\AI-Team` (`WORKSPACE_CANON.md`).  
+> Карта слоёв: [docs/migration/LAYER_MAP.md](../migration/LAYER_MAP.md).  
+> См. [PROJECT-STATUS.md](../PROJECT-STATUS.md) и [MERGE_PLAN.md](../migration/MERGE_PLAN.md).
 
 ## 1) Архитектурная формула (канон)
 

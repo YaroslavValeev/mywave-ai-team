@@ -17,7 +17,18 @@ DATE=$(date +%Y%m%d)
 DAILY_FILE="$BACKUP_DIR/mywave_ai_${DATE}.sql.gz"
 
 # Daily backup (--clean for restore into existing DB)
-docker compose exec -T postgres pg_dump -U mywave mywave_ai --clean --if-exists | gzip > "$DAILY_FILE"
+# На RU: COMPOSE_FILE=docker-compose.yml:docker-compose.server.yml
+COMPOSE_ARGS=()
+if [[ -n "${COMPOSE_FILE:-}" ]]; then
+  IFS=':' read -ra _cf <<< "$COMPOSE_FILE"
+  for f in "${_cf[@]}"; do
+    COMPOSE_ARGS+=(-f "$f")
+  done
+elif [[ -f docker-compose.server.yml ]]; then
+  COMPOSE_ARGS=(-f docker-compose.yml -f docker-compose.server.yml)
+fi
+
+docker compose "${COMPOSE_ARGS[@]}" exec -T postgres pg_dump -U mywave mywave_ai --clean --if-exists | gzip > "$DAILY_FILE"
 echo "Backup: $DAILY_FILE"
 
 # Ротация: удалить daily старше RETENTION_DAYS
