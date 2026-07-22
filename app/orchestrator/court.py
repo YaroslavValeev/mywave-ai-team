@@ -70,6 +70,9 @@ TASK_TYPE_LABELS = {
     "studio_bot_admin": "Доработка и администрирование студийного бота",
     "feature_delivery": "Поставка фичи",
     "deploy_prod": "Внедрение в рабочую среду",
+    "marketing_plan": "Маркетинговый план (органика / 0 ₽)",
+    "content_pipeline": "Контент-пайплайн",
+    "publish_major": "Крупная публикация",
     "general": "Общая задача",
 }
 
@@ -89,6 +92,7 @@ EXECUTE_GATE_LABELS = {
     "OWNER_APPROVAL_ALWAYS": "Требуется согласование владельца перед любым исполнением",
     "OWNER_APPROVAL_IF_PROD": "Требуется согласование владельца для боевого контура",
     "OWNER_APPROVAL_IF_PII_OR_PROD": "Требуется согласование владельца при работе с персональными данными или боевым контуром",
+    "OWNER_APPROVAL_IF_PUBLISH": "Требуется согласование владельца перед публичной публикацией",
 }
 
 STEP_LABELS = {
@@ -102,6 +106,9 @@ STEP_LABELS = {
     "QA": "QA-ревьюер",
     "DEVOPS": "DevOps-инженер",
     "SEC": "Ревью безопасности",
+    "CONTENT": "Контент-редактор",
+    "BRAND": "Бренд / коммуникация",
+    "PROMPT": "Промпт-инженер контента",
     "RC": "Проверка реалистичности",
     "LEGAL": "Юрист",
     "FIN": "Финансовый аналитик",
@@ -199,6 +206,16 @@ def run_court(
 
     for point in plain_language_points:
         report_lines.append(f"- {point}")
+
+    if triage_result.get("task_type") == "marketing_plan" or triage_result.get(
+        "marketing_plan_override"
+    ):
+        report_lines.extend(["", "## Маркетинговый план (черновик, бюджет 0 ₽)"])
+        for block in _marketing_plan_blocks_from_handoffs(handoffs):
+            report_lines.append(f"### {block['title']}")
+            for line in block["lines"]:
+                report_lines.append(f"- {line}")
+            report_lines.append("")
 
     report_lines.extend([
         "",
@@ -631,6 +648,61 @@ def _localize_evidence(value: str, include_code: bool = True) -> str:
     return "; ".join(parts)
 
 
+def _marketing_plan_bullets_from_handoffs(handoffs: list[dict]) -> list[str]:
+    bullets: list[str] = []
+    for h in handoffs:
+        payload = h.get("payload") or {}
+        summary = payload.get("summary") or []
+        if isinstance(summary, str):
+            summary = [summary]
+        for line in summary:
+            text = str(line).strip()
+            if text.startswith("==="):
+                continue
+            if any(
+                key in text.lower()
+                for key in (
+                    "ца",
+                    "оффер",
+                    "telegram",
+                    "неделя",
+                    "cta",
+                    "завтра",
+                    "канал",
+                    "reels",
+                    "метрик",
+                )
+            ):
+                bullets.append(text)
+            if len(bullets) >= 8:
+                return bullets
+    return bullets
+
+
+def _marketing_plan_blocks_from_handoffs(handoffs: list[dict]) -> list[dict]:
+    blocks: list[dict] = []
+    for h in handoffs:
+        step = h.get("step") or (h.get("payload") or {}).get("step_name") or "?"
+        payload = h.get("payload") or {}
+        summary = payload.get("summary") or []
+        if isinstance(summary, str):
+            summary = [summary]
+        lines: list[str] = []
+        capture = False
+        title = f"Роль {step}"
+        for line in summary:
+            text = str(line).strip()
+            if text.startswith("===") and text.endswith("==="):
+                capture = True
+                title = text.strip("= ").strip() or title
+                continue
+            if capture and text and not text.startswith("Primary focus") and "prepared handoff" not in text:
+                lines.append(text)
+        if lines:
+            blocks.append({"title": title, "lines": lines[:12]})
+    return blocks
+
+
 def _build_plain_language_points(
     *,
     triage_result: dict,
@@ -653,10 +725,18 @@ def _build_plain_language_points(
     if task is not None:
         ow = owner_workstream_label(task, project)
         tl = mission_headline(task)
-        points.append(
-            f"Команда подготовила материалы по миссии «{tl}» (направление: {ow}): "
-            f"сформирована структура работ, определены ключевые шаги и зафиксированы риски."
-        )
+        if triage_result.get("task_type") == "marketing_plan" or triage_result.get(
+            "marketing_plan_override"
+        ):
+            points.append(
+                f"Команда подготовила маркетинг-план (органика / 0 ₽) по миссии «{tl}» "
+                f"(направление: {ow}): ЦА/оффер, бесплатные каналы, контент на 30 дней, CTA и метрики."
+            )
+        else:
+            points.append(
+                f"Команда подготовила материалы по миссии «{tl}» (направление: {ow}): "
+                f"сформирована структура работ, определены ключевые шаги и зафиксированы риски."
+            )
     else:
         points.append(
             f"Команда разобрала задачу в направлении «{_describe_domain(triage_result.get('domain'), include_code=False)}» "
@@ -665,6 +745,13 @@ def _build_plain_language_points(
     points.append(
         f"Подготовлено {len(handoffs)} передаточных документов, чтобы следующему участнику не приходилось собирать контекст заново."
     )
+
+    # Вынести суть маркетингового плана в «простыми словами»
+    if triage_result.get("task_type") == "marketing_plan" or triage_result.get(
+        "marketing_plan_override"
+    ):
+        bullets = _marketing_plan_bullets_from_handoffs(handoffs)
+        points.extend(bullets[:8])
 
     if task is not None:
         bv = business_value_text(task)

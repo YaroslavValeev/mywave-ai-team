@@ -22,6 +22,7 @@ STEP_FOCUS = {
     "DEVOPS": "deploy path, rollback, and health checks",
     "CONTENT": "content structure and publication readiness",
     "BRAND": "tone, consistency, and public fit",
+    "PROMPT": "prompt and content-generation shape",
     "RC": "reality check against scope and constraints",
     "RC2": "second-pass independent validation",
     "LEGAL": "policy, contract, and compliance exposure",
@@ -30,6 +31,16 @@ STEP_FOCUS = {
     "EVENT": "runbook, logistics, and timeline",
     "ML_PROMPT": "model behavior, prompt shape, and evidence design",
     "SEC": "security review and risk containment",
+}
+
+# Role → sections of zero-budget marketing draft
+_MARKETING_STEP_SECTIONS = {
+    "CONTENT": ("content_calendar_30d", "Контент-план 30 дней (0 ₽)"),
+    "BRAND": ("audience_offer", "ЦА и оффер"),
+    "PS": ("funnel_cta", "Воронка и CTA"),
+    "DATA": ("metrics", "Метрики 7/30 дней"),
+    "FIN": ("channels", "Бесплатные каналы и экономика времени"),
+    "PM": ("owner_tomorrow", "Действия владельца"),
 }
 
 
@@ -159,12 +170,32 @@ def _build_handoff_payload(
         )
         summary.extend(attachment_rule_excerpts)
 
+    # Маркетинговый план за 0 ₽ — substantive draft в summary (не IT feature pack).
+    if task_type == "marketing_plan" or triage_result.get("marketing_plan_override"):
+        from app.orchestrator.marketing_intent import build_zero_budget_marketing_draft
+
+        draft = build_zero_budget_marketing_draft(owner_brief)
+        key_title = _MARKETING_STEP_SECTIONS.get(step_name)
+        if key_title:
+            section_key, title = key_title
+            summary.append(f"=== {title} ===")
+            summary.extend(draft.get(section_key, []))
+        else:
+            summary.append("=== Маркетинг (фрагмент) ===")
+            summary.extend(draft.get("owner_tomorrow", [])[:3])
+        # FIN also adds owner_tomorrow actions
+        if step_name == "FIN":
+            summary.append("=== Что сделать владельцу ===")
+            summary.extend(draft.get("owner_tomorrow", []))
+
     decisions = [
         f"Keep task criticality at {criticality}.",
         f"Hand off to {next_action}.",
     ]
     if previous_step:
         decisions.insert(0, f"Use context carried from {previous_step}.")
+    if task_type == "marketing_plan":
+        decisions.append("Deliver a zero-budget marketing plan; do not route as software feature delivery.")
 
     assumptions = [
         f"Task is currently treated as {plan_or_execute}.",
@@ -172,12 +203,17 @@ def _build_handoff_payload(
     ]
     if plan_or_execute == "EXECUTE":
         assumptions.append("Execution request is present in the owner brief and must stay gated.")
+    if task_type == "marketing_plan":
+        assumptions.append("Paid media budget is 0; only organic channels and partnerships.")
 
     risks = []
     if criticality in {"HIGH", "CRITICAL"}:
         risks.append(f"{criticality} criticality requires tighter verification before closure.")
     gate_lower = (execute_gate or "").lower()
-    if "prod" in gate_lower:
+    if task_type == "marketing_plan":
+        risks.append("Organic reach is slow; owner must execute content cadence personally.")
+        risks.append("Partner/barter deals need clear value exchange to avoid unpaid labor traps.")
+    elif "prod" in gate_lower:
         risks.append("Production-facing path needs rollback and healthcheck confirmation.")
     if any(token in gate_lower for token in ("publish", "public")):
         risks.append("Public output must be reviewed before release.")
@@ -191,6 +227,8 @@ def _build_handoff_payload(
         open_questions.append("Owner brief is short; confirm exact scope and acceptance criteria if execution expands.")
     if plan_or_execute == "EXECUTE" and "always" in gate_lower:
         open_questions.append("Confirm explicit owner approval window before any execute action.")
+    if task_type == "marketing_plan":
+        open_questions.append("Confirm city/geo and primary offer (trial vs membership) if not explicit in brief.")
 
     return {
         "summary": summary,
@@ -198,6 +236,7 @@ def _build_handoff_payload(
             f"routing::{domain}/{task_type}",
             f"policy::{criticality}/{plan_or_execute}",
             f"handoff::{step_name.lower()}",
+            *(["deliverable::zero_budget_marketing_plan"] if task_type == "marketing_plan" else []),
         ],
         "decisions": decisions,
         "assumptions": assumptions,

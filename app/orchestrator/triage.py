@@ -6,15 +6,26 @@ import logging
 from app.config import get_routing, get_policy, get_orchestration_config
 from app.orchestrator.crewai_bridge import run_crewai_triage
 from app.orchestrator.exploration import detect_exploration_intent
+from app.orchestrator.marketing_intent import detect_marketing_plan_intent
 from app.orchestrator.revenue_intent import detect_revenue_intent
 
 logger = logging.getLogger(__name__)
 
 REVENUE_OVERRIDE_DOMAIN = "BUSINESS"
 REVENUE_OVERRIDE_TASK_TYPE = "revenue_execution"
+MARKETING_OVERRIDE_DOMAIN = "MEDIA_OPS"
+MARKETING_OVERRIDE_TASK_TYPE = "marketing_plan"
 
 # Порядок важен: первое совпадение побеждает (специфичные фразы — выше общих «спонсор» / «event»).
 DOMAIN_HINT_ORDERED: list[tuple[str, tuple[str, str]]] = [
+    ("маркетингов", ("MEDIA_OPS", "marketing_plan")),
+    ("marketing plan", ("MEDIA_OPS", "marketing_plan")),
+    ("рекламный план", ("MEDIA_OPS", "marketing_plan")),
+    ("рекламн", ("MEDIA_OPS", "marketing_plan")),
+    ("маркетинг", ("MEDIA_OPS", "marketing_plan")),
+    ("smm", ("MEDIA_OPS", "marketing_plan")),
+    ("контент-план", ("MEDIA_OPS", "marketing_plan")),
+    ("контент план", ("MEDIA_OPS", "marketing_plan")),
     ("стратегия запуска", ("EVENTS", "event_runbook")),
     ("стратегию запуска", ("EVENTS", "event_runbook")),
     ("план запуска", ("EVENTS", "event_runbook")),
@@ -64,6 +75,22 @@ def _revenue_triage_result(owner_text: str, routing: dict) -> dict:
         "plan_or_execute": "EXECUTE",
         "execute_gate": cfg.get("execute_gate", "OWNER_APPROVAL_IF_PROD"),
         "revenue_intent_override": True,
+        "marketing_plan_override": False,
+    }
+
+
+def _marketing_triage_result(owner_text: str, routing: dict) -> dict:
+    domains_cfg = routing.get("domains", {})
+    tt_cfg = (domains_cfg.get(MARKETING_OVERRIDE_DOMAIN) or {}).get("task_types", {})
+    cfg = tt_cfg.get(MARKETING_OVERRIDE_TASK_TYPE, {})
+    return {
+        "domain": MARKETING_OVERRIDE_DOMAIN,
+        "task_type": MARKETING_OVERRIDE_TASK_TYPE,
+        "criticality": cfg.get("criticality", "MEDIUM"),
+        "plan_or_execute": "PLAN",
+        "execute_gate": cfg.get("execute_gate", "OWNER_APPROVAL_IF_PUBLISH"),
+        "revenue_intent_override": False,
+        "marketing_plan_override": True,
     }
 
 
@@ -92,7 +119,13 @@ def run_triage(owner_text: str) -> dict:
         crewai_result = run_crewai_triage(owner_text)
         if crewai_result:
             for key in result.keys():
-                if key in {"domain", "task_type", "revenue_intent_override", "plan_or_execute"}:
+                if key in {
+                    "domain",
+                    "task_type",
+                    "revenue_intent_override",
+                    "marketing_plan_override",
+                    "plan_or_execute",
+                }:
                     continue
                 value = crewai_result.get(key)
                 if value:
@@ -104,6 +137,35 @@ def run_triage(owner_text: str) -> dict:
             result.get("domain"),
             result.get("task_type"),
             result.get("revenue_intent_override"),
+        )
+        return result
+
+    # Marketing plan (zero-budget / рекламный план): не уводить в PRODUCT_DEV/feature_delivery.
+    if detect_marketing_plan_intent(owner_text):
+        result = _marketing_triage_result(owner_text, routing)
+        result["exploration_mode"] = detect_exploration_intent(owner_text)
+        orchestration_cfg = get_orchestration_config()
+        crewai_result = run_crewai_triage(owner_text)
+        if crewai_result:
+            for key in result.keys():
+                if key in {
+                    "domain",
+                    "task_type",
+                    "revenue_intent_override",
+                    "marketing_plan_override",
+                    "plan_or_execute",
+                }:
+                    continue
+                value = crewai_result.get(key)
+                if value:
+                    result[key] = value
+        elif not orchestration_cfg.get("allow_fallback", True) and orchestration_cfg.get("engine") == "crewai":
+            raise RuntimeError("CrewAI triage required but unavailable")
+        logger.info(
+            "TRIAGE RESULT (marketing-plan) domain=%s task_type=%s marketing_override=%s",
+            result.get("domain"),
+            result.get("task_type"),
+            result.get("marketing_plan_override"),
         )
         return result
 
@@ -158,6 +220,7 @@ def run_triage(owner_text: str) -> dict:
         raise RuntimeError("CrewAI triage required but unavailable")
 
     result["revenue_intent_override"] = False
+    result["marketing_plan_override"] = False
     result["exploration_mode"] = detect_exploration_intent(owner_text)
     logger.info(
         "TRIAGE RESULT domain=%s task_type=%s revenue_override=%s exploration_mode=%s",

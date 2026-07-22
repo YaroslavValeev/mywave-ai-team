@@ -38,6 +38,11 @@ domains:
         pipeline: [CONTENT, BRAND, RC]
         roundtable: [LEGAL_OPTIONAL]
         execute_gate: OWNER_APPROVAL_ALWAYS
+      marketing_plan:
+        criticality: MEDIUM
+        pipeline: [CONTENT, BRAND, PS, DATA, FIN]
+        roundtable: [RC, BRAND]
+        execute_gate: OWNER_APPROVAL_IF_PUBLISH
 
   EVENTS:
     task_types:
