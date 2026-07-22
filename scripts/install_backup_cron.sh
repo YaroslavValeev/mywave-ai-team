@@ -6,11 +6,15 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/mywave/ai-team}"
 BACKUP_DIR="${BACKUP_DIR:-/opt/mywave/backups/ai-team}"
-# Postgres живёт в base compose; override — для совпадения project context с office-full/lite
-COMPOSE_FILE_DEFAULT="docker-compose.yml:docker-compose.server.yml"
-if [[ -f "${APP_DIR}/docker-compose.server-full.yml" ]] && \
-   docker compose -f "${APP_DIR}/docker-compose.yml" -f "${APP_DIR}/docker-compose.server-full.yml" ps --status running 2>/dev/null | grep -q postgres; then
+# Prefer office-full overlay when present (prod). Override: COMPOSE_FILE=... bash scripts/install_backup_cron.sh
+if [[ -n "${COMPOSE_FILE:-}" ]]; then
+  COMPOSE_FILE_DEFAULT="$COMPOSE_FILE"
+elif [[ -f "${APP_DIR}/docker-compose.server-full.yml" ]]; then
   COMPOSE_FILE_DEFAULT="docker-compose.yml:docker-compose.server-full.yml"
+elif [[ -f "${APP_DIR}/docker-compose.server.yml" ]]; then
+  COMPOSE_FILE_DEFAULT="docker-compose.yml:docker-compose.server.yml"
+else
+  COMPOSE_FILE_DEFAULT="docker-compose.yml"
 fi
 CRON_LINE="0 3 * * * COMPOSE_PROJECT_DIR=${APP_DIR} COMPOSE_FILE=${COMPOSE_FILE_DEFAULT} ${APP_DIR}/scripts/backup_postgres.sh ${BACKUP_DIR} >> /var/log/mywave-ai-team-backup.log 2>&1"
 
