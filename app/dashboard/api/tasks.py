@@ -454,7 +454,7 @@ async def api_update_task(task_id: int, request: Request):
             import os
             from app.bot.notify import notify_pr_ready
 
-            dash_url = os.getenv("DASHBOARD_URL", "https://agm.mywavetreaning.ru")
+            dash_url = os.getenv("DASHBOARD_URL", "https://agm.mywavewake.ru")
             asyncio.create_task(notify_pr_ready(task_id, updates["pr_url"], task.summary or "", dash_url))
         return {"id": task.id, "status": task.status}
 

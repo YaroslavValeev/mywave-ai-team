@@ -86,20 +86,20 @@ powershell -ExecutionPolicy Bypass -File .\scripts\install_startup_task.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\local_stack_stop.ps1
 ```
 
-## Деплой agm.mywavetreaning.ru (production)
+## Деплой agm.mywavewake.ru (production)
 
-Caddy: reverse proxy + HTTPS + BasicAuth. Порт 8080 не публикуется.
+Prod (2026): nginx на RU → `127.0.0.1:8088`. Caddy — опциональный шаблон (`Caddyfile.example`).
 
-**Подробно:** [docs/DEPLOY-agm.mywavetreaning.ru.md](docs/DEPLOY-agm.mywavetreaning.ru.md)
+**Актуальный runbook:** [docs/OWNER-SETUP-AND-SERVER.md](docs/OWNER-SETUP-AND-SERVER.md)  
+**Архивный Caddy-гайд (старое имя домена):** [docs/DEPLOY-agm.mywavetreaning.ru.md](docs/DEPLOY-agm.mywavetreaning.ru.md)
 
 Кратко:
-1. DNS: A-запись `agm` → IP сервера timeweb
-2. Порты 80/443 открыты
-3. `cp Caddyfile.example Caddyfile`, в `Caddyfile` заменить `<BASICAUTH_HASH>` (см. `caddy hash-password`)
-4. `.env`: OWNER_API_KEY, DASHBOARD_URL=https://agm.mywavewake.ru
-   (веб: откройте URL → форма «Пароль владельца»; cookie ~30 дней; опционально `DASHBOARD_PIN`)
-5. `docker compose up -d`
-6. Вход: https://agm.mywavetreaning.ru/tasks (логин `owner` + пароль)
+1. DNS: A-запись `agm` → IP сервера (`agm.mywavewake.ru`)
+2. Порты 80/443 открыты (nginx)
+3. `.env`: OWNER_API_KEY, DASHBOARD_URL=https://agm.mywavewake.ru
+   (веб: форма «Пароль владельца»; cookie ~30 дней; опционально `DASHBOARD_PIN`)
+4. `docker compose -f docker-compose.yml -f docker-compose.server-full.yml up -d --build`
+5. Вход: https://agm.mywavewake.ru/tasks
 
 ## Smoke test
 

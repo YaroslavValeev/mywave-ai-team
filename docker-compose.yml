@@ -1,5 +1,5 @@
 # docker-compose.yml — app + postgres + Caddy reverse proxy
-# agm.mywavetreaning.ru: Caddy → BasicAuth → app (X-API-Key прокидывается автоматически)
+# agm.mywavewake.ru: nginx (prod) или Caddy → BasicAuth → app (X-API-Key прокидывается автоматически)
 #
 # Профили образа app (см. docs/CANONICAL-RUNTIME.md):
 #   DOCKER_BUILD_TARGET=lite  — office-lite, rule_based (по умолчанию)

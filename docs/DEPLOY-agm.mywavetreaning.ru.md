@@ -1,5 +1,9 @@
 # Деплой agm.mywavetreaning.ru — «под ключ»
 
+> **Архив.** Боевой хост с 2026: **`https://agm.mywavewake.ru`** (nginx).  
+> Актуальные команды: [OWNER-SETUP-AND-SERVER.md](OWNER-SETUP-AND-SERVER.md).  
+> Этот файл оставлен для истории Caddy-деплоя на старом имени домена.
+
 ## 1) DNS
 
 В панели DNS домена `mywavetreaning.ru`:

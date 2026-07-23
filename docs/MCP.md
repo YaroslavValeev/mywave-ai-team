@@ -44,7 +44,7 @@ Cursor-агенты работают с AI-TEAM напрямую через MCP 
       "cwd": "/path/to/mywave-ai-team",
       "env": {
         "OWNER_API_KEY": "<твой ключ>",
-        "MYWAVE_BASE_URL": "https://agm.mywavetreaning.ru"
+        "MYWAVE_BASE_URL": "https://agm.mywavewake.ru"
       }
     }
   }

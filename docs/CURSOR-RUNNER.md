@@ -17,7 +17,7 @@
 | Переменная                    | Описание                                                      |
 | ----------------------------- | ------------------------------------------------------------- |
 | `OWNER_API_KEY`               | Ключ для API                                                  |
-| `MYWAVE_BASE_URL`             | `https://agm.mywavetreaning.ru`                               |
+| `MYWAVE_BASE_URL`             | `https://agm.mywavewake.ru`                                   |
 | `GH_TOKEN` или `GITHUB_TOKEN` | Для `gh pr create` (если не заданы — см. gateway ниже)        |
 | `GITHUB_REPOSITORY`           | owner/repo                                                    |
 | `OPENAI_API_KEY`              | Опционально для сценариев с LLM (если не задан — см. gateway) |
