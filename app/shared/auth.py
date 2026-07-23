@@ -39,10 +39,14 @@ def require_owner_key_at_startup() -> None:
 
 
 def dashboard_web_key_ok(request, x_api_key: str | None) -> bool:
-    """Браузерный доступ: заголовок X-API-Key или query ?api_key= (как index/office)."""
+    """Браузерный доступ: cookie-сессия, X-API-Key или ?api_key=."""
     expected = get_owner_api_key()
     if not expected:
         return False
+    from app.shared.dashboard_session import request_has_owner_session
+
+    if request_has_owner_session(request):
+        return True
     hdr = normalize_owner_key_input(x_api_key or request.headers.get("x-api-key"))
     q = normalize_owner_key_input(request.query_params.get("api_key"))
     provided = hdr or q

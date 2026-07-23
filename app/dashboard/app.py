@@ -25,6 +25,12 @@ from app.shared.auth import (
     require_owner_key,
 )
 from app.shared.dashboard_link import verify_task_link
+from app.shared.dashboard_session import (
+    COOKIE_NAME as OWNER_SESSION_COOKIE,
+    owner_password_ok,
+    session_ttl_seconds,
+    sign_owner_session,
+)
 from app.shared.redaction import redact, scrub_secrets
 from app.shared.system_health import collect_system_health
 from app.dashboard.api_router import router as api_router, apply_owner_decision, apply_merge_confirmation
@@ -166,62 +172,22 @@ def _dashboard_task_page_denied(request: Request, task_id: int, link: str | None
 
 
 def _dashboard_key_hint_response(request: Request) -> HTMLResponse:
-    """Подсказка: отдельно обрабатываем «ключа нет» и «ключ передан, но процесс не принял»."""
+    """Простой вход для одного владельца: форма → cookie на 30 дней."""
     base = str(request.base_url).rstrip("/")
     path = request.url.path or "/"
     tail = f"?{request.url.query}" if request.url.query else ""
     path_esc = html.escape(path)
     tail_esc = html.escape(tail)
+    next_path = html.escape(path + (f"?{request.url.query}" if request.url.query else ""))
     hdr = normalize_owner_key_input(request.headers.get("x-api-key"))
     q = normalize_owner_key_input(request.query_params.get("api_key"))
     key_attempt = bool(hdr or q)
-    provided = hdr or q
-    expected = get_owner_api_key()
-    plen, elen = len(provided), len(expected)
-    len_hint = ""
-    if key_attempt and expected:
-        if plen != elen:
-            len_hint = (
-                f"<p>Диагностика (без показа самого ключа): в запросе длина <strong>{plen}</strong> символов, "
-                f"у <code>OWNER_API_KEY</code> в памяти процесса — <strong>{elen}</strong>. "
-                f"Разная длина почти всегда значит опечатку, другой ключ или лишний символ.</p>"
-            )
-        else:
-            len_hint = (
-                f"<p>Диагностика: длины совпадают ({plen} символов), но строки разные — часто визуально похожие "
-                f"символы (0/O, l/I), невидимый символ или не тот фрагмент при копировании. "
-                f"Скопируйте значение из <code>printenv</code> целиком в новый блок URL.</p>"
-            )
-
+    err = ""
     if key_attempt:
-        title = "MyWave Dashboard — ключ не принят"
-        main = f"""
-  <div class="box warn">
-    <p><strong>Сервер <em>получил</em> параметр <code>api_key</code> (или заголовок <code>X-API-Key</code>),
-       но после нормализации он <em>не равен</em> <code>OWNER_API_KEY</code> внутри этого процесса.</strong></p>
-    <p>Это не то же самое, что «забыли добавить api_key»: параметр уже есть в запросе (см. строку «Вы открыли» выше).
-       Ниже — как найти расхождение; визуальное «совпадение» с другим файлом или вкладкой ещё не значит, что
-       <strong>контейнер app</strong> загрузил то же значение.</p>
-    {len_hint}
-    <p>На машине с Docker: <code>docker compose exec app printenv OWNER_API_KEY</code> — сравнение только с этой строкой
-       имеет смысл. Убедитесь, что правите <code>.env</code> в <strong>том же каталоге</strong>, откуда запускаете
-       <code>docker compose</code>, затем <code>docker compose up -d --force-recreate app</code>.</p>
-    <p>Частые причины: двойные кавычки внутри значения в <code>.env</code>; пробел в конце строки у одного из вариантов;
-       BOM в начале файла (после правки в некоторых редакторах код уже снимает BOM с ключа — пересоберите образ).</p>
-  </div>
-    <p>Пример ссылки, когда ключ известен: <code>{base}/office?api_key=…</code></p>
-    <p>Если вы перешли по ссылке из Telegram: запросите новую (токен <code>link</code> живёт ограниченное время, см. <code>DASHBOARD_LINK_TTL_SECONDS</code>).</p>
-"""
-    else:
-        title = "MyWave Dashboard — укажите ключ"
-        main = f"""
-  <p>Для веб-интерфейса: либо параметр <strong>api_key</strong> в URL (как <code>OWNER_API_KEY</code>),
-     либо откройте задачу по <strong>ссылке из Telegram</strong> (подписанный параметр <code>link</code>).</p>
-  <div class="box">
-    <p><strong>Главная:</strong><br/><code>{base}/?api_key=ВАШ_КЛЮЧ</code></p>
-    <p><strong>Офис (игровой UI):</strong><br/><code>{base}/office?api_key=ВАШ_КЛЮЧ</code></p>
-  </div>
-"""
+        err = (
+            "<p class='err'>Ключ в URL/заголовке не принят. Введите пароль владельца в форме ниже "
+            "(тот же, что <code>OWNER_API_KEY</code>, либо короткий <code>DASHBOARD_PIN</code> если задан).</p>"
+        )
 
     return HTMLResponse(
         f"""<!DOCTYPE html>
@@ -229,24 +195,101 @@ def _dashboard_key_hint_response(request: Request) -> HTMLResponse:
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>{html.escape(title)}</title>
+  <title>Вход — MyWave</title>
   <style>
-    body {{ font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }}
-    code {{ background: #f0f0f0; padding: 0.15rem 0.35rem; border-radius: 4px; word-break: break-all; }}
-    .box {{ background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; margin: 1rem 0; }}
-    .box.warn {{ background: #fff8e6; border-color: #e6c200; }}
+    body {{ font-family: system-ui, sans-serif; max-width: 26rem; margin: 2.5rem auto; padding: 0 1rem; line-height: 1.5; }}
+    code {{ background: #f0f0f0; padding: 0.15rem 0.35rem; border-radius: 4px; word-break: break-all; font-size: 0.9em; }}
+    .box {{ background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 10px; padding: 1.1rem; margin: 1rem 0; }}
+    label {{ display:block; font-weight:600; margin-bottom:0.35rem; }}
+    input[type=password] {{ width:100%; box-sizing:border-box; padding:0.65rem 0.75rem; font-size:1rem; border:1px solid #ced4da; border-radius:8px; }}
+    button {{ margin-top:0.85rem; width:100%; padding:0.7rem 1rem; font-size:1rem; border:0; border-radius:8px; background:#0f766e; color:#fff; cursor:pointer; }}
+    button:hover {{ background:#0d9488; }}
+    .err {{ color:#b91c1c; }}
+    .muted {{ color:#64748b; font-size:0.92rem; }}
   </style>
 </head>
 <body>
-  <h1>MyWave AI-TEAM Dashboard</h1>
-  <p>Вы открыли: <code>{path_esc}{tail_esc}</code></p>
-  {main}
-  <p>Проверка, что сервер запущен (без ключа): <a href="{base}/health">GET {base}/health</a> → должно быть <code>{{"status":"ok"}}</code>.</p>
-  <p>Если <code>/health</code> не открывается — контейнер не слушает порт 8080 или приложение не стартовало (смотри <code>docker compose logs app</code>).</p>
+  <h1>MyWave</h1>
+  <p class="muted">Вход только для владельца. Один раз — и браузер запомнит на 30 дней.</p>
+  {err}
+  <div class="box">
+    <form method="post" action="/login">
+      <input type="hidden" name="next" value="{next_path}"/>
+      <label for="password">Пароль владельца</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus/>
+      <button type="submit">Войти</button>
+    </form>
+  </div>
+  <p class="muted">Вы открыли: <code>{path_esc}{tail_esc}</code></p>
+  <p class="muted">Проверка сервера: <a href="{base}/health">/health</a></p>
 </body>
 </html>""",
         status_code=200,
     )
+
+
+def _cookie_secure(request: Request) -> bool:
+    proto = (request.headers.get("x-forwarded-proto") or request.url.scheme or "").lower()
+    return proto == "https"
+
+
+@app.post("/login")
+async def dashboard_login(request: Request):
+    """Простой вход: пароль → HttpOnly cookie (без api_key в URL)."""
+    form = await request.form()
+    password = form.get("password")
+    next_raw = str(form.get("next") or "/").strip() or "/"
+    if not next_raw.startswith("/") or next_raw.startswith("//"):
+        next_raw = "/"
+    if not owner_password_ok(str(password) if password is not None else None):
+        return HTMLResponse(
+            content=(
+                "<!DOCTYPE html><html lang='ru'><head><meta charset='utf-8'/><title>Ошибка входа</title></head>"
+                "<body style='font-family:system-ui;max-width:26rem;margin:2rem auto;padding:0 1rem'>"
+                "<h1>Неверный пароль</h1>"
+                "<p>Проверьте значение из <code>OWNER_API_KEY</code> "
+                "(или <code>DASHBOARD_PIN</code>, если задали короткий пин).</p>"
+                "<p><a href='/'>Попробовать снова</a></p>"
+                "</body></html>"
+            ),
+            status_code=401,
+        )
+    token = sign_owner_session()
+    if not token:
+        raise HTTPException(status_code=500, detail="Cannot create session: OWNER_API_KEY missing")
+    resp = RedirectResponse(url=next_raw, status_code=303)
+    resp.set_cookie(
+        key=OWNER_SESSION_COOKIE,
+        value=token,
+        max_age=session_ttl_seconds(),
+        httponly=True,
+        samesite="lax",
+        secure=_cookie_secure(request),
+        path="/",
+    )
+    return resp
+
+
+@app.post("/logout")
+async def dashboard_logout(request: Request):
+    next_raw = "/"
+    try:
+        form = await request.form()
+        cand = str(form.get("next") or "/").strip() or "/"
+        if cand.startswith("/") and not cand.startswith("//"):
+            next_raw = cand
+    except Exception:
+        pass
+    resp = RedirectResponse(url=next_raw, status_code=303)
+    resp.delete_cookie(OWNER_SESSION_COOKIE, path="/")
+    return resp
+
+
+@app.get("/logout")
+async def dashboard_logout_get():
+    resp = RedirectResponse(url="/", status_code=303)
+    resp.delete_cookie(OWNER_SESSION_COOKIE, path="/")
+    return resp
 
 
 def _document_media_type(path: Path) -> str:
