@@ -15,11 +15,13 @@ def is_enabled() -> bool:
 
 
 def _ensure_path() -> None:
-    root = Path(__file__).resolve().parents[2]  # AI-Team
+    # Docker image layout: /app/packages/agents-http-client
+    # Local umbrella: <repo>/packages/agents-http-client
+    here = Path(__file__).resolve()
     candidates = [
-        root / "packages" / "agents-http-client",
-        root / "services" / "agents_live" / "packages" / "agents-http-client",
-        Path(r"C:\ProjectMyWave\MyWave_AI_TEAM_Presets_v1_1\packages\agents-http-client"),
+        here.parents[2] / "packages" / "agents-http-client",  # /app or umbrella root
+        here.parents[1] / "packages" / "agents-http-client",
+        Path("/app/packages/agents-http-client"),
         Path(os.getenv("AGENTS_HTTP_CLIENT_PATH", "")),
     ]
     for p in candidates:
