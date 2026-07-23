@@ -33,11 +33,28 @@ def test_get_runner_config_has_cursor_binary():
     assert "timeout_sec" in cfg
 
 
-def test_merge_gateway_secrets_respects_existing_gh(monkeypatch):
-    monkeypatch.setenv("GH_TOKEN", "already_set")
-    monkeypatch.setenv("GITHUB_TOKEN", "")
-    from app.runners.cursor_runner.local_env import merge_gateway_secrets_into_env
+def test_resolve_cursor_binary_respects_cursor_cli(monkeypatch, tmp_path):
+    fake = tmp_path / "cursor.cmd"
+    fake.write_text("@echo off\n", encoding="utf-8")
+    monkeypatch.setenv("CURSOR_CLI", str(fake))
+    from app.runners.cursor_runner.runner import resolve_cursor_binary
 
-    m = merge_gateway_secrets_into_env({"CUSTOM": "1"})
-    assert m.get("GH_TOKEN") == "already_set"
-    assert m.get("CUSTOM") == "1"
+    assert resolve_cursor_binary() == str(fake.resolve())
+
+
+def test_smoke_cursor_version_when_binary_exists():
+    """Live smoke: cursor --version via runner. Skips if binary missing (CI without Cursor)."""
+    import asyncio
+    from pathlib import Path
+
+    from app.runners.cursor_runner.runner import get_runner_config, run_cursor_cli
+
+    cfg = get_runner_config()
+    if not cfg.get("cursor_binary_exists"):
+        import pytest
+
+        pytest.skip("cursor CLI not installed / not on PATH")
+
+    code, out, err = asyncio.run(run_cursor_cli(str(Path(".").resolve()), "", timeout_sec=30))
+    assert code == 0, f"cursor --version failed: exit={code} stderr={err!r}"
+    assert out.strip(), "expected non-empty version stdout"

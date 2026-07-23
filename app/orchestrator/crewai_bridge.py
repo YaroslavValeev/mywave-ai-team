@@ -110,9 +110,27 @@ STEP_PROFILES = {
 }
 
 
+def has_llm_credentials() -> bool:
+    """True if cloud key or OpenAI-compatible base URL is configured (local Ollama/LM Studio)."""
+    if (os.getenv("OPENAI_API_KEY") or os.getenv("CREWAI_API_KEY") or "").strip():
+        return True
+    if (os.getenv("OPENAI_BASE_URL") or os.getenv("CREWAI_BASE_URL") or "").strip():
+        return True
+    return False
+
+
 def is_crewai_enabled() -> bool:
+    """
+    CrewAI path is on for engine=crewai|auto.
+    In auto mode without credentials — skip CrewAI (fast safe fallback to rule-based).
+    Strict crewai still returns True so callers can enforce allow_fallback policy.
+    """
     mode = get_orchestration_config().get("engine", "auto")
-    return mode in {"crewai", "auto"}
+    if mode == "crewai":
+        return True
+    if mode != "auto":
+        return False
+    return has_llm_credentials()
 
 
 def run_crewai_triage(text: str) -> dict:
@@ -279,10 +297,16 @@ def _build_llm(classes: dict[str, Any]) -> Any | None:
     if cfg.get("crewai_use_responses_api"):
         kwargs["response_format"] = {"type": "json_object"}
 
-    base_url = os.getenv("OPENAI_BASE_URL") or os.getenv("CREWAI_BASE_URL") or ""
-    api_key = os.getenv("OPENAI_API_KEY") or os.getenv("CREWAI_API_KEY") or ""
+    base_url = (os.getenv("OPENAI_BASE_URL") or os.getenv("CREWAI_BASE_URL") or "").strip()
+    api_key = (os.getenv("OPENAI_API_KEY") or os.getenv("CREWAI_API_KEY") or "").strip()
     if base_url:
+        # Ollama often listens without /v1; OpenAI-compatible clients expect it.
+        if not base_url.rstrip("/").endswith("/v1"):
+            base_url = base_url.rstrip("/") + "/v1"
         kwargs["base_url"] = base_url
+        # Local OpenAI-compatible servers usually accept any non-empty key.
+        if not api_key:
+            api_key = "local"
     if api_key:
         kwargs["api_key"] = api_key
 
@@ -347,6 +371,6 @@ def _normalize_model_name(model: str, provider: str) -> str:
     if explicit_provider:
         return f"{explicit_provider}/{candidate}"
 
-    if os.getenv("OPENAI_API_KEY"):
+    if os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_BASE_URL") or os.getenv("CREWAI_BASE_URL"):
         return f"openai/{candidate}"
     return candidate
