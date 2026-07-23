@@ -25,6 +25,7 @@ Auth: `X-API-Key: $OWNER_API_KEY` (или `AGENTS_API_KEY`)
 | POST | `/api/tasks` | PH (и Telegram уже внутри Agents) |
 | GET | `/api/tasks`, `/api/tasks/{id}` | PH |
 | POST | `/api/tasks/{id}/approve\|rework\|clarify` | PH (parity с Telegram) |
+| POST | `/api/tasks/{id}/merged` | PH / Dashboard (ручной merge PR) |
 | POST | `/api/tasks/{id}/pipeline/run` | PH / automation |
 | GET | `/api/tasks/{id}/runs`, `/execution-events` | Molt / PH status |
 | GET | `/api/events` | PH timeline |

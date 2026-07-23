@@ -1,8 +1,8 @@
 # Post-recovery remaining work
 
-Snapshot: **2026-07-23** (Owner RU ops confirm + Owner PC junction/E2E closed)  
-Prod: `agm.mywavewake.ru` health **ok**  
-Agents `main`: `f81bd26` (PR #16 merged; includes docs through #15)
+Snapshot: **2026-07-23** (Owner RU ops @ `257b1c7` + junction/E2E + client parity)  
+Prod: `agm.mywavewake.ru` health **ok** (Owner `server_ops_check.sh`)  
+Agents `main`: `257b1c7` (PR #17)
 
 Связано: [INTEGRATION_THREE_LAYERS.md](INTEGRATION_THREE_LAYERS.md), [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md), [PHASE_B_STEP_D_MOLT.md](PHASE_B_STEP_D_MOLT.md)
 
@@ -16,11 +16,13 @@ Agents `main`: `f81bd26` (PR #16 merged; includes docs through #15)
 | Backup cron + `backup_postgres.sh` executable (PR #14) | **working on RU** (`mywave_ai_20260723.sql.gz`) |
 | Reboot / alembic recovery (PR #12) | done |
 | Owner console RU title pytest | fixed in PR #13 |
-| Open GitHub PRs | **none** (after this sync) |
-| Disk (C:/F:) | OK |
+| Open GitHub PRs | **none** |
+| Disk (C:/F: / RU `/`) | OK (RU ~66%) |
 | Umbrella `services/agents_live` | **PASS** → `C:\ProjectMyWave\MyWave_AI_TEAM_Presets_v1_1` |
+| Umbrella `packages/agents-http-client` | junction → C: package |
 | Agents→Molt HTTP E2E (Owner PC) | **PASS** (`smoke_agents_molt_http_e2e.py`) |
-| Local pytest subset | **29 passed** |
+| `AgentsControlClient.mark_merged` + criticality `MEDIUM` | **done** |
+| Local pytest subset | green |
 
 ---
 
@@ -34,16 +36,14 @@ Agents `main`: `f81bd26` (PR #16 merged; includes docs through #15)
 
 ### (B) Owner server commands (SSH RU)
 
-После pull docs-only (`f81bd26` и новее) **rebuild не обязателен**:
+После pull docs/code на `257b1c7` и новее. Docs-only — **без rebuild**. Code PR (client) — **нужен rebuild**:
 
 ```bash
 cd /opt/mywave/ai-team && set -a; source .env; set +a
 git pull origin main
+# если пришёл code-change в app/ или packages/:
+docker compose -f docker-compose.yml -f docker-compose.server-full.yml up -d --build
 bash scripts/server_ops_check.sh
-# или вручную:
-docker compose -f docker-compose.yml -f docker-compose.server-full.yml ps
-curl -sS -H "X-API-Key: $OWNER_API_KEY" https://agm.mywavewake.ru/api/system/health
-crontab -l | grep backup_postgres
 ```
 
 Backup cron уже стоит — повторный `install_backup_cron.sh` **не нужен**.
@@ -72,17 +72,14 @@ Backup cron уже стоит — повторный `install_backup_cron.sh` **
 
 | Проверка | Результат |
 |----------|-----------|
-| `git HEAD` (C: Agents) | `f81bd26` = `origin/main` |
-| Open PRs | none (pre this sync PR) |
-| Prod health (Owner log) | `ok`; CrewAI `gpt-4.1-nano`; Cursor CLI not on PATH (expected) |
+| `git HEAD` (C: Agents) | sync to latest `main` after this PR |
+| Prod health (Owner log) | `ok`; CrewAI `gpt-4.1-nano`; disk ~66%; nginx active |
 | `WAIT_OWNER` | **[]** |
 | Task #11 | **DONE** |
-| Backups | cron OK + files `20260722` / `20260723` |
-| Umbrella `services/agents_live` | **PASS** junction → C:`main` |
-| Umbrella `services/agents` | ordinary dir (not SoT); leave as-is |
-| Agents→Molt HTTP E2E | **PASS** (accepted_total +2) |
-| PH headless GUI apply-path | **closed** (PR #16) |
+| Backups | cron OK + `20260722` / `20260723` |
+| Umbrella `services/agents_live` | **PASS** |
+| Umbrella `packages/agents-http-client` | junction → C: package |
+| Agents→Molt HTTP E2E | **PASS** |
+| HTTP client | `mark_merged` + criticality default `MEDIUM` |
 | PH visual GUI one-click | **optional Owner PC** |
-| CrewAI | office-full + fallback OK |
-| Cursor SDK (umbrella) | code present; live key optional |
-| Локальный pytest subset | **29 passed** |
+| Локальный pytest | client + subset green |
