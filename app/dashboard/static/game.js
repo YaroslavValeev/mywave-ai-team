@@ -844,7 +844,7 @@
         <div class="scene-head">
           <div>
             <div class="scene-title">Единая нить миссии</div>
-            <div class="scene-subtitle">Одна хронология для Telegram и Dashboard: события системы, сообщения чата и handoffs. Эндпоинт: /api/missions/${state.selectedTaskId}/thread</div>
+            <div class="scene-subtitle">Одна хронология для Telegram и панели: события системы, сообщения чата и handoffs. Эндпоинт: /api/missions/${state.selectedTaskId}/thread</div>
           </div>
           <span class="scene-pill">${items.length} записей</span>
         </div>
@@ -1644,7 +1644,7 @@
           : "Получаю отчёт и принимаю управленческое решение.",
         transitionNote: goesToArchive
           ? "После вердикта задача переходит в архивный контур."
-          : "После суда задача уходит на owner gate.",
+          : "После суда задача уходит на решение владельца.",
       };
     }
     if (eventType === "orchestration_error") {
@@ -1702,7 +1702,7 @@
         nextCue: "Новый проход pipeline",
         currentSpeech: latestEvent?.note || "Этого недостаточно. Возвращаю миссию в доработку.",
         nextSpeech: "Принимаю обратную связь и запускаю новый проход через команду.",
-        transitionNote: "После rework маршрут возвращается из owner gate в коридор исполнения.",
+        transitionNote: "После доработки маршрут возвращается от владельца в коридор исполнения.",
       };
     }
     if (eventType === "OWNER_CLARIFY") {
@@ -1720,7 +1720,7 @@
         nextCue: "Сбор дополнительного контекста",
         currentSpeech: latestEvent?.note || "Перед принятием решения мне нужны дополнительные вводные.",
         nextSpeech: "Соберу недостающий контекст и верну миссию в штаб.",
-        transitionNote: "Процесс уходит из owner gate обратно в приёмную для дозапроса контекста.",
+        transitionNote: "Процесс уходит от владельца обратно в приёмную для дозапроса контекста.",
       };
     }
     if (eventType === "OWNER_MERGED") {
@@ -1986,7 +1986,7 @@
             <div>
               <div class="scene-title">Миссия #${task.id}: ${escapeHtml(scene.title)}</div>
             <div class="scene-subtitle">${escapeHtml(scene.subtitle)}</div>
-            ${state.scene.mission ? `<div class="scene-subtitle" style="opacity:.92">Единый контур: mission_id = ${state.scene.mission.mission_id} (совпадает с task_id). Telegram и Dashboard пишут в одну запись.</div>` : ""}
+            ${state.scene.mission ? `<div class="scene-subtitle" style="opacity:.92">Единый контур: mission_id = ${state.scene.mission.mission_id} (совпадает с task_id). Telegram и панель пишут в одну запись.</div>` : ""}
           </div>
           <span class="scene-pill">${escapeHtml(task.status)}</span>
         </div>

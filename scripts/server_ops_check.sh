@@ -77,6 +77,15 @@ crontab -l 2>/dev/null | grep -E 'backup_postgres|mywave-ai-team' || echo "NO ba
 ls -la "${BACKUP_DIR}" 2>/dev/null | tail -10 || echo "NO backup dir yet"
 echo
 
+echo "=== molt :8765 (expect OFF on RU) ==="
+if ss -lntp 2>/dev/null | grep -q ':8765'; then
+  echo "WARN: порт 8765 слушается — Molt profile может быть включён (см. docker-compose.molt.yml)"
+  ss -lntp 2>/dev/null | grep ':8765' || true
+else
+  echo "OK: Molt не слушает 8765 (норма без Owner GO / --profile molt)"
+fi
+echo
+
 echo "=== docker images (ai-team) ==="
 docker images --format 'table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedSince}}' | head -20
 echo

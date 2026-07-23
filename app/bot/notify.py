@@ -73,12 +73,17 @@ async def send_owner_message(text: str, parse_mode: Optional[str] = "Markdown", 
     if not token or not chat_id:
         logger.warning("Cannot send: TELEGRAM_BOT_TOKEN or OWNER_CHAT_ID not set")
         return False
+    bot = Bot(token=token)
     try:
-        bot = Bot(token=token)
         return await send_with_retry(bot, int(chat_id), text, parse_mode=parse_mode, reply_markup=reply_markup)
     except Exception as exc:
         logger.exception("send_owner_message failed: %s", exc)
         return False
+    finally:
+        try:
+            await bot.session.close()
+        except Exception:
+            pass
 
 
 async def notify_pr_ready(task_id: int, pr_url: str, summary: str, dashboard_url: str):
@@ -106,9 +111,24 @@ _STAGE_LABELS = {
 async def notify_stage(task_id: int, stage: str, detail: str = "") -> bool:
     """Короткое уведомление о границе этапа (не stream реплик агентов)."""
     label = _STAGE_LABELS.get(stage, f"📌 Этап: {stage}")
-    extra = f"\n{detail}" if detail else ""
+    safe_detail = (detail or "").strip()
+    if len(safe_detail) > 200:
+        safe_detail = safe_detail[:197] + "…"
+    extra = f"\n{safe_detail}" if safe_detail else ""
     text = f"{label} — миссия #{task_id}{extra}"
     return await send_owner_message(text, parse_mode=None)
+
+
+def _log_stage_task_result(task: "asyncio.Task[Any]") -> None:
+    try:
+        exc = task.exception()
+    except asyncio.CancelledError:
+        return
+    except Exception as err:
+        logger.warning("notify_stage task inspect failed: %s", err)
+        return
+    if exc:
+        logger.warning("notify_stage background task failed: %s", exc)
 
 
 def notify_stage_sync(task_id: int, stage: str, detail: str = "") -> None:
@@ -123,6 +143,7 @@ def notify_stage_sync(task_id: int, stage: str, detail: str = "") -> None:
         except RuntimeError:
             asyncio.run(coro)
         else:
-            loop.create_task(coro)
+            task = loop.create_task(coro)
+            task.add_done_callback(_log_stage_task_result)
     except Exception as exc:
         logger.warning("notify_stage_sync failed task_id=%s stage=%s: %s", task_id, stage, exc)

@@ -213,7 +213,7 @@ STEP_PERSONAS = {
     "DEVOPS": {"label": "DevOps инженер", "zone": "ops", "animation": "ops"},
     "CONTENT": {"label": "Контент-редактор", "zone": "content", "animation": "write"},
     "BRAND": {"label": "Бренд-ревьюер", "zone": "meeting", "animation": "review"},
-    "RC": {"label": "Reality checker", "zone": "meeting", "animation": "debate"},
+    "RC": {"label": "Проверка реальности", "zone": "meeting", "animation": "debate"},
     "RC2": {"label": "Независимый ревьюер", "zone": "meeting", "animation": "debate"},
     "LEGAL": {"label": "Юрист", "zone": "meeting", "animation": "review"},
     "FIN": {"label": "Финансовый аналитик", "zone": "meeting", "animation": "review"},

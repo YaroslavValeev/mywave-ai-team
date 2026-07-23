@@ -200,12 +200,12 @@
   {% endif %}
 
   <section class="card" style="margin-bottom:1rem;">
-    <h2>Execution Pack (после суда / GM)</h2>
+    <h2>Пакет исполнения (после суда / GM)</h2>
     <p class="muted">Отдельно от блока «Подготовка к Cursor» выше: pack появляется после pipeline и court, когда сформировано готовое бизнес-действие.</p>
     {% if execution_pack %}
-    <p><strong>{{ execution_pack.get('action_title', 'Execution Pack') }}</strong></p>
+    <p><strong>{{ execution_pack.get('action_title', 'Пакет исполнения') }}</strong></p>
     <p class="muted">{{ execution_pack.get('why', '') }}</p>
-    <p><a href="/mission/{{ task.id }}/execution-pack{{ api_key_query }}">Открыть Execution Pack</a></p>
+    <p><a href="/mission/{{ task.id }}/execution-pack{{ api_key_query }}">Открыть пакет исполнения</a></p>
 
     <h3>Насколько этот тип действия обычно срабатывает</h3>
     <p><strong>Тип:</strong> {{ pack_learning.get('pack_type', execution_pack.get('pack_type', '-')) }}</p>
@@ -225,7 +225,7 @@
 
   <div class="grid">
     <section class="card">
-      <h2>{% if view_mode == 'business' %}Ход работы{% else %}Workflow View{% endif %}</h2>
+      <h2>{% if view_mode == 'business' %}Ход работы{% else %}Ход процесса{% endif %}</h2>
       {% if exploration_waiting %}
       <p class="muted" style="margin-bottom:0.75rem;">Шаги ниже отражают прогресс до выбора сценария (этапы pipeline/court не выполнялись).</p>
       {% endif %}
@@ -262,7 +262,7 @@
 
       {% if view_mode == 'system' %}
       <h2>Бизнес-данные (сырой контур)</h2>
-      <p>Business: <strong>{{ business_type }}</strong> · Impact: <strong>{{ impact_level }}</strong></p>
+      <p>Бизнес: <strong>{{ business_type }}</strong> · Влияние: <strong>{{ impact_level }}</strong></p>
       {% if gm_decision %}
       <p class="muted">Шаблон директора: {{ gm_decision.get('workflow_template', '—') }}</p>
       {% endif %}
@@ -301,7 +301,7 @@
       <p>Состояние раннера: <strong>{{ workflow.runner.state or 'idle' }}</strong></p>
       <p>Фаза раннера: <strong>{{ workflow.runner.phase or 'idle' }}</strong></p>
       {% else %}
-      <p class="muted">Технические детали раннера — в System View.</p>
+      <p class="muted">Технические детали раннера — в режиме «Система».</p>
       {% endif %}
 
       <h2>Последние события</h2>
