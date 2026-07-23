@@ -13,7 +13,8 @@ def test_console_missions_page_renders(db_session):
     client = TestClient(app, raise_server_exceptions=False)
     r = client.get("/missions", headers={"X-API-Key": "test_key_for_smoke"})
     assert r.status_code == 200
-    assert "Owner Operating Console" in r.text
+    # RU UI: title/h1 = «Консоль владельца» (legacy EN string removed from template)
+    assert "Консоль владельца" in r.text or "Owner Operating Console" in r.text
     assert f"/mission/{task.id}" in r.text
     assert "REVENUE" in r.text or "Высокий" in r.text
 

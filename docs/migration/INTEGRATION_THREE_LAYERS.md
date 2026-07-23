@@ -130,9 +130,12 @@ Agents → Molt по-прежнему: `MOLT_TRANSPORT_MODE=http`, `MOLT_HTTP_BA
 - [x] Живой E2E Owner: create → WAIT_OWNER → approve → DONE (#4, #6, #7 auto_run на прод)
 - [x] POST `/api/tasks` + `auto_run: true` (deployed)
 - [x] PH headless propose→approve against prod (`smoke_ph_control_headless.py`) — см. [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md)
-- [x] PH GUI wiring verified (`smoke_ph_gui_wiring.py` + `projects_tab` hooks); visual click via `run_ph_with_control.ps1`
-- [x] Agents→Molt HTTP E2E local (`smoke_agents_molt_http_e2e.py`) — Molt only on Owner PC, not RU
+- [x] PH GUI **wiring** verified (`smoke_ph_gui_wiring.py` + `projects_tab` hooks)
+- [ ] PH **visual** GUI click (`run_ph_with_control.ps1`) — optional Owner PC; см. [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md)
+- [x] Agents→Molt HTTP E2E **script** (`smoke_agents_molt_http_e2e.py`) — Molt only on Owner PC, not RU
+- [ ] Junction `services/agents_live` + повторный зелёный E2E после recovery — см. [PHASE_B_STEP_D_MOLT.md](PHASE_B_STEP_D_MOLT.md)
 
+Пост-recovery остаток (Mission #11 approve и т.д.): [POST_RECOVERY_REMAINING.md](POST_RECOVERY_REMAINING.md).
 
 ## Риски
 
