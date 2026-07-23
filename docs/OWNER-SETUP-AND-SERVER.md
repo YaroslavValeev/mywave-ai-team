@@ -236,7 +236,7 @@ docker compose up -d --build
 - [x] `TELEGRAM_PROXY_URL` через EU SOCKS `72.56.99.214:1080`
 - [x] `GET /api/system/health` с `X-API-Key` → OK
 - [x] Telegram `#TASK` → оркестрация → **WAIT_OWNER** + кнопки
-- [ ] Cron бэкапа: `bash scripts/install_backup_cron.sh` (если ещё не ставили после pull)
+- [x] Cron бэкапа: `bash scripts/install_backup_cron.sh` + executable fix (PR #14) — backups working
 - [ ] Опционально: ротация `TELEGRAM_BOT_TOKEN` в BotFather (если токен светился в чате)
 
 ### office-full (прод сейчас)

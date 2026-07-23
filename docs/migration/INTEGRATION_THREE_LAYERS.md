@@ -123,19 +123,19 @@ Agents → Molt по-прежнему: `MOLT_TRANSPORT_MODE=http`, `MOLT_HTTP_BA
 
 ## Критерий готовности этапа B
 
-- [x] Umbrella видит Agents `@ main` (junction `services/agents_live`)
+- [ ] Umbrella junction `services/agents_live` → C:`main` — **сейчас MISSING** (скрипт `link_agents_pointer.ps1`; проверка `check_agents_pointer.ps1`)
 - [x] `AgentsControlClient` + `scripts/smoke_agents_control.py` (+ `--full` / `--approve`)
 - [x] PH: `agents_control_bridge` + crosswalk `agent_actions.agents_task_id` + hooks propose/apply
 - [x] Molt `/ready` учитывает Agents health (если `AGENTS_CONTROL_ENABLED=1`)
-- [x] Живой E2E Owner: create → WAIT_OWNER → approve → DONE (#4, #6, #7 auto_run на прод)
+- [x] Живой E2E Owner: create → WAIT_OWNER → approve → DONE (#4, #6, #7, **#11 DONE**; #8 headless PH)
 - [x] POST `/api/tasks` + `auto_run: true` (deployed)
 - [x] PH headless propose→approve against prod (`smoke_ph_control_headless.py`) — см. [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md)
 - [x] PH GUI **wiring** verified (`smoke_ph_gui_wiring.py` + `projects_tab` hooks)
-- [ ] PH **visual** GUI click (`run_ph_with_control.ps1`) — optional Owner PC; см. [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md)
+- [ ] PH **visual** GUI one-click (`run_ph_with_control.ps1`) — optional Owner PC; см. [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md)
 - [x] Agents→Molt HTTP E2E **script** (`smoke_agents_molt_http_e2e.py`) — Molt only on Owner PC, not RU
-- [ ] Junction `services/agents_live` + повторный зелёный E2E после recovery — см. [PHASE_B_STEP_D_MOLT.md](PHASE_B_STEP_D_MOLT.md)
+- [ ] Повторный зелёный Agents→Molt E2E после recovery — см. [PHASE_B_STEP_D_MOLT.md](PHASE_B_STEP_D_MOLT.md)
 
-Пост-recovery остаток (Mission #11 approve и т.д.): [POST_RECOVERY_REMAINING.md](POST_RECOVERY_REMAINING.md).
+Пост-recovery остаток: [POST_RECOVERY_REMAINING.md](POST_RECOVERY_REMAINING.md).
 
 ## Риски
 

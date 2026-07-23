@@ -1,6 +1,6 @@
 # Project Status
 
-Snapshot date: **2026-07-23** (post production recovery)
+Snapshot date: **2026-07-23** (post backup-cron fix, `main` @ `b9cddd3`)
 
 ## What We Are Building
 
@@ -20,19 +20,20 @@ This is not a generic chatbot. It is a control plane for routing real MyWave tas
 
 ## Current Stage
 
-**Production governance is up** on `https://agm.mywavewake.ru` (`main` @ `51768fd`, health OK after reboot/alembic recovery).
+**Production governance is up** on `https://agm.mywavewake.ru` (`main` @ `b9cddd3`, health OK; backups working after PR #14).
 
-- office-full + CrewAI path available on RU
+- office-full + CrewAI path available on RU (with rule-based fallback)
 - Telegram RU UI + approve buttons work
-- Control API create / `auto_run` / approve proven (#4, #6, #7, #8 headless PH)
+- Control API create / `auto_run` / approve proven (#4, #6, #7, #8 headless PH, **#11 DONE**)
 - Three-layer HTTP contracts documented; monorepo merge **not** required for ops
+- Open PRs: **none**
 
 Still open (detail: [migration/POST_RECOVERY_REMAINING.md](migration/POST_RECOVERY_REMAINING.md)):
 
-- Mission **#11** `WAIT_OWNER` (`MEDIA_OPS` / `marketing_plan`) — Owner approve
-- Optional PH **visual** GUI propose/apply on Owner PC
+- Optional PH **visual** GUI one-click propose/apply on Owner PC
 - Umbrella junction `services/agents_live` + local Agents→Molt E2E re-run
-- Optional backup cron / BotFather token rotation
+- Optional BotFather token rotation (only if token ever leaked)
+- Optional umbrella Cursor SDK live key (`CURSOR_API_KEY`)
 
 ## Product Scope Confirmed By Repo
 
@@ -55,7 +56,7 @@ Still open (detail: [migration/POST_RECOVERY_REMAINING.md](migration/POST_RECOVE
 
 - SQLAlchemy models + Alembic migrations
 - end-to-end transitions to `WAIT_OWNER` or `DONE`
-- retention + backup scripts
+- retention + backup scripts + RU cron
 
 ### Safety and governance
 
@@ -68,17 +69,18 @@ Still open (detail: [migration/POST_RECOVERY_REMAINING.md](migration/POST_RECOVE
 - Docker Postgres + nginx HTTPS on RU
 - `GET /api/system/health`
 - recovery path: alembic retry after reboot (PR #12)
+- backup script executable for cron (PR #14)
 
 ## Priority Recommendation
 
-1. **Owner:** approve or rework Mission #11 (Telegram button or documented API).
+1. **Owner PC:** junction `agents_live` + local Molt E2E; optional PH visual GUI.
 2. **Agents:** keep docs/tests green; do not touch prod without Owner.
-3. **Owner PC:** junction + local Molt E2E; optional PH visual GUI.
-4. **Defer:** big-bang monorepo, Molt on RU, auto-merge.
+3. **Defer:** big-bang monorepo, Molt on RU, CrewAI no-fallback guarantee, auto-merge.
 
 ## Discovery Plan Executed (this snapshot)
 
 - Reviewed `docs/migration/INTEGRATION_THREE_LAYERS.md`, Step C/D, umbrella scripts
-- Confirmed prod health + task #11 status via Control API
-- Ran local pytest subset (owner console / gate / channel parity / e2e API)
+- Confirmed prod health + task #11 **DONE** + backups working (Owner report)
+- Ran local pytest subset (owner console / gate / channel parity / e2e API / crewai config)
 - Documented remaining work in `docs/migration/POST_RECOVERY_REMAINING.md`
+- Added umbrella `scripts/integration/check_agents_pointer.ps1`
