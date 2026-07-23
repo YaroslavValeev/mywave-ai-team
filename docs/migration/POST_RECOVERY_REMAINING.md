@@ -18,6 +18,7 @@ Agents `main`: sync after this PR
 | `docker-compose.molt.yml` (`profiles: [molt]`, OFF by default) | **done** |
 | ops-check asserts :8765 off when profile inactive | **done** |
 | **Live** Molt `--profile molt` на RU (Owner GO) | **done** — см. [MOLT_ON_RU_CHECKLIST.md](MOLT_ON_RU_CHECKLIST.md) |
+| Agents→Molt E2E на RU (bridge + auto_run task #16) | **done** (2026-07-24) |
 
 ---
 

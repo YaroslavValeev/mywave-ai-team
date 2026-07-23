@@ -1,8 +1,10 @@
 # Molt на RU — Owner GO
 
-Статус: **GO live** (overlay + vendored service in Agents repo)  
+Статус: **GO live + E2E verified** (overlay + vendored service in Agents repo)  
 Дата: 2026-07-24  
-Файлы: `docker-compose.molt.yml`, `services/molt_http_service/`, `packages/shared-core/`
+Файлы: `docker-compose.molt.yml`, `services/molt_http_service/`, `packages/shared-core/`  
+Верификация RU: `/ready`, smoke `/executions`, `bridge_available True`, Agents→Molt  
+(`executions`+`events` в metrics), task `#16` → `WAIT_OWNER` via `POST /api/tasks` `auto_run`.
 
 ## Политика
 
