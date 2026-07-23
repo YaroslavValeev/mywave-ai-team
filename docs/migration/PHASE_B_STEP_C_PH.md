@@ -45,6 +45,6 @@ curl -sS -H "X-API-Key: $OWNER_API_KEY" https://agm.mywavewake.ru/api/tasks \
 
 ## Критерий шага C
 
-- [ ] `run_ph_with_control.ps1` печатает `enabled= True` и health ok  
-- [ ] Propose создаёт задачу на проде без fatal error  
-- [ ] Apply → задача `DONE` (или approve через Telegram)  
+- [x] Headless bridge smoke: propose→WAIT_OWNER→approve→DONE (**#8**, 2026-07-22)
+- [ ] `run_ph_with_control.ps1` + GUI propose/apply (Owner, optional visual confirm)
+- [ ] Apply → задача `DONE` через desktop UI
