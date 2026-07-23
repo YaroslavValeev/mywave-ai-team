@@ -33,7 +33,7 @@ try:
         should_agents_control_runtime_after_approval,
         handle_rework_via_molt_if_enabled,
     )
-except ImportError:
+except Exception:  # ImportError / partial shared_core — не валим бот на старте
     def write_canonical_task_if_enabled(*a, **kw):
         return None
 

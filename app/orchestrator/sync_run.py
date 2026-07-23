@@ -39,7 +39,7 @@ try:
         get_canonical_state,
         handle_rework_via_molt_if_enabled,
     )
-except ImportError:
+except Exception:  # ImportError / partial shared_core — не валим оркестратор
     def write_canonical_task_if_enabled(*a, **kw):
         return None
 
