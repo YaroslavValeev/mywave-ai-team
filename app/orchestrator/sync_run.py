@@ -26,6 +26,47 @@ from app.owner_memory.service import OwnerMemoryService, owner_memory_enabled
 from app.storage.repositories import TaskRepository
 from app.orchestrator.triage_snapshot import persist_triage_snapshot, resync_triage_dict_from_store
 
+
+try:
+    from app.canonical_bridge import (
+        write_canonical_task_if_enabled,
+        get_canonical_task_id,
+        write_run_if_enabled,
+        write_event_if_enabled,
+        write_approval_request_if_enabled,
+        write_approval_resolution_if_enabled,
+        set_canonical_state,
+        get_canonical_state,
+        handle_rework_via_molt_if_enabled,
+    )
+except ImportError:
+    def write_canonical_task_if_enabled(*a, **kw):
+        return None
+
+    def get_canonical_task_id(*a, **kw):
+        return None
+
+    def write_run_if_enabled(*a, **kw):
+        return None
+
+    def write_event_if_enabled(*a, **kw):
+        return False
+
+    def write_approval_request_if_enabled(*a, **kw):
+        return None
+
+    def write_approval_resolution_if_enabled(*a, **kw):
+        return False
+
+    def set_canonical_state(*a, **kw):
+        return None
+
+    def get_canonical_state(*a, **kw):
+        return {}
+
+    def handle_rework_via_molt_if_enabled(*a, **kw):
+        return None
+
 logger = logging.getLogger(__name__)
 
 
@@ -407,6 +448,27 @@ def run_sync_orchestration(
         control.check_cancelled()
     repo.update_task(task_id, status="IN_PIPELINE")
     log_audit(repo, "pipeline_start", task_id=task_id, payload={"source": source, "status_after": "IN_PIPELINE"})
+    # Phase B-D: Agents -> Molt HTTP execution (no-op unless CANONICAL_PATH + MOLT_RUN_OWNER)
+    try:
+        _ctid = get_canonical_task_id(task_id) or write_canonical_task_if_enabled(
+            legacy_task_id=task_id,
+            owner_text=getattr(task, "owner_text", "") or "",
+            origin_channel=source or "agents",
+        )
+        if _ctid:
+            _rid = write_run_if_enabled(_ctid)
+            if _rid:
+                set_canonical_state(
+                    task_id,
+                    canonical_task_id=_ctid,
+                    run_id=_rid,
+                    status="run_started",
+                    last_event="run_started",
+                    clear_approval=True,
+                )
+                write_event_if_enabled(_rid, "run_started", {"source": source})
+    except Exception:
+        logger.exception("canonical/molt run hook failed task_id=%s", task_id)
     pipeline_result = run_pipeline(task_id, triage_result, repo, control=control)
     log_audit(
         repo,
@@ -511,6 +573,30 @@ def run_sync_orchestration(
         control.check_cancelled()
     repo.update_task(task_id, status=final_status, report_path=report_path, summary=summary)
     on_orchestration_awaiting_owner(repo, task_id, final_status)
+    if final_status == "WAIT_OWNER":
+        try:
+            state = get_canonical_state(task_id)
+            if state.get("run_id") and state.get("canonical_task_id"):
+                approval_id = write_approval_request_if_enabled(
+                    state["canonical_task_id"],
+                    state["run_id"],
+                    "execute_gate",
+                    requested_by=f"{source}_owner",
+                )
+                if approval_id:
+                    set_canonical_state(
+                        task_id,
+                        approval_id=approval_id,
+                        status="waiting_approval",
+                        last_event="approval_requested",
+                    )
+                    write_event_if_enabled(
+                        state["run_id"],
+                        "run_waiting_approval",
+                        {"approval_id": approval_id},
+                    )
+        except Exception:
+            logger.exception("canonical approval hook failed task_id=%s", task_id)
     od_payload = {
         "report_path": report_path,
         "final_status": final_status,

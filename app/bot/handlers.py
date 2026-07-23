@@ -18,6 +18,55 @@ from app.intake.schemas import IntakeAttachment, TaskBrief
 from app.orchestrator.sync_run import _read_exploration_selected_id, run_sync_orchestration
 from app.storage.repositories import get_session_factory, TaskRepository
 from app.shared.audit import log_audit, log_decision
+
+try:
+    from app.canonical_bridge import (
+        write_canonical_task_if_enabled,
+        get_canonical_task_id,
+        write_run_if_enabled,
+        write_event_if_enabled,
+        write_approval_request_if_enabled,
+        write_approval_resolution_if_enabled,
+        write_artifact_if_enabled,
+        set_canonical_state,
+        get_canonical_state,
+        should_agents_control_runtime_after_approval,
+        handle_rework_via_molt_if_enabled,
+    )
+except ImportError:
+    def write_canonical_task_if_enabled(*a, **kw):
+        return None
+
+    def get_canonical_task_id(*a, **kw):
+        return None
+
+    def write_run_if_enabled(*a, **kw):
+        return None
+
+    def write_event_if_enabled(*a, **kw):
+        return False
+
+    def write_approval_request_if_enabled(*a, **kw):
+        return None
+
+    def write_approval_resolution_if_enabled(*a, **kw):
+        return False
+
+    def write_artifact_if_enabled(*a, **kw):
+        return None
+
+    def set_canonical_state(*a, **kw):
+        return None
+
+    def get_canonical_state(*a, **kw):
+        return {}
+
+    def should_agents_control_runtime_after_approval():
+        return True
+
+    def handle_rework_via_molt_if_enabled(*a, **kw):
+        return None
+
 from app.bot.notify import send_with_retry
 from app.shared.dashboard_link import sign_task_link
 from app.owner_memory.delivery import format_owner_delivery_note
@@ -243,6 +292,11 @@ async def create_mission_and_run(
                 business_outcome=(business_meta.get("business_outcome") or None),
             )
         task_id = task.id
+        write_canonical_task_if_enabled(
+            legacy_task_id=task_id,
+            owner_text=owner_text,
+            origin_channel=source or "telegram",
+        )
         log_audit(
             repo,
             "task_created",
@@ -830,6 +884,32 @@ async def handle_owner_callback(cb: CallbackQuery):
         else:
             new_status = "NEED_INFO"
         repo.update_task(task_id, status=new_status)
+        try:
+            state = get_canonical_state(task_id)
+            if state.get("approval_id") and state.get("run_id"):
+                approved = code == "a"
+                write_approval_resolution_if_enabled(
+                    state["approval_id"],
+                    state["run_id"],
+                    approved=approved,
+                    approved_by="telegram_owner",
+                    comment=code,
+                )
+                write_event_if_enabled(
+                    state["run_id"],
+                    "approval_resolved",
+                    {"code": code, "approved": approved},
+                )
+            if code == "r":
+                handle_rework_via_molt_if_enabled(
+                    legacy_task_id=task_id,
+                    canonical_task_id=state.get("canonical_task_id"),
+                    run_id=state.get("run_id"),
+                )
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "canonical approval resolution hook failed task_id=%s", task_id
+            )
 
         if code == "a":
             if has_pr:
