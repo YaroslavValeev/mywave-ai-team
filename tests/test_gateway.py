@@ -15,12 +15,12 @@ def test_registry_resolves_github_when_token_set(monkeypatch):
     from app.gateway.registry import reload_gateway_registry_for_tests
 
     reload_gateway_registry_for_tests()
-    monkeypatch.setenv("GH_TOKEN", "ghp_test_secret")
+    monkeypatch.setenv("GH_TOKEN", "test_github_token_value")
     from app.gateway.registry import get_gateway_registry
 
     r = get_gateway_registry().resolve("github", "pr")
     assert r.ok is True
-    assert r.value == "ghp_test_secret"
+    assert r.value == "test_github_token_value"
     assert r.runtime == "server"
 
 

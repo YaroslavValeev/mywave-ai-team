@@ -26,7 +26,7 @@
 <body>
   <h1>{{ mission_title }}</h1>
   <p class="muted">Миссия #{{ task.id }}{% if project %} · проект: {{ project.name }}{% endif %}</p>
-  <p><a href="/missions{{ api_key_query }}">← Missions</a> · <a href="/tasks/{{ task.id }}{{ api_key_query }}">Классическая карточка</a></p>
+  <p><a href="/missions{{ api_key_query }}">← Миссии</a> · <a href="/tasks/{{ task.id }}{{ api_key_query }}">Классическая карточка</a></p>
 
   <div class="viewbar">
     <span class="muted">Режим:</span>
@@ -239,39 +239,39 @@
       </div>
       {% endfor %}
 
-      <h2>Approvals</h2>
+      <h2>Утверждения</h2>
       {% if exploration_waiting %}
-      <p>Сначала выберите сценарий exploration (см. блок выше). Approve применяется после прохождения pipeline/court.</p>
+      <p>Сначала выберите сценарий (см. блок выше). Утверждение — после конвейера и суда.</p>
       {% elif task.status == 'EXECUTION_READY' %}
-      <p>Сейчас нужен <strong>запуск в Cursor</strong> по промптам выше, не approve суда. После появления артефактов можно снова запустить оркестрацию.</p>
+      <p>Сейчас нужен <strong>запуск в Cursor</strong> по промптам выше, не утверждение суда. После появления артефактов можно снова запустить оркестрацию.</p>
       {% elif needs_approval %}
-      <p>Требуется решение Owner: миссия ожидает approve.</p>
+      <p>Требуется решение владельца: миссия ожидает утверждения.</p>
       {% else %}
-      <p>Сейчас блокирующих approvals нет.</p>
+      <p>Сейчас блокирующих утверждений нет.</p>
       {% endif %}
       <div class="actions">
         {% if not exploration_waiting and task.status != 'EXECUTION_READY' %}
-        <form method="post" action="/approve{{ api_key_query }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#10b981;color:#062014;">Approve</button></form>
-        <form method="post" action="/tasks/{{ task.id }}/rework{{ api_key_query }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#f59e0b;color:#2b1600;">Reject/Rework</button></form>
-        <form method="post" action="/tasks/{{ task.id }}/clarify{{ api_key_query }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#38bdf8;color:#062034;">Clarify</button></form>
+        <form method="post" action="/approve{{ api_key_query }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#10b981;color:#062014;">Утвердить</button></form>
+        <form method="post" action="/tasks/{{ task.id }}/rework{{ api_key_query }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#f59e0b;color:#2b1600;">На доработку</button></form>
+        <form method="post" action="/tasks/{{ task.id }}/clarify{{ api_key_query }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#38bdf8;color:#062034;">Уточнить</button></form>
         {% endif %}
-        <form method="post" action="/pause{{ api_key_query }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#64748b;color:#e2e8f0;">Pause</button></form>
-        <form method="post" action="/resume{{ api_key_query }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#a78bfa;color:#1f1235;">Resume</button></form>
-        <form method="post" action="/cancel{{ api_key_query }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#ef4444;color:#fff1f2;">Cancel</button></form>
+        <form method="post" action="/pause{{ api_key_query }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#64748b;color:#e2e8f0;">Пауза</button></form>
+        <form method="post" action="/resume{{ api_key_query }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#a78bfa;color:#1f1235;">Продолжить</button></form>
+        <form method="post" action="/cancel{{ api_key_query }}"><input type="hidden" name="task_id" value="{{ task.id }}"><input type="hidden" name="view" value="{{ view_mode }}"><button style="background:#ef4444;color:#fff1f2;">Отменить</button></form>
       </div>
 
       {% if view_mode == 'system' %}
       <h2>Бизнес-данные (сырой контур)</h2>
       <p>Business: <strong>{{ business_type }}</strong> · Impact: <strong>{{ impact_level }}</strong></p>
       {% if gm_decision %}
-      <p class="muted">GM template: {{ gm_decision.get('workflow_template', '—') }}</p>
+      <p class="muted">Шаблон директора: {{ gm_decision.get('workflow_template', '—') }}</p>
       {% endif %}
       {% endif %}
 
-      <h2>Owner Decisions</h2>
+      <h2>Решения владельца</h2>
       <ul>
         {% for d in approvals %}
-        <li>{{ d.at or '-' }} · {{ d.decision }} · owner_approval={{ d.owner_approval }}</li>
+        <li>{{ d.at or '-' }} · {{ d.decision }} · утверждено={{ d.owner_approval }}</li>
         {% else %}
         <li>Решений пока нет</li>
         {% endfor %}
@@ -295,16 +295,16 @@
         {% endfor %}
       </ul>
 
-      <h2>System Status</h2>
+      <h2>Статус системы</h2>
       {% if view_mode == 'system' %}
-      <p>Task status: <strong>{{ task.status }}</strong></p>
-      <p>Runner state: <strong>{{ workflow.runner.state or 'idle' }}</strong></p>
-      <p>Runner phase: <strong>{{ workflow.runner.phase or 'idle' }}</strong></p>
+      <p>Статус миссии: <strong>{{ task.status }}</strong></p>
+      <p>Состояние раннера: <strong>{{ workflow.runner.state or 'idle' }}</strong></p>
+      <p>Фаза раннера: <strong>{{ workflow.runner.phase or 'idle' }}</strong></p>
       {% else %}
       <p class="muted">Технические детали раннера — в System View.</p>
       {% endif %}
 
-      <h2>Latest Events</h2>
+      <h2>Последние события</h2>
       <ul>
         {% for e in recent_events %}
         <li>{{ e.created_at or '-' }} · {{ e.event_type }}</li>

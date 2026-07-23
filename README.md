@@ -50,7 +50,7 @@ cp .env.example .env
 # DASHBOARD_URL=http://localhost:8080
 # Заполнить TELEGRAM_BOT_TOKEN, OWNER_CHAT_ID, POSTGRES_PASSWORD, OWNER_API_KEY
 docker compose up -d
-# Dashboard: http://localhost:8080 (заголовок X-API-Key)
+# Dashboard: http://localhost:8080 — форма входа (или ?api_key= / X-API-Key)
 ```
 
 **Профили Docker** (подробно: [docs/CANONICAL-RUNTIME.md](docs/CANONICAL-RUNTIME.md)):
@@ -96,7 +96,8 @@ Caddy: reverse proxy + HTTPS + BasicAuth. Порт 8080 не публикует�
 1. DNS: A-запись `agm` → IP сервера timeweb
 2. Порты 80/443 открыты
 3. `cp Caddyfile.example Caddyfile`, в `Caddyfile` заменить `<BASICAUTH_HASH>` (см. `caddy hash-password`)
-4. `.env`: OWNER_API_KEY, DASHBOARD_URL=https://agm.mywavetreaning.ru
+4. `.env`: OWNER_API_KEY, DASHBOARD_URL=https://agm.mywavewake.ru
+   (веб: откройте URL → форма «Пароль владельца»; cookie ~30 дней; опционально `DASHBOARD_PIN`)
 5. `docker compose up -d`
 6. Вход: https://agm.mywavetreaning.ru/tasks (логин `owner` + пароль)
 

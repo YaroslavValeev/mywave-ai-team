@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Execution Pack — Mission #{{ task.id }}</title>
+  <title>Пакет исполнения — Миссия #{{ task.id }}</title>
   <style>
     body { font-family: system-ui, sans-serif; margin: 2rem; background: #121826; color: #e5e7eb; }
     .card { border:1px solid #334155; border-radius:10px; padding:1rem; background:#0f172a; max-width: 920px; margin-bottom: 1rem; }
@@ -26,7 +26,7 @@
 
   <section class="card">
     <h1>ГОТОВОЕ ДЕЙСТВИЕ</h1>
-    <p class="muted">Mission #{{ task.id }}{% if project_name %} · {{ project_name }}{% endif %}</p>
+    <p class="muted">Миссия #{{ task.id }}{% if project_name %} · {{ project_name }}{% endif %}</p>
     <p><strong>Действие:</strong> {{ pack.get('action_title', '-') }}</p>
     <p><strong>Зачем:</strong> {{ pack.get('why', '-') }}</p>
     <p><span class="tag">{{ pack.get('pack_type', 'generic_pack') }}</span> ·
@@ -113,7 +113,7 @@
       </div>
       <label>Что получилось? (коротко)</label>
       <textarea name="result_summary" rows="3" placeholder="Что реально произошло после выполнения"></textarea>
-      <label>Feedback Owner</label>
+      <label>Отзыв владельца</label>
       <textarea name="owner_feedback" rows="2" placeholder="сработало / не сработало / почему"></textarea>
       <label>Notes</label>
       <textarea name="notes" rows="2" placeholder="дополнительные заметки"></textarea>

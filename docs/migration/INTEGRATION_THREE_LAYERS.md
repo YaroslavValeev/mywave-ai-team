@@ -129,8 +129,9 @@ Agents → Molt по-прежнему: `MOLT_TRANSPORT_MODE=http`, `MOLT_HTTP_BA
 - [x] Molt `/ready` учитывает Agents health (если `AGENTS_CONTROL_ENABLED=1`)
 - [x] Живой E2E Owner: create → WAIT_OWNER → approve → DONE (#4, #6, #7 auto_run на прод)
 - [x] POST `/api/tasks` + `auto_run: true` (deployed)
-- [ ] PH desktop live propose→approve against prod — см. [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md)
-- [ ] Agents→Molt HTTP execution on local stack (`MOLT_TRANSPORT_MODE=http`)
+- [x] PH headless propose→approve against prod (`smoke_ph_control_headless.py`) — см. [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md)
+- [ ] PH desktop GUI propose/apply (optional UX)
+- [ ] Agents→Molt HTTP execution on local stack (`MOLT_TRANSPORT_MODE=http`) — bridge facade on C:main; full path still local F/shared-core
 
 ## Риски
 
