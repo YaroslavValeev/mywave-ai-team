@@ -33,13 +33,37 @@ echo "=== disk ==="
 df -h / /var/lib/docker 2>/dev/null | head -20 || df -h /
 echo
 
-echo "=== local health :8088 ==="
-curl -sS -m 10 -H "X-API-Key: ${OWNER_API_KEY}" "http://127.0.0.1:8088/api/system/health" || echo "FAIL local"
+# After --build, alembic/app may need ~30–90s; avoid false 502/reset.
+wait_health() {
+  local label="$1"
+  local url="$2"
+  local timeout_sec="${3:-90}"
+  local deadline=$((SECONDS + timeout_sec))
+  local body=""
+  local attempt=0
+  while (( SECONDS < deadline )); do
+    attempt=$((attempt + 1))
+    body="$(curl -sS -m 5 -H "X-API-Key: ${OWNER_API_KEY}" "$url" 2>/dev/null || true)"
+    if echo "$body" | grep -q '"status"[[:space:]]*:[[:space:]]*"ok"'; then
+      echo "$body"
+      return 0
+    fi
+    sleep 3
+  done
+  echo "FAIL ${label} after ${timeout_sec}s (${attempt} attempts)"
+  if [[ -n "$body" ]]; then
+    echo "$body"
+  fi
+  return 1
+}
+
+echo "=== local health :8088 (wait up to 90s) ==="
+wait_health "local" "http://127.0.0.1:8088/api/system/health" 90 || true
 echo
 echo
 
-echo "=== public health ${BASE_URL} ==="
-curl -sS -m 15 -H "X-API-Key: ${OWNER_API_KEY}" "${BASE_URL}/api/system/health" || echo "FAIL public"
+echo "=== public health ${BASE_URL} (wait up to 60s) ==="
+wait_health "public" "${BASE_URL}/api/system/health" 60 || true
 echo
 echo
 
