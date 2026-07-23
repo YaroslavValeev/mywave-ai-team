@@ -79,7 +79,7 @@
     IN_PIPELINE: "Исполнение",
     IN_ROUNDTABLE: "Совещание",
     IN_COURT: "Суд",
-    WAIT_OWNER: "Ждёт owner",
+    WAIT_OWNER: "Ждёт владельца",
     APPROVED_WAIT_MERGE: "Ждёт merge",
     NEED_INFO: "Нужно уточнение",
     REWORK: "Доработка",
@@ -147,7 +147,7 @@
     ARCH: { code: "ARCH", label: "Архитектор", zone: "architecture", animation: "review" },
     QA: { code: "QA", label: "QA ревьюер", zone: "qa", animation: "review" },
     DEVOPS: { code: "DEVOPS", label: "DevOps инженер", zone: "ops", animation: "ops" },
-    RC: { code: "RC", label: "Reality checker", zone: "meeting", animation: "debate" },
+    RC: { code: "RC", label: "Проверка реальности", zone: "meeting", animation: "debate" },
     SEC: { code: "SEC", label: "Security ревьюер", zone: "meeting", animation: "review" },
     LEGAL: { code: "LEGAL", label: "Юрист", zone: "meeting", animation: "review" },
     FIN: { code: "FIN", label: "Финансовый аналитик", zone: "meeting", animation: "review" },
@@ -612,11 +612,11 @@
     const currentZone = state.scene?.scene?.zone || "reception";
     const currentActor = state.scene?.current_actor;
     const cards = [
-      { code: "reception", title: "Приёмная", note: "Сюда приходят новые задачи из Telegram и Dashboard." },
+      { code: "reception", title: "Приёмная", note: "Сюда приходят новые задачи из Telegram и панели." },
       { code: "worklane", title: "Коридор исполнения", note: "Здесь задача проходит через ключевые роли и handoff-этапы." },
       { code: "meeting", title: "Переговорная", note: "Совет обсуждает риски, ограничения и рекомендации." },
       { code: "court", title: "Суд решений", note: "Формируется финальный отчёт и итоговый статус." },
-      { code: "owner", title: "Стол владельца", note: "Здесь принимаются решения approve / rework / clarify / merged." },
+      { code: "owner", title: "Стол владельца", note: "Здесь принимаются решения: утвердить / доработать / уточнить / merge." },
       { code: "archive", title: "Архив миссий", note: "Завершённые миссии хранятся здесь вместе с итогами." },
       { code: "ops", title: "Ops-панель", note: "Статус базы, Telegram, orchestration и runner." },
       { code: "lab", title: "AI-лаборатория", note: "Место для model-backed reasoning и prompt-work." },
@@ -957,7 +957,7 @@
             <div class="metric-value">${activeTaskCount()}</div>
           </div>
           <div class="metric-box">
-            <div class="metric-label">Ждут owner</div>
+            <div class="metric-label">Ждут владельца</div>
             <div class="metric-value">${tasksWaitingDecision()}</div>
           </div>
           <div class="metric-box">
@@ -992,7 +992,7 @@
         <div class="scene-head">
           <div>
             <div class="scene-title">Ситуационный центр</div>
-            <div class="scene-subtitle">Техническое здоровье системы, доступное с телефона и desktop fallback.</div>
+            <div class="scene-subtitle">Техническое здоровье системы, доступное с телефона и запасной панели.</div>
           </div>
         </div>
         <div class="health-grid">
@@ -1021,7 +1021,7 @@
         <div class="scene-head">
           <div>
             <div class="scene-title">Поставить новую миссию</div>
-            <div class="scene-subtitle">Можно создавать задачи прямо из Dashboard. Для критичных действий Telegram остаётся главным каналом подтверждений.</div>
+            <div class="scene-subtitle">Можно создавать задачи прямо из панели. Для критичных действий Telegram остаётся главным каналом подтверждений.</div>
           </div>
         </div>
         <textarea id="task-composer-input" placeholder="#TASK Подготовить план выката новой фичи сайта с rollback, healthcheck и рисками">${escapeHtml(taskDraft)}</textarea>
@@ -1138,7 +1138,7 @@
     if (runner.state === "cancelled") return "Остановлен";
     if (runner.state === "failed") return "Ошибка";
     if (ACTIVE_WORK_STATUSES.has(task.status)) return "Работает";
-    if (task.status === "WAIT_OWNER") return "Ждёт owner";
+    if (task.status === "WAIT_OWNER") return "Ждёт владельца";
     if (task.status === "APPROVED_WAIT_MERGE") return "Ждёт merge";
     if (task.status === "NEED_INFO") return "Ждёт уточнения";
     if (task.status === "REWORK") return "Ожидает перезапуск";
@@ -2150,7 +2150,7 @@
                 <div class="mission-brief">${escapeHtml(state.scene.runner?.stop_reason || "—")}</div>
               </div>
               <div class="doc-card">
-                <div class="doc-title">Approve</div>
+                <div class="doc-title">Утверждение</div>
                 <div class="mission-brief">${escapeHtml(state.scene.owner_actions.approve_reason || "—")}</div>
               </div>
               <div class="doc-card">
@@ -2211,7 +2211,7 @@
         <div class="scene-head">
           <div>
             <div class="scene-title">Управление штабом</div>
-            <div class="scene-subtitle">Быстрые переходы для телефона: открыть последнюю миссию, перейти в fallback Dashboard и проверить mobile URL.</div>
+            <div class="scene-subtitle">Быстрые переходы для телефона: открыть последнюю миссию, перейти в запасную панель и проверить mobile URL.</div>
           </div>
         </div>
         <div class="inline-actions interactive-layer">

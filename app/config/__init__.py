@@ -62,6 +62,9 @@ def get_orchestration_config() -> dict:
         "allow_fallback": os.getenv("ORCHESTRATION_ALLOW_FALLBACK", "true").strip().lower() not in {"0", "false", "no"},
         "telegram_retry_attempts": int(os.getenv("TELEGRAM_RETRY_ATTEMPTS", "4")),
         "telegram_retry_base_seconds": float(os.getenv("TELEGRAM_RETRY_BASE_SECONDS", "1.5")),
+        # Stage-boundary progress in Telegram (не полный stream реплик).
+        "telegram_stage_notify": os.getenv("TELEGRAM_STAGE_NOTIFY", "true").strip().lower()
+        not in {"0", "false", "no"},
         "retention_days": int(os.getenv("RETENTION_DAYS", str(get_policy().get("logging", {}).get("retention_days", 90)))),
         "crewai_model": os.getenv("CREWAI_MODEL", "").strip(),
         "crewai_provider": os.getenv("CREWAI_PROVIDER", "").strip(),

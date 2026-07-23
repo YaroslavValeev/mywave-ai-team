@@ -25,8 +25,8 @@
 
   <div class="viewbar">
     <span class="muted">Режим списка:</span>
-    <a href="/missions{{ access_query_business }}" class="{{ 'active' if view_mode == 'business' else '' }}">Business View</a>
-    <a href="/missions{{ access_query_system }}" class="{{ 'active' if view_mode == 'system' else '' }}">System View</a>
+    <a href="/missions{{ access_query_business }}" class="{{ 'active' if view_mode == 'business' else '' }}">Бизнес</a>
+    <a href="/missions{{ access_query_system }}" class="{{ 'active' if view_mode == 'system' else '' }}">Система</a>
   </div>
 
   <div class="grid">
@@ -53,13 +53,13 @@
             <td><strong>{{ m.headline }}</strong><div class="muted">#{{ m.id }}</div></td>
             <td>
               <span class="badge">{{ m.status }}</span>
-              {% if m.exploration_waiting %}<span class="badge" style="background:#0c4a6e;color:#bae6fd;">exploration</span>{% endif %}
-              {% if m.needs_approval %}<span class="badge" style="background:#7c2d12;color:#fed7aa;">needs owner</span>{% endif %}
+              {% if m.exploration_waiting %}<span class="badge" style="background:#0c4a6e;color:#bae6fd;">сценарии</span>{% endif %}
+              {% if m.needs_approval %}<span class="badge" style="background:#7c2d12;color:#fed7aa;">ждёт владельца</span>{% endif %}
             </td>
             <td><span class="badge">{{ m.owner_workstream }}</span></td>
             <td class="muted">{{ m.next_business_step[:200] }}{% if m.next_business_step|length > 200 %}…{% endif %}</td>
             <td>
-              {% if m.has_execution_pack %}<span class="badge" style="background:#0b3b2e;color:#d1fae5;" title="Execution Pack после суда">pack</span>{% endif %}
+              {% if m.has_execution_pack %}<span class="badge" style="background:#0b3b2e;color:#d1fae5;" title="Пакет исполнения после суда">пакет</span>{% endif %}
               {% if m.has_execution_ready %}<span class="badge" style="background:#14532d;color:#bbf7d0;" title="Dry-run: промпты для Cursor">cursor</span>{% endif %}
               {% if not m.has_execution_pack and not m.has_execution_ready %}<span class="muted">—</span>{% endif %}
             </td>
@@ -78,7 +78,7 @@
     </section>
 
     <aside class="card">
-      <h2>Exploration</h2>
+      <h2>Сценарии</h2>
       <ul>
         {% for a in exploration_pending %}
         <li><a href="/mission/{{ a.id }}{{ api_key_query }}">#{{ a.id }}</a> — {{ a.headline[:60] }}</li>
@@ -87,18 +87,18 @@
         {% endfor %}
       </ul>
 
-      <h2>Approvals</h2>
+      <h2>На утверждение</h2>
       <ul>
         {% for a in approvals %}
         <li><a href="/mission/{{ a.id }}{{ api_key_query }}">#{{ a.id }}</a> — {{ a.headline[:60] }}</li>
         {% else %}
-        <li>Нет задач, требующих approve</li>
+        <li>Нет задач, требующих утверждения</li>
         {% endfor %}
       </ul>
 
-      <h2>System Status</h2>
+      <h2>Состояние системы</h2>
       <p><strong>Общий:</strong> {{ health.status }}</p>
-      <p><strong>Active workflows:</strong> {{ running_count }}</p>
+      <p><strong>Активные процессы:</strong> {{ running_count }}</p>
       <p><strong>На паузе:</strong> {{ paused_count }}</p>
       <ul>
         {% for name, check in health.checks.items() %}

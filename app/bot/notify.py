@@ -93,3 +93,36 @@ async def notify_pr_ready(task_id: int, pr_url: str, summary: str, dashboard_url
 📊 [Панель]({_dashboard_tasks_url(task_id)})"""
     markup = build_owner_buttons_with_merged(task_id).as_markup()
     await send_owner_message(msg, reply_markup=markup)
+
+
+_STAGE_LABELS = {
+    "triage": "🔎 Триаж готов",
+    "pipeline": "⚙️ Конвейер готов",
+    "roundtable": "🗣 Совещание готово",
+    "court": "⚖️ Суд завершён",
+}
+
+
+async def notify_stage(task_id: int, stage: str, detail: str = "") -> bool:
+    """Короткое уведомление о границе этапа (не stream реплик агентов)."""
+    label = _STAGE_LABELS.get(stage, f"📌 Этап: {stage}")
+    extra = f"\n{detail}" if detail else ""
+    text = f"{label} — миссия #{task_id}{extra}"
+    return await send_owner_message(text, parse_mode=None)
+
+
+def notify_stage_sync(task_id: int, stage: str, detail: str = "") -> None:
+    """Sync wrapper for orchestrator (best-effort; never raises to caller)."""
+    cfg = get_orchestration_config()
+    if not cfg.get("telegram_stage_notify", True):
+        return
+    try:
+        coro = notify_stage(task_id, stage, detail)
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(coro)
+        else:
+            loop.create_task(coro)
+    except Exception as exc:
+        logger.warning("notify_stage_sync failed task_id=%s stage=%s: %s", task_id, stage, exc)

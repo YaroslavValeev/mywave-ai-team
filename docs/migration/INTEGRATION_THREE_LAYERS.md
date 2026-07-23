@@ -136,6 +136,9 @@ Agents → Molt по-прежнему: `MOLT_TRANSPORT_MODE=http`, `MOLT_HTTP_BA
 - [ ] PH **visual** GUI one-click (`run_ph_with_control.ps1`) — optional Owner PC; см. [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md)
 - [x] Agents→Molt HTTP E2E **script** (`smoke_agents_molt_http_e2e.py`) — Molt only on Owner PC, not RU
 - [x] Повторный зелёный Agents→Molt E2E после recovery — см. [PHASE_B_STEP_D_MOLT.md](PHASE_B_STEP_D_MOLT.md)
+- [x] Dashboard RU owner-facing labels (missions / office / health messages)
+- [x] Telegram stage-boundary notify (`TELEGRAM_STAGE_NOTIFY`, default on)
+- [x] Docs: [MOLT_ON_RU_CHECKLIST.md](MOLT_ON_RU_CHECKLIST.md) (live deploy = Owner GO)
 
 Пост-recovery остаток: [POST_RECOVERY_REMAINING.md](POST_RECOVERY_REMAINING.md).
 

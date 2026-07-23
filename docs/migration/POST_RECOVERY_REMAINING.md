@@ -49,19 +49,23 @@ Backup cron уже стоит. **Не нужно:** reboot, approve #11, `up -d 
 
 ### (C) Owner PC only (optional)
 
-1. Visual PH one-click: `run_ph_with_control.ps1` → propose/apply в GUI (headless + wiring + apply-path уже закрыты).
-2. Опционально: BotFather ротация токена, если когда-либо светился в чате.
-3. Опционально (umbrella): `pip install cursor-sdk` + `CURSOR_API_KEY` для реального Cursor executor (иначе `manual_hint`).
+1. Visual PH one-click: `run_ph_with_control.ps1` → propose/apply в GUI.
+2. Опционально: BotFather / `CURSOR_API_KEY`.
 
-### (D) Defer
+### (D) Defer (policy / big-bang)
 
-1. Big-bang monorepo / submodule поверх dirty F-копии Agents (`MyWave_AI_TEAM_Presets_v1_1` на F: @ stale branch — **не править**).
-2. Deploy Molt на RU.
-3. Полный русский Dashboard (бот уже RU).
-4. Стриминг промежуточных реплик агентов в Telegram.
-5. Provider-backed CrewAI «гарантированный» runtime без fallback (office-full уже работает с fallback).
-6. Авто-merge в `main` (запрещено policy).
-7. LangGraph orchestration (явно deferred).
+1. Big-bang monorepo / submodule поверх dirty F-копии Agents — **не править**.
+2. **Live** Deploy Molt на RU — только после Owner GO; чеклист: [MOLT_ON_RU_CHECKLIST.md](MOLT_ON_RU_CHECKLIST.md).
+3. Полный stream каждой реплики агента в Telegram (сейчас — stage-boundary notify).
+4. CrewAI без fallback (office-full + fallback остаётся).
+5. Авто-merge в `main` (запрещено policy).
+6. LangGraph orchestration.
+
+### Closed from former defer (2026-07-23)
+
+- Dashboard RU owner-facing strings
+- Telegram stage-boundary notify (`TELEGRAM_STAGE_NOTIFY=true`)
+- Molt-on-RU checklist (docs)
 
 ---
 
