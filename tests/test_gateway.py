@@ -61,3 +61,4 @@ def test_system_health_includes_gateway(client, auth_headers):
     assert r.status_code == 200
     checks = r.json().get("checks", {})
     assert "gateway" in checks
+    assert "molt" in checks

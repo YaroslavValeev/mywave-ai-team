@@ -1,6 +1,6 @@
 # Project Status
 
-Snapshot date: **2026-07-23** (Owner RU `c4397eb`, ops-check OK, CI green after PR #20)
+Snapshot date: **2026-07-24** (Owner RU Molt GO + E2E done; ops parity next)
 
 ## What We Are Building
 
@@ -26,10 +26,13 @@ This is not a generic chatbot. It is a control plane for routing real MyWave tas
 - Telegram RU UI + approve buttons work
 - Control API create / `auto_run` / approve proven; **#11 DONE**; `WAIT_OWNER` empty
 - Backups cron working (`20260723.sql.gz`)
-- Umbrella `agents_live` + `agents-http-client` junctions; Agents→Molt HTTP E2E **PASS**
+- Umbrella `agents_live` + `agents-http-client` junctions; Agents→Molt HTTP E2E **PASS** on RU
+- **Molt on RU:** `--profile molt` live (Owner GO); E2E task #16 **done**
 - HTTP client: approve/rework/clarify/**merged**; default criticality `MEDIUM`
 
 Still open (detail: [migration/POST_RECOVERY_REMAINING.md](migration/POST_RECOVERY_REMAINING.md)):
+
+- **Ops parity:** Molt in `/api/system/health`, canonical.db backup, disk WARN/FAIL in ops-check
 
 - Optional PH **visual** GUI one-click propose/apply on Owner PC
 - Optional BotFather token rotation (only if token ever leaked)
@@ -79,9 +82,9 @@ Still open (detail: [migration/POST_RECOVERY_REMAINING.md](migration/POST_RECOVE
 
 ## Priority Recommendation
 
-1. **Owner RU:** `git pull` docs to `f81bd26+` (no rebuild); `server_ops_check.sh` optional.
+1. **Owner RU:** `git pull` (ops parity PR); re-run `server_ops_check.sh`; verify health `checks.molt`.
 2. **Owner PC (optional):** visual PH GUI one-click.
-3. **Defer:** big-bang monorepo, Molt on RU, CrewAI no-fallback guarantee, auto-merge.
+3. **Defer:** big-bang monorepo, CrewAI no-fallback guarantee, auto-merge.
 
 ## Discovery Plan Executed (this snapshot)
 

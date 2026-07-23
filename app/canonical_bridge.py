@@ -167,6 +167,69 @@ def write_approval_resolution_if_enabled(
     return resolve_approval(approval_id, run_id, approved, approved_by, comment)
 
 
+def apply_owner_decision_hooks_if_enabled(
+    legacy_task_id: int | str,
+    decision_code: str,
+    *,
+    approved_by: str = "api_owner",
+    terminal_on_approve: bool = False,
+) -> None:
+    """
+    Единый canonical/Molt hook после Owner decision (API, Dashboard, Telegram).
+    decision_code: a | r | c (как в Telegram callbacks).
+    """
+    if not _available or not canonical_path_enabled():
+        return
+    code = (decision_code or "").strip().lower()
+    if code in {"approve", "a"}:
+        code = "a"
+    elif code in {"rework", "r"}:
+        code = "r"
+    elif code in {"clarify", "c"}:
+        code = "c"
+    else:
+        return
+    try:
+        state = get_canonical_state(legacy_task_id)
+        approval_id = state.get("approval_id")
+        run_id = state.get("run_id")
+        canonical_task_id = state.get("canonical_task_id")
+        if approval_id and run_id:
+            approved = code == "a"
+            write_approval_resolution_if_enabled(
+                approval_id,
+                run_id,
+                approved=approved,
+                approved_by=approved_by,
+                comment=code,
+                terminal_on_approve=terminal_on_approve and approved,
+            )
+            write_event_if_enabled(
+                run_id,
+                "approval_resolved",
+                {"code": code, "approved": approved, "source": approved_by},
+            )
+        if code == "r":
+            if approval_id and run_id and canonical_task_id:
+                handle_rework_via_molt_if_enabled(
+                    legacy_task_id=legacy_task_id,
+                    canonical_task_id=canonical_task_id,
+                    current_run_id=run_id,
+                    approval_id=approval_id,
+                    approved_by=approved_by,
+                    comment=code,
+                )
+    except Exception:
+        # Never break owner decision path on canonical/Molt failures
+        import logging
+
+        logging.getLogger(__name__).exception(
+            "canonical owner decision hook failed task_id=%s code=%s",
+            legacy_task_id,
+            code,
+        )
+
+
 def write_artifact_if_enabled(
     task_id: str,
     artifact_type: str,

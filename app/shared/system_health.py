@@ -1,4 +1,7 @@
+import json
 import os
+import urllib.error
+import urllib.request
 
 from sqlalchemy import text
 
@@ -16,6 +19,7 @@ def collect_system_health() -> dict:
         "telegram": _check_telegram(),
         "orchestration": _check_orchestration(),
         "runner": _check_runner(),
+        "molt": _check_molt(),
     }
     overall = "ok"
     if any(item["status"] == "error" for item in checks.values()):
@@ -124,3 +128,57 @@ def _check_runner() -> dict:
         return {"status": "ok", "message": "Интеграция Runner/PR настроена." + cursor_hint}
     msg = "Интеграция Runner/PR частичная: нет GITHUB_REPOSITORY или GH_TOKEN (проверьте gateway и env)."
     return {"status": "warn", "message": msg + cursor_hint}
+
+
+def _molt_probe_json(url: str, timeout_sec: float = 2.0) -> dict | None:
+    req = urllib.request.Request(url, method="GET")
+    with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
+        body = resp.read().decode("utf-8", errors="replace")
+    try:
+        return json.loads(body)
+    except json.JSONDecodeError:
+        return None
+
+
+def _check_molt() -> dict:
+    transport = (os.getenv("MOLT_TRANSPORT_MODE", "local") or "local").lower().strip()
+    base_url = (os.getenv("MOLT_HTTP_BASE_URL") or "").strip()
+
+    if not base_url and transport != "http":
+        return {"status": "ok", "message": "Molt не сконфигурирован (норма без profile molt)."}
+
+    if not base_url:
+        base_url = "http://molt:8765"
+
+    base_url = base_url.rstrip("/")
+
+    try:
+        health_payload = _molt_probe_json(f"{base_url}/health")
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        return {
+            "status": "warn",
+            "message": f"Molt /health недоступен ({base_url}): {exc}",
+        }
+
+    if not health_payload or health_payload.get("status") != "ok":
+        return {
+            "status": "warn",
+            "message": f"Molt /health не ok: {health_payload!r}",
+        }
+
+    try:
+        ready_payload = _molt_probe_json(f"{base_url}/ready")
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        return {
+            "status": "warn",
+            "message": f"Molt /health ok, но /ready недоступен: {exc}",
+        }
+
+    if ready_payload and ready_payload.get("status") == "ready":
+        return {"status": "ok", "message": f"Molt готов ({base_url})."}
+
+    reason = (ready_payload or {}).get("reason") or "unknown"
+    return {
+        "status": "warn",
+        "message": f"Molt /health ok, но not_ready: {reason}",
+    }

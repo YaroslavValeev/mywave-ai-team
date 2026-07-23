@@ -19,6 +19,7 @@ Agents `main`: sync after this PR
 | ops-check asserts :8765 off when profile inactive | **done** |
 | **Live** Molt `--profile molt` на RU (Owner GO) | **done** — см. [MOLT_ON_RU_CHECKLIST.md](MOLT_ON_RU_CHECKLIST.md) |
 | Agents→Molt E2E на RU (bridge + auto_run task #16) | **done** (2026-07-24) |
+| Ops parity (health `molt`, canonical backup, disk thresholds) | **planned** — upcoming PR |
 
 ---
 
@@ -35,13 +36,15 @@ Agents `main`: sync after this PR
 4. Авто-merge в `main`
 5. LangGraph
 
-## Owner RU (после этого PR)
+## Owner RU (molt-first, после ops parity PR)
 
 ```bash
 cd /opt/mywave/ai-team && set -a; source .env; set +a
 git pull origin main
-docker compose -f docker-compose.yml -f docker-compose.server-full.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.server-full.yml \
+  -f docker-compose.molt.yml --profile molt up -d --build
 bash scripts/server_ops_check.sh
-# секция molt → OK: не слушает 8765 (без --profile molt)
-# с Molt: docker compose ... -f docker-compose.molt.yml --profile molt up -d --build
+# health API: checks.molt → ok/warn (governance stays up if molt down)
+# backup cron: canonical_${DATE}.db alongside pg dump when molt_data volume exists
+curl -sS -H "X-API-Key: $OWNER_API_KEY" http://127.0.0.1:8088/api/system/health | jq .checks.molt
 ```
