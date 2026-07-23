@@ -1,6 +1,6 @@
 # Project Status
 
-Snapshot date: **2026-07-23** (Owner RU confirmed `f7a1b03`, ops-check OK, queue empty)
+Snapshot date: **2026-07-23** (Owner RU `c4397eb`, ops-check OK, CI green after PR #20)
 
 ## What We Are Building
 

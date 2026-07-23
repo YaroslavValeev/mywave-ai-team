@@ -1,8 +1,8 @@
 # Post-recovery remaining work
 
-Snapshot: **2026-07-23** (Owner RU confirm @ `f7a1b03`, health ok, `WAIT_OWNER []`)  
-Prod: `agm.mywavewake.ru` health **ok** (Owner `server_ops_check.sh`)  
-Agents `main`: `f7a1b03` (PR #18)
+Snapshot: **2026-07-23** (Owner RU @ `c4397eb`, ops-check OK, CI green)  
+Prod: `agm.mywavewake.ru` health **ok**  
+Agents `main`: `c4397eb` (PR #20 channel-parity CI fix)
 
 Связано: [INTEGRATION_THREE_LAYERS.md](INTEGRATION_THREE_LAYERS.md), [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md), [PHASE_B_STEP_D_MOLT.md](PHASE_B_STEP_D_MOLT.md)
 
@@ -34,15 +34,15 @@ Agents `main`: `f7a1b03` (PR #18)
 
 ### (B) Owner server commands (SSH RU)
 
-Сейчас на RU уже **`f7a1b03`**, ops-check OK. Повторный pull не обязателен, пока нет нового PR.
+Сейчас на RU уже **`c4397eb`**, ops-check OK, CI на `main` **success**. Повторный pull не обязателен, пока нет нового PR.
 
 ```bash
 cd /opt/mywave/ai-team && set -a; source .env; set +a
-git rev-parse --short HEAD   # f7a1b03
+git rev-parse --short HEAD   # c4397eb
 bash scripts/server_ops_check.sh
 ```
 
-PR #18 (`packages/agents-http-client`) **не** в Docker app image → **rebuild не нужен**.  
+PR #18 (HTTP client) и #20 (tests) **не** требуют Docker rebuild.  
 Rebuild только если придёт PR с изменениями в `app/` / `Dockerfile` / compose.
 
 Backup cron уже стоит. **Не нужно:** reboot, approve #11, `up -d --build`.
@@ -69,13 +69,8 @@ Backup cron уже стоит. **Не нужно:** reboot, approve #11, `up -d 
 
 | Проверка | Результат |
 |----------|-----------|
-| `git HEAD` (C: / RU) | `f7a1b03` |
-| Prod health (Owner log) | `ok`; CrewAI `gpt-4.1-nano`; disk ~66%; nginx active |
+| `git HEAD` (C: / RU) | `c4397eb` |
+| CI `main` | **success** (PR #20) |
+| Prod health | `ok`; disk ~66%; nginx active; backups OK |
 | `WAIT_OWNER` | **[]** |
-| Top tasks | #15–#11 **DONE** (incl. #11 `marketing_plan`) |
-| Backups | cron OK + `20260722` / `20260723` |
-| Umbrella junctions | `agents_live` + `agents-http-client` **PASS** |
-| Agents→Molt HTTP E2E | **PASS** |
-| HTTP client | `mark_merged` + criticality `MEDIUM` (PR #18) |
-| PH visual GUI one-click | **optional Owner PC** |
 | Open PRs | none |
