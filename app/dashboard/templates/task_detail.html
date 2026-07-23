@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task #{{ task.id }} — MyWave AI-TEAM</title>
+    <title>Миссия #{{ task.id }} — MyWave AI-TEAM</title>
     <style>
         body { font-family: system-ui, sans-serif; margin: 2rem; background: #1a1a2e; color: #eee; }
         a { color: #4fc3f7; }
@@ -19,7 +19,7 @@
     </style>
 </head>
 <body>
-    <h1>Task #{{ task.id }}</h1>
+    <h1>Миссия #{{ task.id }}</h1>
     <p><a href="/tasks{{ api_key_query }}">← К списку</a></p>
     <p><a href="/office/tasks/{{ task.id }}{{ api_key_query }}">Открыть игровую сцену этой миссии</a></p>
 
@@ -58,7 +58,7 @@
         <h2>Подготовка к Cursor (dry-run)</h2>
         <p><strong>Статус:</strong> {{ task.status }} — промпты и план в JSON, не вердикт суда.</p>
         <p><a href="/mission/{{ task.id }}/execution-from-scenario.md{{ api_key_query }}">Скачать план (.md)</a>
-        · <a href="/mission/{{ task.id }}{{ api_key_query }}">Полная карточка Mission</a></p>
+        · <a href="/mission/{{ task.id }}{{ api_key_query }}">Полная карточка миссии</a></p>
         <h3>Cursor-промпты (по порядку)</h3>
         {% for p in execution_from_scenario.get('cursor_prompts', []) %}
         {% if p is mapping %}

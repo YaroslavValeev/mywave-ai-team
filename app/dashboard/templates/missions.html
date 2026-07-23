@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Owner Operating Console — Missions</title>
+  <title>Консоль владельца — Миссии</title>
   <style>
     body { font-family: system-ui, sans-serif; margin: 2rem; background: #121826; color: #e5e7eb; }
     a { color: #60a5fa; }
@@ -20,8 +20,8 @@
   </style>
 </head>
 <body>
-  <h1>Owner Operating Console</h1>
-  <p><a href="/{{ api_key_query }}">Dashboard</a> · <a href="/office{{ api_key_query }}">Office View</a></p>
+  <h1>Консоль владельца</h1>
+  <p><a href="/{{ api_key_query }}">Главная</a> · <a href="/office{{ api_key_query }}">Офис</a></p>
 
   <div class="viewbar">
     <span class="muted">Режим списка:</span>
@@ -31,7 +31,7 @@
 
   <div class="grid">
     <section class="card">
-      <h2>Missions</h2>
+      <h2>Миссии</h2>
       <table>
         <thead>
           <tr>
@@ -99,7 +99,7 @@
       <h2>System Status</h2>
       <p><strong>Общий:</strong> {{ health.status }}</p>
       <p><strong>Active workflows:</strong> {{ running_count }}</p>
-      <p><strong>Paused:</strong> {{ paused_count }}</p>
+      <p><strong>На паузе:</strong> {{ paused_count }}</p>
       <ul>
         {% for name, check in health.checks.items() %}
         <li>{{ name }}: {{ check.status }}</li>

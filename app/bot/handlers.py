@@ -723,6 +723,52 @@ def _get_dashboard_url() -> str:
     return os.getenv("DASHBOARD_URL") or get_dashboard_config().get("base_url", "http://localhost:8080")
 
 
+def _load_full_report_text(task) -> str:
+    """Текст полного отчёта: файл court/final_report если есть, иначе summary."""
+    from pathlib import Path
+
+    chunks: list[str] = []
+    path_raw = (getattr(task, "report_path", None) or "").strip()
+    if path_raw:
+        p = Path(path_raw)
+        if not p.is_file():
+            # относительный путь от корня репо / контейнера
+            cand = Path.cwd() / path_raw
+            if cand.is_file():
+                p = cand
+        if p.is_file():
+            try:
+                body = p.read_text(encoding="utf-8", errors="replace").strip()
+                if body:
+                    chunks.append(body)
+            except OSError:
+                pass
+    if not chunks and getattr(task, "summary", None):
+        chunks.append(str(task.summary).strip())
+    if not chunks:
+        return "(отчёт ещё не сформирован)"
+    text = "\n\n".join(chunks)
+    # Telegram hard limit ~4096; оставляем запас под заголовок
+    return text
+
+
+async def _send_long_telegram(bot, chat_id: int, header: str, body: str) -> None:
+    """Отправить длинный текст частями (лимит Telegram ~4096)."""
+    limit = 3500
+    full = f"{header}\n\n{body}".strip()
+    if len(full) <= 4000:
+        await send_with_retry(bot, chat_id, full)
+        return
+    await send_with_retry(bot, chat_id, f"{header}\n\n(ниже частями)")
+    start = 0
+    part = 1
+    while start < len(body):
+        chunk = body[start : start + limit]
+        await send_with_retry(bot, chat_id, f"📄 Часть {part}:\n\n{chunk}")
+        start += limit
+        part += 1
+
+
 async def handle_owner_callback(cb: CallbackQuery):
     """Обработка кнопок Утвердить / Доработать / Уточнить / Полный отчёт."""
     if not is_owner(cb.message.chat.id if cb.message else 0):
@@ -749,13 +795,12 @@ async def handle_owner_callback(cb: CallbackQuery):
             return
 
         if code == "f":
-            report = task.summary or task.report_path or "(нет)"
-            if task.report_path:
-                report = f"Отчёт: {task.report_path}\n\n{task.summary or ''}"
-            await send_with_retry(
+            report = _load_full_report_text(task)
+            await _send_long_telegram(
                 cb.bot,
                 cb.message.chat.id,
-                f"📄 Полный отчёт по миссии #{task_id}:\n\n{report}",
+                f"📄 Полный отчёт по миссии #{task_id}:",
+                report,
             )
             await cb.answer()
             return
