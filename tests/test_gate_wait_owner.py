@@ -32,23 +32,35 @@ def test_buttons_contain_callbacks():
     # InlineKeyboardMarkup has inline_keyboard
     rows = markup.inline_keyboard
     callbacks = []
+    labels = []
     for row in rows:
         for btn in row:
+            labels.append(btn.text or "")
             if btn.callback_data:
                 callbacks.append(btn.callback_data)
     assert "a:42" in callbacks
     assert "r:42" in callbacks
     assert "c:42" in callbacks
     assert "f:42" in callbacks
+    joined = " ".join(labels)
+    assert "Утвердить" in joined
+    assert "Доработать" in joined
+    assert "Уточнить" in joined
+    assert "Полный отчёт" in joined
+    assert "Панель" in joined
+    assert "Approve" not in joined
+    assert "Rework" not in joined
 
 
 def test_buttons_with_merged_contain_i_merged():
-    """build_owner_buttons_with_merged содержит m: (I merged)."""
+    """build_owner_buttons_with_merged содержит m: (подтверждение слияния)."""
     kb = build_owner_buttons_with_merged(task_id=42)
     markup = kb.as_markup()
     callbacks = [btn.callback_data for row in markup.inline_keyboard for btn in row if btn.callback_data]
+    labels = [btn.text or "" for row in markup.inline_keyboard for btn in row]
     assert "m:42" in callbacks
-
+    assert any("смержил" in t.lower() for t in labels)
+    assert "I merged" not in " ".join(labels)
 
 def test_approve_flow_audit_and_decision(db_session):
     """Approve → DONE + OWNER_APPROVED audit + decision (HF-3)."""

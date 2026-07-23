@@ -85,11 +85,11 @@ async def notify_pr_ready(task_id: int, pr_url: str, summary: str, dashboard_url
     """Уведомление о готовом PR + кнопки."""
     from app.bot.handlers import _dashboard_tasks_url, build_owner_buttons_with_merged
 
-    msg = f"""📋 Task #{task_id} — PR готов
+    msg = f"""📋 Миссия #{task_id} — PR готов
 
 {redact(summary)[:400]}...
 
 🔗 PR: {pr_url}
-📊 [Dashboard]({_dashboard_tasks_url(task_id)})"""
+📊 [Панель]({_dashboard_tasks_url(task_id)})"""
     markup = build_owner_buttons_with_merged(task_id).as_markup()
     await send_owner_message(msg, reply_markup=markup)
