@@ -26,13 +26,15 @@
 
 ## Следующие шаги слияния (без big-bang)
 
-Подробный контракт: [INTEGRATION_THREE_LAYERS.md](INTEGRATION_THREE_LAYERS.md).
+Подробный контракт: [INTEGRATION_THREE_LAYERS.md](INTEGRATION_THREE_LAYERS.md).  
+Пост-recovery: [POST_RECOVERY_REMAINING.md](POST_RECOVERY_REMAINING.md).
 
-1. Umbrella: Agents pointer/junction на prod clone `@ main` (`scripts/integration/link_agents_pointer.ps1`).
-2. HTTP-клиент: `packages/agents-http-client` → PH и Molt.
-3. Personal_Helper → Control API (`AGENTS_CONTROL_ENABLED=1`).
-4. Molt → Control API health/status (не второй task engine); Agents→Molt через `MOLT_HTTP_*`.
-5. Smoke: PH create → WAIT_OWNER → approve → execution.
-6. Позже: git submodule / физический layout `apps/` без смены контракта.
+**Уже закрыто (Phase B):** junction `services/agents_live`, HTTP-клиент, PH Control bridge (headless/wiring/apply-path), Molt local E2E, живой prod approve (#11 DONE).
+
+Остаток без big-bang:
+
+1. Optional Owner PC: visual PH GUI one-click (`run_ph_with_control.ps1`).
+2. Позже: git submodule / физический layout `apps/` без смены контракта.
+3. Defer: Molt на RU, полный RU Dashboard RU-locale, CrewAI no-fallback guarantee.
 
 Rollback: продолжать использовать только этот репозиторий как сейчас (MVP control-plane).

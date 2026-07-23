@@ -92,7 +92,7 @@ class AgentsControlClient:
         domain: str = "PRODUCT_DEV",
         task_type: str = "general",
         payload: Optional[dict[str, Any]] = None,
-        criticality: str = "normal",
+        criticality: str = "MEDIUM",
         auto_run: bool = False,
     ) -> dict[str, Any]:
         if owner_text:
@@ -133,6 +133,10 @@ class AgentsControlClient:
         return self._request(
             "POST", f"/api/tasks/{task_id}/clarify", {"note": note} if note else {}
         )
+
+    def mark_merged(self, task_id: int | str) -> dict[str, Any]:
+        """POST /api/tasks/{id}/merged — Owner confirms manual PR merge."""
+        return self._request("POST", f"/api/tasks/{task_id}/merged")
 
     def list_runs(self, task_id: int | str) -> Any:
         return self._request("GET", f"/api/tasks/{task_id}/runs")

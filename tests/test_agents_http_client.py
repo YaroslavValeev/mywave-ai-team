@@ -53,3 +53,43 @@ def test_http_error():
         with pytest.raises(AgentsControlError) as ei:
             client.list_tasks()
         assert ei.value.status == 401
+
+
+def test_create_task_default_criticality_medium():
+    client = AgentsControlClient("http://example.test", "key")
+    with patch("urllib.request.urlopen", return_value=_mock_response({"id": 9})) as m:
+        client.create_task(domain="PRODUCT_DEV", task_type="general", payload={})
+        body = json.loads(m.call_args[0][0].data.decode("utf-8"))
+        assert body["criticality"] == "MEDIUM"
+
+
+def test_approve_rework_clarify_mark_merged_paths():
+    client = AgentsControlClient("http://example.test", "key")
+    cases = [
+        ("approve", "/api/tasks/5/approve", {"note": "ok"}),
+        ("rework", "/api/tasks/5/rework", {"note": "fix"}),
+        ("clarify", "/api/tasks/5/clarify", {"note": "?"}),
+        ("mark_merged", "/api/tasks/5/merged", None),
+    ]
+    for method_name, expected_path, note_kw in cases:
+        with patch("urllib.request.urlopen", return_value=_mock_response({"ok": True})) as m:
+            method = getattr(client, method_name)
+            if note_kw is None:
+                method(5)
+            else:
+                method(5, note=note_kw["note"])
+            req = m.call_args[0][0]
+            assert req.get_method() == "POST"
+            assert req.full_url.endswith(expected_path)
+
+
+def test_create_task_auto_run_flag():
+    client = AgentsControlClient("http://example.test", "key")
+    with patch(
+        "urllib.request.urlopen",
+        return_value=_mock_response({"id": 7, "status": "WAIT_OWNER"}),
+    ) as m:
+        out = client.create_task(owner_text="#TASK auto", auto_run=True)
+        assert out["id"] == 7
+        body = json.loads(m.call_args[0][0].data.decode("utf-8"))
+        assert body["auto_run"] is True

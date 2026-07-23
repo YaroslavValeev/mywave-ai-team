@@ -1,7 +1,7 @@
 # COMPATIBILITY MATRIX
 
-Статус: draft v1  
-Дата: 2026-04-07
+Статус: draft v1 (updated 2026-07-23)  
+Дата: 2026-04-07 / refresh 2026-07-23
 
 ## 1) Источники и целевые роли
 
@@ -29,7 +29,7 @@
 | Telegram | yes | yes | yes | main MVP channel |
 | Dashboard/API | yes | partial/depends on endpoint surface | yes | parity in progress |
 | MCP/Cursor | yes | через API tools/flow | yes | parity in progress |
-| Desktop | out of MVP | out of MVP | out of MVP | deferred |
+| Desktop (PH GUI) | yes (via Control API) | yes (bridge) | via API | optional Owner PC (Phase B headless closed) |
 
 ## 4) Что ломается при переходе (и как закрыть)
 

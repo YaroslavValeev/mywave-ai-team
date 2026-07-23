@@ -1,6 +1,6 @@
 # Project Status
 
-Snapshot date: **2026-07-23** (junction + Molt E2E closed on Owner PC; prod health ok @ docs `f81bd26`)
+Snapshot date: **2026-07-23** (Owner RU ops OK @ `257b1c7`; HTTP client `mark_merged` parity)
 
 ## What We Are Building
 
@@ -20,14 +20,14 @@ This is not a generic chatbot. It is a control plane for routing real MyWave tas
 
 ## Current Stage
 
-**Production governance is up** on `https://agm.mywavewake.ru` (`main` @ `f81bd26` docs; app image may still be older code — docs-only pulls need no rebuild).
+**Production governance is up** on `https://agm.mywavewake.ru` (Owner `server_ops_check` OK; disk ~66%).
 
 - office-full + CrewAI path available on RU (with rule-based fallback)
 - Telegram RU UI + approve buttons work
-- Control API create / `auto_run` / approve proven (#4, #6, #7, #8 headless PH, **#11 DONE**)
-- `WAIT_OWNER` empty; backups cron working (`20260723.sql.gz`)
-- Umbrella `agents_live` junction **PASS**; Agents→Molt HTTP E2E **PASS**
-- Three-layer HTTP contracts documented; monorepo merge **not** required for ops
+- Control API create / `auto_run` / approve proven; **#11 DONE**; `WAIT_OWNER` empty
+- Backups cron working (`20260723.sql.gz`)
+- Umbrella `agents_live` + `agents-http-client` junctions; Agents→Molt HTTP E2E **PASS**
+- HTTP client: approve/rework/clarify/**merged**; default criticality `MEDIUM`
 
 Still open (detail: [migration/POST_RECOVERY_REMAINING.md](migration/POST_RECOVERY_REMAINING.md)):
 
