@@ -694,6 +694,19 @@ def apply_owner_decision(repo: TaskRepository, task_id: int, decision: str, sour
             task_id=task_id,
             payload={"decision": "approve", "source": source, "status_after": new_status},
         )
+        try:
+            from app.canonical_bridge import apply_owner_decision_hooks_if_enabled
+
+            apply_owner_decision_hooks_if_enabled(
+                task_id,
+                "a",
+                approved_by=f"{source}_owner",
+                terminal_on_approve=(new_status == "DONE"),
+            )
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "canonical approve hook failed task_id=%s", task_id
+            )
         return {"id": task_id, "status": updated.status if updated else new_status, "decision": normalized}
 
     if normalized == "clarify":
@@ -709,6 +722,14 @@ def apply_owner_decision(repo: TaskRepository, task_id: int, decision: str, sour
             task_id=task_id,
             payload={"decision": "clarify", "source": source, "status_after": "NEED_INFO"},
         )
+        try:
+            from app.canonical_bridge import apply_owner_decision_hooks_if_enabled
+
+            apply_owner_decision_hooks_if_enabled(task_id, "c", approved_by=f"{source}_owner")
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "canonical clarify hook failed task_id=%s", task_id
+            )
         return {"id": task_id, "status": updated.status if updated else "NEED_INFO", "decision": normalized}
 
     if not owner_actions["can_rework"]:
@@ -723,6 +744,14 @@ def apply_owner_decision(repo: TaskRepository, task_id: int, decision: str, sour
         task_id=task_id,
         payload={"decision": "rework", "source": source, "status_after": "REWORK"},
     )
+    try:
+        from app.canonical_bridge import apply_owner_decision_hooks_if_enabled
+
+        apply_owner_decision_hooks_if_enabled(task_id, "r", approved_by=f"{source}_owner")
+    except Exception:
+        logging.getLogger(__name__).exception(
+            "canonical rework hook failed task_id=%s", task_id
+        )
     result = run_task_orchestration(repo, task_id, source=f"{source}_rework")
     return {"id": task_id, "decision": normalized, **result}
 

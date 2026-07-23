@@ -16,6 +16,9 @@ elif [[ -f "${APP_DIR}/docker-compose.server.yml" ]]; then
 else
   COMPOSE_FILE_DEFAULT="docker-compose.yml"
 fi
+if [[ -f "${APP_DIR}/docker-compose.molt.yml" ]]; then
+  COMPOSE_FILE_DEFAULT="${COMPOSE_FILE_DEFAULT}:docker-compose.molt.yml"
+fi
 CRON_LINE="0 3 * * * COMPOSE_PROJECT_DIR=${APP_DIR} COMPOSE_FILE=${COMPOSE_FILE_DEFAULT} ${APP_DIR}/scripts/backup_postgres.sh ${BACKUP_DIR} >> /var/log/mywave-ai-team-backup.log 2>&1"
 
 mkdir -p "$BACKUP_DIR"

@@ -25,11 +25,35 @@ elif [[ -f docker-compose.server.yml ]]; then
   COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.server.yml)
 fi
 
+MOLT_ACTIVE=false
+if ss -lntp 2>/dev/null | grep -q ':8765'; then
+  MOLT_ACTIVE=true
+fi
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -qE 'ai-team-molt|-molt-'; then
+  MOLT_ACTIVE=true
+fi
+
+COMPOSE_PROFILE=()
+if [[ "$MOLT_ACTIVE" == true ]] && [[ -f docker-compose.molt.yml ]]; then
+  COMPOSE+=(-f docker-compose.molt.yml)
+  COMPOSE_PROFILE=(--profile molt)
+fi
+
 echo "=== compose ==="
-"${COMPOSE[@]}" ps
+"${COMPOSE[@]}" "${COMPOSE_PROFILE[@]}" ps
 echo
 
 echo "=== disk ==="
+ROOT_USE="$(df -P / 2>/dev/null | awk 'NR==2 {gsub(/%/,"",$5); print $5}')"
+if [[ -n "${ROOT_USE:-}" ]]; then
+  if (( ROOT_USE >= 85 )); then
+    echo "FAIL disk root ${ROOT_USE}% used (>=85%)"
+  elif (( ROOT_USE >= 70 )); then
+    echo "WARN disk root ${ROOT_USE}% used (>=70%) — hint: bash scripts/server_disk_cleanup.sh"
+  else
+    echo "OK disk root ${ROOT_USE}% used"
+  fi
+fi
 df -h / /var/lib/docker 2>/dev/null | head -20 || df -h /
 echo
 

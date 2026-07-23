@@ -26,12 +26,10 @@ try:
         write_run_if_enabled,
         write_event_if_enabled,
         write_approval_request_if_enabled,
-        write_approval_resolution_if_enabled,
         write_artifact_if_enabled,
         set_canonical_state,
-        get_canonical_state,
         should_agents_control_runtime_after_approval,
-        handle_rework_via_molt_if_enabled,
+        apply_owner_decision_hooks_if_enabled,
     )
 except Exception:  # ImportError / partial shared_core — не валим бот на старте
     def write_canonical_task_if_enabled(*a, **kw):
@@ -49,22 +47,16 @@ except Exception:  # ImportError / partial shared_core — не валим бо�
     def write_approval_request_if_enabled(*a, **kw):
         return None
 
-    def write_approval_resolution_if_enabled(*a, **kw):
-        return False
-
     def write_artifact_if_enabled(*a, **kw):
         return None
 
     def set_canonical_state(*a, **kw):
         return None
 
-    def get_canonical_state(*a, **kw):
-        return {}
-
     def should_agents_control_runtime_after_approval():
         return True
 
-    def handle_rework_via_molt_if_enabled(*a, **kw):
+    def apply_owner_decision_hooks_if_enabled(*a, **kw):
         return None
 
 from app.bot.notify import send_with_retry
@@ -885,34 +877,14 @@ async def handle_owner_callback(cb: CallbackQuery):
             new_status = "NEED_INFO"
         repo.update_task(task_id, status=new_status)
         try:
-            state = get_canonical_state(task_id)
-            if state.get("approval_id") and state.get("run_id"):
-                approved = code == "a"
-                write_approval_resolution_if_enabled(
-                    state["approval_id"],
-                    state["run_id"],
-                    approved=approved,
-                    approved_by="telegram_owner",
-                    comment=code,
-                )
-                write_event_if_enabled(
-                    state["run_id"],
-                    "approval_resolved",
-                    {"code": code, "approved": approved},
-                )
-            if code == "r":
-                approval_id = state.get("approval_id")
-                current_run_id = state.get("run_id")
-                canonical_task_id = state.get("canonical_task_id")
-                if approval_id and current_run_id and canonical_task_id:
-                    handle_rework_via_molt_if_enabled(
-                        legacy_task_id=task_id,
-                        canonical_task_id=canonical_task_id,
-                        current_run_id=current_run_id,
-                        approval_id=approval_id,
-                        approved_by="telegram_owner",
-                        comment=code,
-                    )
+            from app.canonical_bridge import apply_owner_decision_hooks_if_enabled
+
+            apply_owner_decision_hooks_if_enabled(
+                task_id,
+                code,
+                approved_by="telegram_owner",
+                terminal_on_approve=(code == "a" and new_status == "DONE"),
+            )
         except Exception:
             logging.getLogger(__name__).exception(
                 "canonical approval resolution hook failed task_id=%s", task_id
