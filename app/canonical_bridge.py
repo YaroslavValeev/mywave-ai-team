@@ -2,7 +2,14 @@
 # Требует PYTHONPATH с packages/shared-core (или установленный пакет shared-core).
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from typing import Optional
+
+# Belt-and-suspenders: Docker PYTHONPATH may omit packages/shared-core
+_shared_core_root = Path(__file__).resolve().parents[1] / "packages" / "shared-core"
+if _shared_core_root.is_dir() and str(_shared_core_root) not in sys.path:
+    sys.path.insert(0, str(_shared_core_root))
 
 try:
     from shared_core.canonical_bridge import (

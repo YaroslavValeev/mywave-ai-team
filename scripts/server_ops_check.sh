@@ -83,7 +83,26 @@ if ss -lntp 2>/dev/null | grep -q ':8765'; then
   ss -lntp 2>/dev/null | grep ':8765' || true
   curl -sS -m 5 http://127.0.0.1:8765/health 2>/dev/null || echo "FAIL molt /health"
   echo
-  curl -sS -m 5 http://127.0.0.1:8765/ready 2>/dev/null || echo "FAIL molt /ready"
+  ready_body="$(curl -sS -m 5 http://127.0.0.1:8765/ready 2>/dev/null || true)"
+  if [[ -n "$ready_body" ]]; then
+    echo "$ready_body"
+    if echo "$ready_body" | grep -q '"status"[[:space:]]*:[[:space:]]*"ready"'; then
+      if [[ -f scripts/molt/smoke_check_molt_http.py ]]; then
+        MOLT_HTTP_BASE_URL=http://127.0.0.1:8765 python3 scripts/molt/smoke_check_molt_http.py || true
+      else
+        exec_body="$(curl -sS -m 5 -X POST http://127.0.0.1:8765/executions \
+          -H 'Content-Type: application/json' \
+          -d '{"canonical_task_id":"smoke-check-dummy-task"}' 2>/dev/null || true)"
+        if echo "$exec_body" | grep -q '"accepted"'; then
+          echo "smoke POST /executions ok: $exec_body"
+        else
+          echo "WARN molt POST /executions: ${exec_body:-no response}"
+        fi
+      fi
+    fi
+  else
+    echo "FAIL molt /ready"
+  fi
 else
   echo "OK: Molt не слушает 8765 (норма без --profile molt)"
 fi

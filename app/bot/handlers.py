@@ -901,11 +901,18 @@ async def handle_owner_callback(cb: CallbackQuery):
                     {"code": code, "approved": approved},
                 )
             if code == "r":
-                handle_rework_via_molt_if_enabled(
-                    legacy_task_id=task_id,
-                    canonical_task_id=state.get("canonical_task_id"),
-                    run_id=state.get("run_id"),
-                )
+                approval_id = state.get("approval_id")
+                current_run_id = state.get("run_id")
+                canonical_task_id = state.get("canonical_task_id")
+                if approval_id and current_run_id and canonical_task_id:
+                    handle_rework_via_molt_if_enabled(
+                        legacy_task_id=task_id,
+                        canonical_task_id=canonical_task_id,
+                        current_run_id=current_run_id,
+                        approval_id=approval_id,
+                        approved_by="telegram_owner",
+                        comment=code,
+                    )
         except Exception:
             logging.getLogger(__name__).exception(
                 "canonical approval resolution hook failed task_id=%s", task_id

@@ -5,7 +5,7 @@
 FROM python:3.11-slim AS base
 
 WORKDIR /app
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/app/packages/shared-core
 ENV ARTIFACTS_DIR=/app/app/artifacts
 RUN mkdir -p app/artifacts/handoffs app/artifacts/reports app/artifacts/tasks
 
