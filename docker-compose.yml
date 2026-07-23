@@ -33,7 +33,13 @@ services:
     volumes:
       - ./app/artifacts:/app/app/artifacts
     # create_all() не добавляет колонки к уже существующим таблицам — нужны миграции Alembic
-    command: ["sh", "-c", "alembic upgrade head && python -m app.main"]
+    # После reboot postgres может ответить на health раньше, чем примет соединения — ретраи alembic.
+    command:
+      [
+        "sh",
+        "-c",
+        "i=0; until alembic upgrade head; do i=$$((i+1)); if [ $$i -ge 15 ]; then echo 'alembic failed'; exit 1; fi; echo \"alembic retry $$i/15\"; sleep 2; done; exec python -m app.main",
+      ]
     restart: unless-stopped
 
   postgres:
