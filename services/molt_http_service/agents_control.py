@@ -50,12 +50,23 @@ def get_client():
 
 
 def agents_health() -> tuple[bool, str]:
-    """Return (ok, reason) for readiness probes."""
+    """Return (ok, reason) for readiness probes.
+
+    Uses lightweight GET /health (not /api/system/health) to avoid a cycle:
+    app system health → Molt /ready → Agents system health → Molt /ready …
+    """
     if not is_enabled():
         return True, "agents_control_skipped"
     try:
-        _ensure_path()
-        data = get_client().health()
+        import json
+        import urllib.request
+
+        base = (
+            os.getenv("AGENTS_CONTROL_API_URL")
+            or "http://app:8080"
+        ).rstrip("/")
+        with urllib.request.urlopen(f"{base}/health", timeout=3) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
         if isinstance(data, dict) and data.get("status") == "ok":
             return True, "agents_ok"
         return False, f"agents_unexpected:{data}"

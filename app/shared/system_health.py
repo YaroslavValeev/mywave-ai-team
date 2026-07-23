@@ -130,7 +130,7 @@ def _check_runner() -> dict:
     return {"status": "warn", "message": msg + cursor_hint}
 
 
-def _molt_probe_json(url: str, timeout_sec: float = 2.0) -> dict | None:
+def _molt_probe_json(url: str, timeout_sec: float = 3.0) -> dict | None:
     req = urllib.request.Request(url, method="GET")
     with urllib.request.urlopen(req, timeout=timeout_sec) as resp:
         body = resp.read().decode("utf-8", errors="replace")
@@ -153,7 +153,7 @@ def _check_molt() -> dict:
     base_url = base_url.rstrip("/")
 
     try:
-        health_payload = _molt_probe_json(f"{base_url}/health")
+        health_payload = _molt_probe_json(f"{base_url}/health", timeout_sec=2.0)
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         return {
             "status": "warn",
@@ -166,8 +166,10 @@ def _check_molt() -> dict:
             "message": f"Molt /health не ok: {health_payload!r}",
         }
 
+    # /ready may call Agents; keep a slightly longer timeout. Agents probe must be
+    # lightweight (/health) so we do not recurse into this check.
     try:
-        ready_payload = _molt_probe_json(f"{base_url}/ready")
+        ready_payload = _molt_probe_json(f"{base_url}/ready", timeout_sec=5.0)
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         return {
             "status": "warn",
