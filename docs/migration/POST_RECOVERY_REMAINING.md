@@ -1,8 +1,8 @@
 # Post-recovery remaining work
 
-Snapshot: **2026-07-23** (Owner RU ops @ `257b1c7` + junction/E2E + client parity)  
+Snapshot: **2026-07-23** (Owner RU confirm @ `f7a1b03`, health ok, `WAIT_OWNER []`)  
 Prod: `agm.mywavewake.ru` health **ok** (Owner `server_ops_check.sh`)  
-Agents `main`: `257b1c7` (PR #17)
+Agents `main`: `f7a1b03` (PR #18)
 
 Связано: [INTEGRATION_THREE_LAYERS.md](INTEGRATION_THREE_LAYERS.md), [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md), [PHASE_B_STEP_D_MOLT.md](PHASE_B_STEP_D_MOLT.md)
 
@@ -28,27 +28,24 @@ Agents `main`: `257b1c7` (PR #17)
 
 ## Приоритеты остатка
 
-### (A) Agents can finish now (без Owner GUI / без RU destructive)
+### (A) Agents can finish now
 
-1. Держать docs чеклисты в sync с этим файлом + Step C/D + `PROJECT-STATUS.md`.
-2. Локальный pytest green после doc sync.
-3. Не трогать прод без явного Owner; **не** approve чужие задачи.
+Операционный Phase B / post-recovery **закрыт** для агентов. Дальше — только docs sync при новых Owner-логах; **не** approve / не rebuild RU без кода в `app/`.
 
 ### (B) Owner server commands (SSH RU)
 
-После pull docs/code на `257b1c7` и новее. Docs-only — **без rebuild**. Code PR (client) — **нужен rebuild**:
+Сейчас на RU уже **`f7a1b03`**, ops-check OK. Повторный pull не обязателен, пока нет нового PR.
 
 ```bash
 cd /opt/mywave/ai-team && set -a; source .env; set +a
-git pull origin main
-# если пришёл code-change в app/ или packages/:
-docker compose -f docker-compose.yml -f docker-compose.server-full.yml up -d --build
+git rev-parse --short HEAD   # f7a1b03
 bash scripts/server_ops_check.sh
 ```
 
-Backup cron уже стоит — повторный `install_backup_cron.sh` **не нужен**.
+PR #18 (`packages/agents-http-client`) **не** в Docker app image → **rebuild не нужен**.  
+Rebuild только если придёт PR с изменениями в `app/` / `Dockerfile` / compose.
 
-**Не нужно сейчас:** reboot, approve #11, `docker compose … --build` только ради docs.
+Backup cron уже стоит. **Не нужно:** reboot, approve #11, `up -d --build`.
 
 ### (C) Owner PC only (optional)
 
@@ -72,14 +69,13 @@ Backup cron уже стоит — повторный `install_backup_cron.sh` **
 
 | Проверка | Результат |
 |----------|-----------|
-| `git HEAD` (C: Agents) | sync to latest `main` after this PR |
+| `git HEAD` (C: / RU) | `f7a1b03` |
 | Prod health (Owner log) | `ok`; CrewAI `gpt-4.1-nano`; disk ~66%; nginx active |
 | `WAIT_OWNER` | **[]** |
-| Task #11 | **DONE** |
+| Top tasks | #15–#11 **DONE** (incl. #11 `marketing_plan`) |
 | Backups | cron OK + `20260722` / `20260723` |
-| Umbrella `services/agents_live` | **PASS** |
-| Umbrella `packages/agents-http-client` | junction → C: package |
+| Umbrella junctions | `agents_live` + `agents-http-client` **PASS** |
 | Agents→Molt HTTP E2E | **PASS** |
-| HTTP client | `mark_merged` + criticality default `MEDIUM` |
+| HTTP client | `mark_merged` + criticality `MEDIUM` (PR #18) |
 | PH visual GUI one-click | **optional Owner PC** |
-| Локальный pytest | client + subset green |
+| Open PRs | none |
