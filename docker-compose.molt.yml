@@ -1,0 +1,40 @@
+# docker-compose.molt.yml — OPTIONAL Runtime (Molt). OFF by default.
+#
+# Policy: do NOT enable on RU without explicit Owner GO.
+# Normal prod stack (without this file / without --profile molt) must NOT listen on :8765.
+#
+# Prerequisites on server (Owner):
+#   1) Checkout molt_http_service (umbrella), NOT dirty F: Agents copy
+#   2) export MOLT_BUILD_CONTEXT=/path/to/molt_http_service
+#   3) .env: AGENTS_CONTROL_API_URL, AGENTS_API_KEY, CANONICAL_* as needed
+#
+# Start (Owner GO only):
+#   docker compose -f docker-compose.yml -f docker-compose.server-full.yml \
+#     -f docker-compose.molt.yml --profile molt up -d --build
+#
+# Stop / rollback:
+#   docker compose -f docker-compose.yml -f docker-compose.server-full.yml \
+#     -f docker-compose.molt.yml --profile molt stop molt
+#
+# See: docs/migration/MOLT_ON_RU_CHECKLIST.md
+
+services:
+  molt:
+    profiles: ["molt"]
+    build:
+      context: ${MOLT_BUILD_CONTEXT:-./services/molt_http_service}
+      dockerfile: ${MOLT_DOCKERFILE:-Dockerfile}
+    env_file:
+      - .env
+    environment:
+      MOLT_HTTP_HOST: "0.0.0.0"
+      MOLT_HTTP_PORT: "8765"
+      AGENTS_CONTROL_API_URL: ${AGENTS_CONTROL_API_URL:-https://agm.mywavewake.ru}
+      AGENTS_API_KEY: ${AGENTS_API_KEY:-${OWNER_API_KEY}}
+      AGENTS_CONTROL_ENABLED: ${AGENTS_CONTROL_ENABLED:-1}
+      # Keep OFF on RU until Owner enables Agents→Molt writes explicitly
+      MOLT_RUN_OWNER: ${MOLT_RUN_OWNER:-0}
+    # Bind localhost only — never publish 8765 on 0.0.0.0
+    ports:
+      - "127.0.0.1:8765:8765"
+    restart: unless-stopped

@@ -48,7 +48,7 @@ def _check_gateway() -> dict:
         status, message = gateway_health()
         return {"status": status, "message": message}
     except Exception as exc:
-        return {"status": "warn", "message": f"Gateway check failed: {exc}"}
+        return {"status": "warn", "message": f"Проверка Gateway не удалась: {exc}"}
 
 
 def _check_telegram() -> dict:
@@ -73,7 +73,7 @@ def _check_orchestration() -> dict:
         hint = (
             " Установи пакет crewai в образ или верни rule-based: ORCHESTRATION_ENGINE=rule_based в .env."
         )
-        return {"status": status, "message": f"CrewAI runtime unavailable: {exc}.{hint}"}
+        return {"status": status, "message": f"CrewAI runtime недоступен: {exc}.{hint}"}
 
     from app.orchestrator.crewai_bridge import has_llm_credentials
 

@@ -31,3 +31,24 @@ async def test_notify_stage_message_format():
         text = mock_send.call_args[0][0]
         assert "42" in text
         assert "Конвейер" in text
+
+
+@pytest.mark.asyncio
+async def test_notify_stage_truncates_long_detail():
+    with patch("app.bot.notify.send_owner_message", new_callable=AsyncMock) as mock_send:
+        mock_send.return_value = True
+        from app.bot.notify import notify_stage
+
+        long_detail = "x" * 500
+        await notify_stage(7, "triage", detail=long_detail)
+        text = mock_send.call_args[0][0]
+        assert len(text) < 280
+        assert "…" in text
+
+
+def test_notify_stage_sync_never_raises(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_STAGE_NOTIFY", "true")
+    with patch("app.bot.notify.notify_stage", side_effect=RuntimeError("boom")):
+        from app.bot.notify import notify_stage_sync
+
+        notify_stage_sync(1, "court", detail="y")  # must not raise
