@@ -112,9 +112,16 @@ A-запись: `agm` → `62.113.42.227`
 
 ### 5.1 Telegram proxy (проверено)
 
+Задайте `TELEGRAM_PROXY_URL` в `.env` на сервере (значение **не** коммитить в git).
+
 ```bash
-TELEGRAM_PROXY_URL=socks5://YaroslavValeev:MyWaveParser2026@72.56.99.214:1080
+# пример формы (подставьте USER/PASS из секретного хранилища Owner):
+TELEGRAM_PROXY_URL=socks5://USER:PASS@72.56.99.214:1080
+# или если мост проброшен на localhost RU:
+# TELEGRAM_PROXY_URL=socks5://127.0.0.1:PORT
 ```
+
+Если этот пароль когда-либо светился в чате/репо — **ротируйте** его на EU-мосту.
 
 ### 5.2 Deploy на RU `ssh root@62.113.42.227`
 
@@ -161,7 +168,7 @@ OWNER_API_KEY=...
 POSTGRES_PASSWORD=...
 DASHBOARD_URL=https://agm.mywavewake.ru
 DASHBOARD_LINK_SECRET=...
-TELEGRAM_PROXY_URL=socks5://YaroslavValeev:MyWaveParser2026@72.56.99.214:1080
+TELEGRAM_PROXY_URL=socks5://USER:PASS@72.56.99.214:1080
 GITHUB_REPOSITORY=YaroslavValeev/mywave-ai-team
 ORCHESTRATION_ENGINE=auto
 ```

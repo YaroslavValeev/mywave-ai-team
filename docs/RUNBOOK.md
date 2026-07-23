@@ -4,7 +4,7 @@
 
 ## 502 Bad Gateway
 
-**Симптом:** браузер или curl возвращает 502 при обращении к agm.mywavetreaning.ru.
+**Симптом:** браузер или curl возвращает 502 при обращении к agm.mywavewake.ru.
 
 **Действия:**
 1. Проверить статус контейнеров: `docker compose ps`
@@ -17,7 +17,7 @@
 
 **Симптом:** браузер ругается на сертификат или HTTPS не работает.
 
-1. Проверить DNS: `nslookup agm.mywavetreaning.ru` — IP должен быть сервера.
+1. Проверить DNS: `nslookup agm.mywavewake.ru` — IP должен быть сервера.
 2. Порты 80/443 открыты: `sudo ufw status` или панель timeweb.
 3. Логи Caddy: `docker compose logs caddy` — ошибки Let's Encrypt.
 4. При rate-limit Let's Encrypt — подождать или использовать staging: `tls internal` в Caddyfile (временно).

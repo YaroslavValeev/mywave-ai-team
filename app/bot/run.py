@@ -17,7 +17,7 @@ def _build_bot(token: str) -> Bot:
     Bot с опциональным HTTP(S)/SOCKS-прокси (EU-мост для РФ).
     TELEGRAM_PROXY_URL примеры:
       http://127.0.0.1:1080
-      socks5://user:pass@72.56.99.214:1080
+      socks5://USER:PASS@72.56.99.214:1080
     """
     proxy = (os.getenv("TELEGRAM_PROXY_URL") or "").strip()
     if not proxy:

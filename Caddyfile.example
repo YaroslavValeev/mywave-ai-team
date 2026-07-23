@@ -1,10 +1,11 @@
-# Caddyfile.example — шаблон для agm.mywavetreaning.ru
+# Caddyfile.example — шаблон для agm.mywavewake.ru
 # 1. Скопировать: cp Caddyfile.example Caddyfile
 # 2. Сгенерировать хэш: docker run --rm caddy:2 caddy hash-password --plaintext "ТВОЙ_ПАРОЛЬ"
 # 3. Заменить <BASICAUTH_HASH> в Caddyfile на полученный хэш
 # Боевой Caddyfile не коммитить в репо (gitignored)
+# Prod RU (2026): обычно nginx, не Caddy — этот файл для альтернативного деплоя.
 
-agm.mywavetreaning.ru {
+agm.mywavewake.ru {
 
   basicauth {
     owner <BASICAUTH_HASH>

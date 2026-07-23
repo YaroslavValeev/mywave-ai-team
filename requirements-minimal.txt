@@ -3,8 +3,8 @@
 # Экономит ~500 MB по сравнению с полным requirements.txt
 
 aiogram>=3.0
-fastapi
-uvicorn[standard]
+fastapi>=0.139.2,<0.140
+uvicorn[standard]>=0.27,<1
 jinja2
 sqlalchemy
 psycopg2-binary

@@ -1,5 +1,5 @@
 # app/shared/api_client.py — HTTPS клиент для MCP/Runner
-# base_url: MYWAVE_BASE_URL (fallback DASHBOARD_URL, fallback https://agm.mywavetreaning.ru)
+# base_url: MYWAVE_BASE_URL (fallback DASHBOARD_URL, fallback https://agm.mywavewake.ru)
 # headers: X-API-Key: OWNER_API_KEY, X-Request-Id (для корреляции audit)
 
 import logging
@@ -12,7 +12,7 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = os.getenv("MYWAVE_BASE_URL") or os.getenv("DASHBOARD_URL") or "https://agm.mywavetreaning.ru"
+BASE_URL = os.getenv("MYWAVE_BASE_URL") or os.getenv("DASHBOARD_URL") or "https://agm.mywavewake.ru"
 API_KEY = os.getenv("OWNER_API_KEY", "")
 TIMEOUT = float(os.getenv("API_CLIENT_TIMEOUT", "30"))
 

@@ -1,7 +1,7 @@
 aiogram>=3.0
 crewai>=0.40
-fastapi
-uvicorn[standard]
+fastapi>=0.139.2,<0.140
+uvicorn[standard]>=0.27,<1
 sqlalchemy
 psycopg2-binary
 alembic
