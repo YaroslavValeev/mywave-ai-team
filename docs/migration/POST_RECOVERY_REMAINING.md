@@ -1,8 +1,8 @@
 # Post-recovery remaining work
 
-Snapshot: **2026-07-23** (post backup-cron fix)  
+Snapshot: **2026-07-23** (Owner RU ops confirm + Owner PC junction/E2E closed)  
 Prod: `agm.mywavewake.ru` health **ok**  
-Agents `main`: `b9cddd3` (PR #14 backup script executable merged)
+Agents `main`: `f81bd26` (PR #16 merged; includes docs through #15)
 
 Связано: [INTEGRATION_THREE_LAYERS.md](INTEGRATION_THREE_LAYERS.md), [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md), [PHASE_B_STEP_D_MOLT.md](PHASE_B_STEP_D_MOLT.md)
 
@@ -13,11 +13,14 @@ Agents `main`: `b9cddd3` (PR #14 backup script executable merged)
 | Item | Status |
 |------|--------|
 | Mission **#11** (`MEDIA_OPS` / `marketing_plan`) | **DONE** (Owner approve) |
-| Backup cron + `backup_postgres.sh` executable (PR #14) | **working on RU** |
+| Backup cron + `backup_postgres.sh` executable (PR #14) | **working on RU** (`mywave_ai_20260723.sql.gz`) |
 | Reboot / alembic recovery (PR #12) | done |
 | Owner console RU title pytest | fixed in PR #13 |
-| Open GitHub PRs | **none** |
-| Disk (C:/F:) | OK (~148 GB / ~426 GB free) |
+| Open GitHub PRs | **none** (after this sync) |
+| Disk (C:/F:) | OK |
+| Umbrella `services/agents_live` | **PASS** → `C:\ProjectMyWave\MyWave_AI_TEAM_Presets_v1_1` |
+| Agents→Molt HTTP E2E (Owner PC) | **PASS** (`smoke_agents_molt_http_e2e.py`) |
+| Local pytest subset | **29 passed** |
 
 ---
 
@@ -26,24 +29,32 @@ Agents `main`: `b9cddd3` (PR #14 backup script executable merged)
 ### (A) Agents can finish now (без Owner GUI / без RU destructive)
 
 1. Держать docs чеклисты в sync с этим файлом + Step C/D + `PROJECT-STATUS.md`.
-2. Локальный pytest green (owner console / channel parity / e2e / gate) — прогон после doc sync.
-3. Umbrella: `scripts/integration/check_agents_pointer.ps1` (статус) + при необходимости Owner запускает `link_agents_pointer.ps1` (см. C).
-4. Не трогать прод без явного Owner; **не** approve чужие задачи.
+2. Локальный pytest green после doc sync.
+3. Не трогать прод без явного Owner; **не** approve чужие задачи.
 
 ### (B) Owner server commands (SSH RU)
 
-1. Обычный ops после будущих PR: `git pull` + `docker compose … up -d --build` + `server_ops_check.sh`.
-2. Backup cron уже стоит и работает — повторный `install_backup_cron.sh` **не нужен**, пока cron не сломается.
+После pull docs-only (`f81bd26` и новее) **rebuild не обязателен**:
 
-**Не нужно сейчас:** reboot, повторный GH merge recovery/backup PR, approve #11.
+```bash
+cd /opt/mywave/ai-team && set -a; source .env; set +a
+git pull origin main
+bash scripts/server_ops_check.sh
+# или вручную:
+docker compose -f docker-compose.yml -f docker-compose.server-full.yml ps
+curl -sS -H "X-API-Key: $OWNER_API_KEY" https://agm.mywavewake.ru/api/system/health
+crontab -l | grep backup_postgres
+```
 
-### (C) Owner PC only
+Backup cron уже стоит — повторный `install_backup_cron.sh` **не нужен**.
 
-1. Visual PH one-click: `run_ph_with_control.ps1` → propose/apply в GUI (headless + wiring уже закрыты).
-2. Junction `services/agents_live` → `C:\ProjectMyWave\MyWave_AI_TEAM_Presets_v1_1` (`link_agents_pointer.ps1`). На F: сейчас **отсутствует** (есть обычная папка `services/agents`, не junction).
-3. Локальный Agents→Molt HTTP E2E: `ensure_molt_up.ps1` + `smoke_agents_molt_http_e2e.py` (Molt **не** на RU).
-4. Опционально: BotFather ротация токена, если когда-либо светился в чате.
-5. Опционально (umbrella): `pip install cursor-sdk` + `CURSOR_API_KEY` для реального Cursor executor (иначе `manual_hint`).
+**Не нужно сейчас:** reboot, approve #11, `docker compose … --build` только ради docs.
+
+### (C) Owner PC only (optional)
+
+1. Visual PH one-click: `run_ph_with_control.ps1` → propose/apply в GUI (headless + wiring + apply-path уже закрыты).
+2. Опционально: BotFather ротация токена, если когда-либо светился в чате.
+3. Опционально (umbrella): `pip install cursor-sdk` + `CURSOR_API_KEY` для реального Cursor executor (иначе `manual_hint`).
 
 ### (D) Defer
 
@@ -61,18 +72,17 @@ Agents `main`: `b9cddd3` (PR #14 backup script executable merged)
 
 | Проверка | Результат |
 |----------|-----------|
-| `git HEAD` | `b9cddd3` = `origin/main` |
-| Open PRs | none |
-| Prod health | `ok` (2026-07-23) |
+| `git HEAD` (C: Agents) | `f81bd26` = `origin/main` |
+| Open PRs | none (pre this sync PR) |
+| Prod health (Owner log) | `ok`; CrewAI `gpt-4.1-nano`; Cursor CLI not on PATH (expected) |
+| `WAIT_OWNER` | **[]** |
 | Task #11 | **DONE** |
-| Backups | working (cron + executable fix) |
-| Umbrella `services/agents_live` | **MISSING** |
-| Umbrella `services/agents` | ordinary dir (not junction); F-copy dirty/stale |
-| Integration scripts на F: | есть (`smoke_ph_*`, `smoke_agents_molt_http_e2e`, `link_agents_pointer`, `check_agents_pointer`, …) |
-| PH headless GUI apply-path | **closed** (`smoke_ph_gui_apply_headless.py`, task #14 DONE) |
-| PH visual GUI one-click | **optional Owner PC** (`run_ph_with_control.ps1`) |
-| CrewAI | office-full + fallback OK; no-fallback guarantee deferred |
-| Cursor SDK (umbrella) | code present; live key optional Owner PC |
-| Disk C:/F: | OK |
-| BotFather | optional only if token leaked |
-| Локальный pytest subset | green (`test_owner_console`, `test_e2e_api_flow`, `test_channel_parity`, `test_gate_wait_owner`, `test_crewai_bridge_config`, `test_api_auto_run`) |
+| Backups | cron OK + files `20260722` / `20260723` |
+| Umbrella `services/agents_live` | **PASS** junction → C:`main` |
+| Umbrella `services/agents` | ordinary dir (not SoT); leave as-is |
+| Agents→Molt HTTP E2E | **PASS** (accepted_total +2) |
+| PH headless GUI apply-path | **closed** (PR #16) |
+| PH visual GUI one-click | **optional Owner PC** |
+| CrewAI | office-full + fallback OK |
+| Cursor SDK (umbrella) | code present; live key optional |
+| Локальный pytest subset | **29 passed** |
