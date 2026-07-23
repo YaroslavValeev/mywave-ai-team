@@ -13,4 +13,4 @@ def format_owner_delivery_note(repo: TaskRepository, *, owner_key: str = "defaul
     if not bundle.preferences:
         return ""
     keys = [p.item_key for p in bundle.preferences[:4]]
-    return "\n—\nOwner-контур (предпочтения): " + ", ".join(keys)
+    return "\n—\nКонтур владельца (предпочтения): " + ", ".join(keys)

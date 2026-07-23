@@ -49,8 +49,8 @@ def _format_mission_gm_footer(task_id: int, task) -> str:
     dash_url = _dashboard_tasks_url(task_id)
     lines = [
         "—",
-        "Отчёт по контуру: миссия прошла triage → pipeline → roundtable → court в одном store (task_id = mission_id).",
-        f"Dashboard (тот же thread): {dash_url}",
+        "Отчёт по контуру: миссия прошла разбор → конвейер → совещание → суд в одном хранилище.",
+        f"Панель (та же лента миссии): {dash_url}",
         "",
         "Возможные уточнения:",
     ]
@@ -73,7 +73,7 @@ def _format_mission_gm_footer(task_id: int, task) -> str:
         lines.append("• Достаточен ли краткий итог для следующего шага?")
         lines.append("• Нужны ли дополнительные вложения или уточнение формулировки миссии?")
     lines.append("")
-    lines.append("Telegram и Dashboard — два входа в одну миссию.")
+    lines.append("Telegram и панель — два входа в одну миссию.")
     return "\n".join(lines)
 
 
@@ -81,27 +81,27 @@ def build_owner_buttons(task_id: int) -> InlineKeyboardBuilder:
     cfg = get_telegram_config()
     btns = cfg.get("buttons", {})
     b = InlineKeyboardBuilder()
-    b.button(text=btns.get("approve", "✅ Approve"), callback_data=f"a:{task_id}")
-    b.button(text=btns.get("rework", "🔁 Rework"), callback_data=f"r:{task_id}")
-    b.button(text=btns.get("clarify", "❓ Clarify"), callback_data=f"c:{task_id}")
-    b.button(text=btns.get("full", "📄 Full report"), callback_data=f"f:{task_id}")
+    b.button(text=btns.get("approve", "✅ Утвердить"), callback_data=f"a:{task_id}")
+    b.button(text=btns.get("rework", "🔁 Доработать"), callback_data=f"r:{task_id}")
+    b.button(text=btns.get("clarify", "❓ Уточнить"), callback_data=f"c:{task_id}")
+    b.button(text=btns.get("full", "📄 Полный отчёт"), callback_data=f"f:{task_id}")
     b.adjust(2, 2)
-    b.row(InlineKeyboardButton(text=btns.get("dashboard", "📊 Dashboard"), url=_dashboard_tasks_url(task_id)))
+    b.row(InlineKeyboardButton(text=btns.get("dashboard", "📊 Панель"), url=_dashboard_tasks_url(task_id)))
     return b
 
 
 def build_owner_buttons_with_merged(task_id: int) -> InlineKeyboardBuilder:
-    """Кнопки + I merged (v0.2)."""
+    """Кнопки + подтверждение merge (v0.2)."""
     cfg = get_telegram_config()
     btns = cfg.get("buttons", {})
     b = InlineKeyboardBuilder()
-    b.button(text=btns.get("approve", "✅ Approve"), callback_data=f"a:{task_id}")
-    b.button(text=btns.get("rework", "🔁 Rework"), callback_data=f"r:{task_id}")
-    b.button(text=btns.get("clarify", "❓ Clarify"), callback_data=f"c:{task_id}")
-    b.button(text="✅ I merged", callback_data=f"m:{task_id}")
-    b.button(text=btns.get("full", "📄 Full report"), callback_data=f"f:{task_id}")
+    b.button(text=btns.get("approve", "✅ Утвердить"), callback_data=f"a:{task_id}")
+    b.button(text=btns.get("rework", "🔁 Доработать"), callback_data=f"r:{task_id}")
+    b.button(text=btns.get("clarify", "❓ Уточнить"), callback_data=f"c:{task_id}")
+    b.button(text=btns.get("merged", "✅ Я смержил"), callback_data=f"m:{task_id}")
+    b.button(text=btns.get("full", "📄 Полный отчёт"), callback_data=f"f:{task_id}")
     b.adjust(2, 2, 1)
-    b.row(InlineKeyboardButton(text=btns.get("dashboard", "📊 Dashboard"), url=_dashboard_tasks_url(task_id)))
+    b.row(InlineKeyboardButton(text=btns.get("dashboard", "📊 Панель"), url=_dashboard_tasks_url(task_id)))
     return b
 
 
@@ -258,7 +258,7 @@ async def create_mission_and_run(
     await send_with_retry(
         bot,
         chat_id,
-        f"Принято. Миссия #{task_id} (task_id = mission_id) в работе. Итог пришлю сюда; полный thread — в Dashboard.",
+        f"Принято. Миссия #{task_id} в работе. Итог пришлю сюда; полная лента — в панели.",
     )
     logger.info("TELEGRAM_ORCHESTRATION_SCHEDULED task_id=%s chat_id=%s source=%s", task_id, chat_id, source)
     asyncio.create_task(_run_orchestration(task_id, chat_id, bot))
@@ -267,7 +267,7 @@ async def create_mission_and_run(
 async def handle_task_intake(message: Message):
     """Обработка сообщения #TASK — создание задачи и запуск оркестрации."""
     if not is_owner(message.chat.id):
-        await message.answer("Доступ только для Owner.")
+        await message.answer("Доступ только для владельца.")
         return
     ok, stripped = _is_task_command_after_strip(message.text or "")
     await create_mission_and_run(stripped if ok else (message.text or ""), message.chat.id, message.bot, source="telegram")
@@ -308,12 +308,12 @@ async def _process_smart_normalize(message: Message, text: str, attachments: lis
     # GM: справочный ответ без миссии и без оркестрации
     if gm and gm.action == "answer" and gm.execution_mode == "quick":
         msg_lines = [
-            f"📌 Режим GM: {gm.execution_mode} · действие: {gm.action} · риск: {gm.risk_level}",
+            f"📌 Режим директора: {gm.execution_mode} · действие: {gm.action} · риск: {gm.risk_level}",
             "",
             gm.explanation or "Справочный режим без создания миссии.",
             "",
             gm.next_step
-            or "Если нужен артефакт или работа команды — отправьте #TASK или уточните запрос.",
+            or "Если нужен документ или работа команды — отправьте #TASK или уточните запрос.",
         ]
         await message.answer("\n".join(msg_lines).strip())
         return
@@ -378,7 +378,7 @@ async def _process_smart_normalize(message: Message, text: str, attachments: lis
         )
     if gm:
         preview += (
-            f"\n\nGM: режим {gm.execution_mode} · {gm.action} · риск {gm.risk_level}"
+            f"\n\nДиректор: режим {gm.execution_mode} · {gm.action} · риск {gm.risk_level}"
             + (f"\nАгенты: {', '.join(gm.agents_plan)}" if gm.agents_plan else "")
         )
         if gm.explanation:
@@ -415,7 +415,7 @@ async def handle_smart_intake_voice(message: Message):
         return
     txt = await transcribe_voice_openai(message.bot, message)
     if not txt:
-        await message.answer("Голос не распознан: задайте OPENAI_API_KEY или пришлите текстом.")
+        await message.answer("Голос не распознан. Пришлите текстом или проверьте настройку распознавания речи.")
         return
     await _process_smart_normalize(message, txt, [])
 
@@ -433,7 +433,7 @@ async def handle_smart_intake_photo(message: Message):
 async def handle_smart_intake_callback(cb: CallbackQuery):
     """Короткие callback si:* (лимит Telegram 64 байта)."""
     if not cb.message or not is_owner(cb.message.chat.id):
-        await cb.answer("Доступ только для Owner.", show_alert=True)
+        await cb.answer("Доступ только для владельца.", show_alert=True)
         return
     data = cb.data or ""
     if not data.startswith("si:"):
@@ -525,7 +525,7 @@ async def handle_smart_intake_callback(cb: CallbackQuery):
             repo = TaskRepository(session)
             updated = repo.append_owner_context(tid, p["block"])
             if not updated:
-                await cb.answer("Задача не найдена.", show_alert=True)
+                await cb.answer("Миссия не найдена.", show_alert=True)
                 return
             log_audit(
                 repo,
@@ -540,7 +540,7 @@ async def handle_smart_intake_callback(cb: CallbackQuery):
         await send_with_retry(
             cb.bot,
             chat_id,
-            f"Контекст добавлен к Миссии #{tid}. Автозапуск оркестра не выполнялся — при необходимости используйте #TASK или Dashboard.",
+            f"Контекст добавлен к миссии #{tid}. Автозапуск не выполнялся — при необходимости используйте #TASK или панель.",
         )
         await cb.answer()
         return
@@ -592,7 +592,7 @@ async def _run_orchestration(task_id: int, chat_id: int, bot: Bot):
             repo = TaskRepository(session)
             result = run_sync_orchestration(repo, task_id, source="telegram")
             if result is None:
-                await send_with_retry(bot, chat_id, f"Ошибка: Task #{task_id} не найден.")
+                await send_with_retry(bot, chat_id, f"Ошибка: миссия #{task_id} не найдена.")
                 return
 
             final_status = result["status"]
@@ -619,7 +619,7 @@ async def _run_orchestration(task_id: int, chat_id: int, bot: Bot):
             if task and isinstance(task.business_action_json, dict):
                 exr = task.business_action_json.get("execution_from_scenario")
                 if isinstance(exr, dict) and exr.get("project_structure"):
-                    real_exec_line = "\n\nСистема подготовила execution. Можно запускать через Cursor."
+                    real_exec_line = "\n\nСистема подготовила исполнение. Можно запускать через Cursor."
             exec_pack_line = ""
             next_action_line = ""
             if isinstance(exec_pack, dict) and exec_pack:
@@ -629,7 +629,7 @@ async def _run_orchestration(task_id: int, chat_id: int, bot: Bot):
                     pack_obj = ExecutionPack.model_validate(exec_pack)
                     next_action_line = f"\n\nЧто делать сейчас:\n→ {pack_obj.action_title}"
                     exec_pack_line = (
-                        "\n\nГотово к действию:\n→ открыть execution pack в Dashboard\n"
+                        "\n\nГотово к действию:\n→ открыть пакет исполнения в панели\n"
                         f"→ {format_pack_short(pack_obj)}"
                     )
                 except Exception:
@@ -653,12 +653,12 @@ async def _run_orchestration(task_id: int, chat_id: int, bot: Bot):
                             exploration_kb = build_scenario_buttons(task_id, opts).as_markup()
                 if exploration_pending:
                     msg = (
-                        f"🔎 Миссия #{task_id}: выберите сценарий запуска (exploration).\n\n"
+                        f"🔎 Миссия #{task_id}: выберите сценарий запуска.\n\n"
                         f"{summary}\n\n{footer}"
                     )
                 else:
                     msg = (
-                        f"✅ Миссия #{task_id}: результат готов. Нужен апрув для EXECUTE.\n\n"
+                        f"✅ Миссия #{task_id}: результат готов. Нужно ваше утверждение перед исполнением.\n\n"
                         f"{summary}\n\n{footer}"
                     )
                 if exec_pack_line:
@@ -694,7 +694,7 @@ async def _run_orchestration(task_id: int, chat_id: int, bot: Bot):
                 if footer:
                     msg += f"\n\n{footer}"
                 else:
-                    msg += f"\n\n📊 Dashboard: {_dashboard_tasks_url(task_id)}"
+                    msg += f"\n\n📊 Панель: {_dashboard_tasks_url(task_id)}"
                 if delivery_note:
                     msg += delivery_note
                 if insight_line:
@@ -716,7 +716,7 @@ async def _run_orchestration(task_id: int, chat_id: int, bot: Bot):
         with Session() as session:
             repo = TaskRepository(session)
             log_audit(repo, "orchestration_error", task_id=task_id, payload={"error": str(e)})
-        await send_with_retry(bot, chat_id, f"Ошибка по Task #{task_id}: {str(e)}")
+        await send_with_retry(bot, chat_id, f"Ошибка по миссии #{task_id}: {str(e)}")
 
 def _get_dashboard_url() -> str:
     from app.config import get_dashboard_config
@@ -724,20 +724,20 @@ def _get_dashboard_url() -> str:
 
 
 async def handle_owner_callback(cb: CallbackQuery):
-    """Обработка кнопок Approve/Rework/Clarify/Full report."""
+    """Обработка кнопок Утвердить / Доработать / Уточнить / Полный отчёт."""
     if not is_owner(cb.message.chat.id if cb.message else 0):
-        await cb.answer("Доступ только для Owner.", show_alert=True)
+        await cb.answer("Доступ только для владельца.", show_alert=True)
         return
 
     parts = cb.data.split(":", 1)
     if len(parts) != 2:
-        await cb.answer("Неверный callback.")
+        await cb.answer("Неверная кнопка.")
         return
     code, tid = parts[0], parts[1]
     try:
         task_id = int(tid)
     except ValueError:
-        await cb.answer("Неверный task_id.")
+        await cb.answer("Неверный номер миссии.")
         return
 
     Session = get_session_factory()
@@ -745,14 +745,18 @@ async def handle_owner_callback(cb: CallbackQuery):
         repo = TaskRepository(session)
         task = repo.get_task(task_id)
         if not task:
-            await cb.answer("Задача не найдена.", show_alert=True)
+            await cb.answer("Миссия не найдена.", show_alert=True)
             return
 
         if code == "f":
             report = task.summary or task.report_path or "(нет)"
             if task.report_path:
                 report = f"Отчёт: {task.report_path}\n\n{task.summary or ''}"
-            await send_with_retry(cb.bot, cb.message.chat.id, f"📄 Full report Task #{task_id}:\n\n{report}")
+            await send_with_retry(
+                cb.bot,
+                cb.message.chat.id,
+                f"📄 Полный отчёт по миссии #{task_id}:\n\n{report}",
+            )
             await cb.answer()
             return
 
@@ -760,7 +764,7 @@ async def handle_owner_callback(cb: CallbackQuery):
             log_decision(repo, task_id, decision="merged", owner_approval=True)
             log_audit(repo, "OWNER_MERGED", task_id=task_id, payload={"decision": "i_merged"})
             repo.update_task(task_id, status="DONE")
-            await send_with_retry(cb.bot, cb.message.chat.id, f"✅ Task #{task_id}: merge подтверждён. Задача закрыта.")
+            await send_with_retry(cb.bot, cb.message.chat.id, f"✅ Миссия #{task_id}: слияние подтверждено. Задача закрыта.")
             await cb.answer()
             return
 
@@ -784,21 +788,21 @@ async def handle_owner_callback(cb: CallbackQuery):
 
         if code == "a":
             if has_pr:
-                await send_with_retry(cb.bot, cb.message.chat.id, f"✅ Task #{task_id} одобрен. Смерджи PR в GitHub, затем нажми «I merged».")
+                await send_with_retry(cb.bot, cb.message.chat.id, f"✅ Миссия #{task_id} одобрена. Смержите PR в GitHub, затем нажмите «Я смержил».")
             else:
-                await send_with_retry(cb.bot, cb.message.chat.id, f"✅ Task #{task_id} утверждён.")
+                await send_with_retry(cb.bot, cb.message.chat.id, f"✅ Миссия #{task_id} утверждена.")
         elif code == "r":
-            await send_with_retry(cb.bot, cb.message.chat.id, f"🔁 Task #{task_id}: запрошен rework. Запускаю повторный цикл...")
+            await send_with_retry(cb.bot, cb.message.chat.id, f"🔁 Миссия #{task_id}: запрошена доработка. Запускаю повторный цикл…")
             asyncio.create_task(_run_orchestration(task_id, cb.message.chat.id, cb.bot))
         else:
-            await send_with_retry(cb.bot, cb.message.chat.id, f"❓ Task #{task_id}: нужно уточнение. Напиши вопросы в новом сообщении с #TASK или #CLARIFY.")
+            await send_with_retry(cb.bot, cb.message.chat.id, f"❓ Миссия #{task_id}: нужно уточнение. Напишите вопросы новым сообщением с #TASK или #CLARIFY.")
 
     await cb.answer()
 
 
 async def handle_scenario_callback(cb: CallbackQuery):
     if not cb.message or not is_owner(cb.message.chat.id):
-        await cb.answer("Доступ только для Owner.", show_alert=True)
+        await cb.answer("Доступ только для владельца.", show_alert=True)
         return
     data = cb.data or ""
     parts = data.split(":")
@@ -808,7 +812,7 @@ async def handle_scenario_callback(cb: CallbackQuery):
     try:
         task_id = int(parts[1])
     except ValueError:
-        await cb.answer("Неверный task_id.", show_alert=True)
+        await cb.answer("Неверный номер миссии.", show_alert=True)
         return
     option_id = str(parts[2]).strip()
     Session = get_session_factory()
@@ -824,7 +828,7 @@ async def handle_scenario_callback(cb: CallbackQuery):
         ba["exploration"] = ex
         repo.update_task(task_id, business_action_json=ba, status="TRIAGED")
         log_audit(repo, "exploration_option_selected", task_id=task_id, payload={"option_id": option_id, "source": "telegram"})
-    await send_with_retry(cb.bot, cb.message.chat.id, f"✅ Миссия #{task_id}: выбран сценарий {option_id}. Запускаю execution...")
+    await send_with_retry(cb.bot, cb.message.chat.id, f"✅ Миссия #{task_id}: выбран сценарий {option_id}. Запускаю исполнение…")
     asyncio.create_task(_run_orchestration(task_id, cb.message.chat.id, cb.bot))
     await cb.answer()
 
@@ -834,8 +838,8 @@ async def handle_start(message: Message):
     await message.answer(
         "Привет! Можно так:\n\n"
         "• #TASK <описание> — сразу в работу\n"
-        "• Свободный текст — Smart Intake (подтверждение кнопками)\n"
-        "• Голос — при OPENAI_API_KEY (Whisper)\n"
+        "• Свободный текст — умный приём (сначала подтверждение кнопками)\n"
+        "• Голос — если настроено распознавание речи\n"
         "• Фото с подписью — как текст задачи\n\n"
         "Пример: #TASK написать тесты для API"
     )
@@ -867,7 +871,7 @@ def register_handlers(dp: Dispatcher):
 
 async def handle_execution_pack_callback(cb: CallbackQuery):
     if not cb.message or not is_owner(cb.message.chat.id):
-        await cb.answer("Доступ только для Owner.", show_alert=True)
+        await cb.answer("Доступ только для владельца.", show_alert=True)
         return
     data = cb.data or ""
     parts = data.split(":")
@@ -878,7 +882,7 @@ async def handle_execution_pack_callback(cb: CallbackQuery):
     try:
         task_id = int(parts[2])
     except ValueError:
-        await cb.answer("Неверный task_id.", show_alert=True)
+        await cb.answer("Неверный номер миссии.", show_alert=True)
         return
 
     Session = get_session_factory()
@@ -895,12 +899,12 @@ async def handle_execution_pack_callback(cb: CallbackQuery):
                     await cb.message.edit_reply_markup(reply_markup=None)
             except Exception:
                 pass
-            await cb.answer("Dry-run: отзыв по кнопкам отключён. Запускайте execution в Cursor.", show_alert=False)
+            await cb.answer("Пробный режим: отзыв по кнопкам отключён. Запускайте исполнение в Cursor.", show_alert=False)
             return
         project = repo.get_project(task.project_id) if task.project_id else None
         tracked = ensure_action_instance_blob(task, project)
         if not tracked:
-            await cb.answer("Execution pack не найден.", show_alert=True)
+            await cb.answer("Пакет исполнения не найден.", show_alert=True)
             return
 
         if verdict == "y":
@@ -923,11 +927,11 @@ async def handle_execution_pack_callback(cb: CallbackQuery):
                 tracked,
                 status="skipped",
                 owner_feedback="не сработало",
-                result_summary="Owner отметил, что действие не дало результата",
+                result_summary="Владелец отметил, что действие не дало результата",
                 result_type="lead",
                 result_value="no_result",
             )
-            text = f"📝 Отмечено: действие по миссии #{task_id} не сработало. Система учтёт feedback."
+            text = f"📝 Отмечено: действие по миссии #{task_id} не сработало. Система учтёт отзыв."
 
         repo.update_task(task_id, business_action_json=updated)
         refreshed = repo.get_task(task_id)
@@ -948,7 +952,7 @@ async def handle_execution_pack_callback(cb: CallbackQuery):
 
 async def handle_revenue_result_callback(cb: CallbackQuery):
     if not cb.message or not is_owner(cb.message.chat.id):
-        await cb.answer("Доступ только для Owner.", show_alert=True)
+        await cb.answer("Доступ только для владельца.", show_alert=True)
         return
     data = cb.data or ""
     parts = data.split(":")
@@ -959,7 +963,7 @@ async def handle_revenue_result_callback(cb: CallbackQuery):
     try:
         task_id = int(parts[2])
     except ValueError:
-        await cb.answer("Неверный task_id.", show_alert=True)
+        await cb.answer("Неверный номер миссии.", show_alert=True)
         return
 
     Session = get_session_factory()
@@ -972,7 +976,7 @@ async def handle_revenue_result_callback(cb: CallbackQuery):
         project = repo.get_project(task.project_id) if task.project_id else None
         tracked = ensure_action_instance_blob(task, project, all_tasks=repo.get_all_tasks())
         if not tracked:
-            await cb.answer("Execution pack не найден.", show_alert=True)
+            await cb.answer("Пакет исполнения не найден.", show_alert=True)
             return
         tracked = ensure_revenue_fields(tracked)
         action = tracked.get("action_instance") if isinstance(tracked.get("action_instance"), dict) else {}
@@ -998,9 +1002,9 @@ async def handle_revenue_result_callback(cb: CallbackQuery):
                 action_id=action_id,
                 pack_type=pack_type,
                 amount="0",
-                notes="Продажа отмечена в Telegram (уточните сумму в Dashboard)",
+                notes="Продажа отмечена в Telegram (уточните сумму в панели)",
             )
-            msg = "💰 Продажа записана. Уточните сумму в Dashboard."
+            msg = "💰 Продажа записана. Уточните сумму в панели."
         else:
             msg = "Принято: результата в деньгах пока нет."
 
