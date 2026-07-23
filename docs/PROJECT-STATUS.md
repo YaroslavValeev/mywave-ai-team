@@ -1,6 +1,6 @@
 # Project Status
 
-Snapshot date: **2026-07-23** (Owner RU ops OK @ `257b1c7`; HTTP client `mark_merged` parity)
+Snapshot date: **2026-07-23** (Owner RU confirmed `f7a1b03`, ops-check OK, queue empty)
 
 ## What We Are Building
 
