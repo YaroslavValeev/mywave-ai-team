@@ -11,6 +11,18 @@
 # See: docs/migration/MOLT_ON_RU_CHECKLIST.md
 
 services:
+  app:
+    environment:
+      PYTHONPATH: /app:/app/packages/shared-core
+      CANONICAL_PATH_ENABLED: ${CANONICAL_PATH_ENABLED:-0}
+      CANONICAL_STORAGE: sqlite
+      CANONICAL_SQLITE_PATH: /data/canonical.db
+      MOLT_HTTP_BASE_URL: http://molt:8765
+      MOLT_TRANSPORT_MODE: http
+      MOLT_RUN_OWNER: ${MOLT_RUN_OWNER:-0}
+    volumes:
+      - molt_data:/data
+
   molt:
     profiles: ["molt"]
     build:
