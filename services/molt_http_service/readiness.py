@@ -6,28 +6,32 @@ from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
-_ready: Tuple[bool, str] | None = None
+# Cache only successful ready=True. Failures must be re-checked (app may still be starting).
+_ready_ok: bool = False
 
 
 def check_ready() -> Tuple[bool, str]:
     """Проверка готовности: конфиг и инициализация runtime deps. Возвращает (ready, reason)."""
-    global _ready
-    if _ready is not None:
-        return _ready
+    global _ready_ok
+    if _ready_ok:
+        return True, ""
+
     try:
         from . import config
+
         _ = config.host()
         _ = config.port()
     except Exception as e:
-        _ready = (False, f"config: {e}")
-        return _ready
+        return False, f"config: {e}"
+
     try:
         from .dependencies import get_molt_client
+
         get_molt_client()
     except Exception as e:
         logger.warning("readiness get_molt_client failed: %s", e)
-        _ready = (False, f"runtime_deps: {e}")
-        return _ready
+        return False, f"runtime_deps: {e}"
+
     # Optional: Agents Control API (governance sync). Skip if AGENTS_CONTROL_ENABLED unset.
     try:
         from .agents_control import agents_health, is_enabled
@@ -35,11 +39,10 @@ def check_ready() -> Tuple[bool, str]:
         if is_enabled():
             ok, reason = agents_health()
             if not ok:
-                _ready = (False, reason)
-                return _ready
+                return False, reason
     except Exception as e:
         logger.warning("readiness agents_control failed: %s", e)
-        _ready = (False, f"agents_control: {e}")
-        return _ready
-    _ready = (True, "")
-    return _ready
+        return False, f"agents_control: {e}"
+
+    _ready_ok = True
+    return True, ""

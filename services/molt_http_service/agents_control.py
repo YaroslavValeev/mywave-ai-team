@@ -36,7 +36,17 @@ def get_client():
     _ensure_path()
     from agents_http_client import AgentsControlClient
 
-    return AgentsControlClient.from_env()
+    # Prefer explicit compose URL; never fall back to public DASHBOARD_URL inside container
+    base = (
+        os.getenv("AGENTS_CONTROL_API_URL")
+        or "http://app:8080"
+    ).rstrip("/")
+    key = os.getenv("AGENTS_API_KEY") or os.getenv("OWNER_API_KEY") or ""
+    if not key:
+        from agents_http_client import AgentsControlError
+
+        raise AgentsControlError("AGENTS_API_KEY or OWNER_API_KEY must be set")
+    return AgentsControlClient(base_url=base, api_key=key)
 
 
 def agents_health() -> tuple[bool, str]:
