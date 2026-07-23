@@ -4,6 +4,7 @@
 # Профили образа app (см. docs/CANONICAL-RUNTIME.md):
 #   DOCKER_BUILD_TARGET=lite  — office-lite, rule_based (по умолчанию)
 #   DOCKER_BUILD_TARGET=full  — office-full, crewai; задайте ORCHESTRATION_ENGINE=auto и OPENAI_API_KEY в .env
+# Prod RU (CrewAI norm): docker compose -f docker-compose.yml -f docker-compose.server-full.yml up -d --build
 services:
   app:
     build:
@@ -13,7 +14,8 @@ services:
     env_file:
       - .env
     environment:
-      # lite: rule_based (образ без crewai). full: задайте ORCHESTRATION_ENGINE=auto в .env.
+      # lite default = rule_based (образ без crewai). Office-full: DOCKER_BUILD_TARGET=full + ORCHESTRATION_ENGINE=auto.
+      # При engine=auto код включает CrewAI только если есть OPENAI_API_KEY/BASE_URL (иначе быстрый fallback).
       ORCHESTRATION_ENGINE: ${ORCHESTRATION_ENGINE:-rule_based}
       DATABASE_URL: postgresql+psycopg2://mywave:${POSTGRES_PASSWORD}@postgres:5432/mywave_ai
       POSTGRES_HOST: postgres

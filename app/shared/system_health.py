@@ -75,10 +75,24 @@ def _check_orchestration() -> dict:
         )
         return {"status": status, "message": f"CrewAI runtime unavailable: {exc}.{hint}"}
 
-    model = cfg.get("crewai_model") or os.getenv("OPENAI_MODEL_NAME") or os.getenv("MODEL")
-    if not model and not os.getenv("OPENAI_API_KEY"):
+    from app.orchestrator.crewai_bridge import has_llm_credentials
+
+    model = (
+        cfg.get("crewai_model")
+        or os.getenv("OPENAI_MODEL_NAME")
+        or os.getenv("MODEL")
+        or os.getenv("CREWAI_DEFAULT_MODEL")
+        or ""
+    ).strip()
+    if not has_llm_credentials():
         status = "warn" if cfg.get("allow_fallback", True) else "error"
-        return {"status": status, "message": "CrewAI enabled but model/api key not configured."}
+        return {
+            "status": status,
+            "message": "CrewAI enabled but no OPENAI_API_KEY/CREWAI_API_KEY or OPENAI_BASE_URL.",
+        }
+    if not model and engine == "crewai":
+        status = "warn" if cfg.get("allow_fallback", True) else "error"
+        return {"status": status, "message": "CrewAI enabled but model not configured (CREWAI_MODEL / CREWAI_DEFAULT_MODEL)."}
 
     mode = "enabled" if is_crewai_enabled() else "inactive"
     return {"status": "ok", "message": f"CrewAI runtime is {mode}; model={model or 'default'}."}
