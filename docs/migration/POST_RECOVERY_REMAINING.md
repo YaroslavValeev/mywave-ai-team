@@ -69,7 +69,8 @@ Agents `main`: `b9cddd3` (PR #14 backup script executable merged)
 | Umbrella `services/agents_live` | **MISSING** |
 | Umbrella `services/agents` | ordinary dir (not junction); F-copy dirty/stale |
 | Integration scripts на F: | есть (`smoke_ph_*`, `smoke_agents_molt_http_e2e`, `link_agents_pointer`, `check_agents_pointer`, …) |
-| PH visual GUI one-click | **still pending** (Owner PC) |
+| PH headless GUI apply-path | **closed** (`smoke_ph_gui_apply_headless.py`, task #14 DONE) |
+| PH visual GUI one-click | **optional Owner PC** (`run_ph_with_control.ps1`) |
 | CrewAI | office-full + fallback OK; no-fallback guarantee deferred |
 | Cursor SDK (umbrella) | code present; live key optional Owner PC |
 | Disk C:/F: | OK |
