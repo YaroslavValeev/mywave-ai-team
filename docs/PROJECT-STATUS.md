@@ -1,6 +1,6 @@
 # Project Status
 
-Snapshot date: **2026-07-23** (post backup-cron fix, `main` @ `b9cddd3`)
+Snapshot date: **2026-07-23** (junction + Molt E2E closed on Owner PC; prod health ok @ docs `f81bd26`)
 
 ## What We Are Building
 
@@ -20,18 +20,18 @@ This is not a generic chatbot. It is a control plane for routing real MyWave tas
 
 ## Current Stage
 
-**Production governance is up** on `https://agm.mywavewake.ru` (`main` @ `b9cddd3`, health OK; backups working after PR #14).
+**Production governance is up** on `https://agm.mywavewake.ru` (`main` @ `f81bd26` docs; app image may still be older code — docs-only pulls need no rebuild).
 
 - office-full + CrewAI path available on RU (with rule-based fallback)
 - Telegram RU UI + approve buttons work
 - Control API create / `auto_run` / approve proven (#4, #6, #7, #8 headless PH, **#11 DONE**)
+- `WAIT_OWNER` empty; backups cron working (`20260723.sql.gz`)
+- Umbrella `agents_live` junction **PASS**; Agents→Molt HTTP E2E **PASS**
 - Three-layer HTTP contracts documented; monorepo merge **not** required for ops
-- Open PRs: **none**
 
 Still open (detail: [migration/POST_RECOVERY_REMAINING.md](migration/POST_RECOVERY_REMAINING.md)):
 
 - Optional PH **visual** GUI one-click propose/apply on Owner PC
-- Umbrella junction `services/agents_live` + local Agents→Molt E2E re-run
 - Optional BotFather token rotation (only if token ever leaked)
 - Optional umbrella Cursor SDK live key (`CURSOR_API_KEY`)
 
@@ -71,16 +71,22 @@ Still open (detail: [migration/POST_RECOVERY_REMAINING.md](migration/POST_RECOVE
 - recovery path: alembic retry after reboot (PR #12)
 - backup script executable for cron (PR #14)
 
+### Phase B (Owner PC)
+
+- `services/agents_live` → C:`main`
+- Molt `:8765` + Agents→Molt HTTP E2E
+- PH headless / wiring / apply-path smokes
+
 ## Priority Recommendation
 
-1. **Owner PC:** junction `agents_live` + local Molt E2E; optional PH visual GUI.
-2. **Agents:** keep docs/tests green; do not touch prod without Owner.
+1. **Owner RU:** `git pull` docs to `f81bd26+` (no rebuild); `server_ops_check.sh` optional.
+2. **Owner PC (optional):** visual PH GUI one-click.
 3. **Defer:** big-bang monorepo, Molt on RU, CrewAI no-fallback guarantee, auto-merge.
 
 ## Discovery Plan Executed (this snapshot)
 
-- Reviewed `docs/migration/INTEGRATION_THREE_LAYERS.md`, Step C/D, umbrella scripts
-- Confirmed prod health + task #11 **DONE** + backups working (Owner report)
-- Ran local pytest subset (owner console / gate / channel parity / e2e API / crewai config)
-- Documented remaining work in `docs/migration/POST_RECOVERY_REMAINING.md`
-- Added umbrella `scripts/integration/check_agents_pointer.ps1`
+- Owner RU logs: health ok, backups present, `WAIT_OWNER []`, compose app+postgres up
+- Created umbrella junction `agents_live` (Unicode-safe `New-Item`); `check_agents_pointer.ps1` PASS
+- Re-ran Agents→Molt HTTP E2E → PASS
+- Local pytest subset: 29 passed
+- Updated remaining-work checklists
