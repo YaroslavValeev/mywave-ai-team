@@ -306,7 +306,11 @@ def run_task_orchestration(repo: TaskRepository, task_id: int, source: str = "ap
     result = run_sync_orchestration(repo, task_id, source=source, control=control)
     if result is None:
         raise HTTPException(status_code=404, detail="Task not found")
-    return result
+    # Always expose task id for clients (auto_run / approve chains)
+    out = dict(result)
+    out.setdefault("id", task_id)
+    out.setdefault("mission_id", task_id)
+    return out
 
 
 def _merge_status_summary(prefix: str, existing_summary: str | None = None) -> str:
