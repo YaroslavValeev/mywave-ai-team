@@ -19,7 +19,11 @@ fi
 CRON_LINE="0 3 * * * COMPOSE_PROJECT_DIR=${APP_DIR} COMPOSE_FILE=${COMPOSE_FILE_DEFAULT} ${APP_DIR}/scripts/backup_postgres.sh ${BACKUP_DIR} >> /var/log/mywave-ai-team-backup.log 2>&1"
 
 mkdir -p "$BACKUP_DIR"
-chmod +x "${APP_DIR}/scripts/backup_postgres.sh" || true
+chmod +x "${APP_DIR}/scripts/backup_postgres.sh" "${APP_DIR}/scripts/install_backup_cron.sh" || true
+# На NTFS/git checkout иногда теряется +x — принудительно
+if [[ ! -x "${APP_DIR}/scripts/backup_postgres.sh" ]]; then
+  chmod a+x "${APP_DIR}/scripts/backup_postgres.sh" || true
+fi
 
 # Compose v2: backup script uses `docker compose` — ensure PROJECT dir has compose files
 if [[ ! -f "${APP_DIR}/docker-compose.yml" ]]; then
