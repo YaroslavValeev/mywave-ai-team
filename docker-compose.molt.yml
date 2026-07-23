@@ -24,8 +24,9 @@ services:
       CANONICAL_PATH_ENABLED: "1"
       CANONICAL_STORAGE: "sqlite"
       CANONICAL_SQLITE_PATH: "/data/canonical.db"
-      AGENTS_CONTROL_API_URL: ${AGENTS_CONTROL_API_URL:-http://app:8080}
-      AGENTS_API_KEY: ${AGENTS_API_KEY:-${OWNER_API_KEY}}
+      # Force in-compose Agents URL (do not use public DASHBOARD_URL from .env inside molt)
+      AGENTS_CONTROL_API_URL: "http://app:8080"
+      AGENTS_API_KEY: ${OWNER_API_KEY}
       AGENTS_CONTROL_ENABLED: ${AGENTS_CONTROL_ENABLED:-1}
       MOLT_RUN_OWNER: ${MOLT_RUN_OWNER:-0}
     volumes:
@@ -37,6 +38,19 @@ services:
       app:
         condition: service_started
     restart: unless-stopped
+    # Give app alembic time before first ready probes matter
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
 
 volumes:
   molt_data: {}
