@@ -18,6 +18,7 @@ from app.orchestrator.pipeline import run_pipeline
 from app.orchestrator.roundtable import run_roundtable
 from app.orchestrator.triage import run_triage
 from app.shared.audit import log_audit
+from app.bot.notify import notify_stage_sync
 from app.shared.critical_flags import check_critical_execute, infer_flags_from_task
 from app.intake.memory_writer import write_task_memory_after_orchestration
 from app.owner_memory.schemas import ExecutionRuleContext
@@ -367,6 +368,11 @@ def run_sync_orchestration(
         selected_preflight or None,
     )
     log_audit(repo, "triage_done", task_id=task_id, payload={**triage_result, "source": source})
+    notify_stage_sync(
+        task_id,
+        "triage",
+        detail=f"домен={triage_result.get('domain', '—')}, тип={triage_result.get('task_type', '—')}",
+    )
 
     if exploration_on:
         bundle = _ensure_exploration_bundle(repo, task_id, task.owner_text or "", triage_result)
@@ -476,6 +482,11 @@ def run_sync_orchestration(
         task_id=task_id,
         payload={"steps": len(pipeline_result.get("handoffs", [])), "source": source, "status_after": "IN_PIPELINE"},
     )
+    notify_stage_sync(
+        task_id,
+        "pipeline",
+        detail=f"handoffs={len(pipeline_result.get('handoffs', []))}",
+    )
 
     if control:
         control.set_phase("roundtable", message="Совет обсуждает риски и ограничения.", current_step="RC")
@@ -488,6 +499,11 @@ def run_sync_orchestration(
         task_id=task_id,
         payload={"risks": len(roundtable_result.get("risk_table", [])), "source": source, "status_after": "IN_ROUNDTABLE"},
     )
+    notify_stage_sync(
+        task_id,
+        "roundtable",
+        detail=f"рисков={len(roundtable_result.get('risk_table', []))}",
+    )
 
     if control:
         control.set_phase("court", message="Суд формирует финальный verdict.", current_step="JUDGE")
@@ -496,6 +512,7 @@ def run_sync_orchestration(
     court_result = run_court(task_id, triage_result, pipeline_result, roundtable_result, repo, control=control)
     report_path = court_result.get("report_path")
     summary = court_result.get("summary", "")[:limit]
+    notify_stage_sync(task_id, "court", detail="вердикт и отчёт сформированы")
 
     if control:
         control.set_phase(

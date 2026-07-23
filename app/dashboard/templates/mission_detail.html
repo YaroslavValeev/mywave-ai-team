@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ mission_title }} — Mission #{{ task.id }}</title>
+  <title>{{ mission_title }} — Миссия #{{ task.id }}</title>
   <style>
     body { font-family: system-ui, sans-serif; margin: 2rem; background: #121826; color: #e5e7eb; }
     a { color: #60a5fa; }
@@ -30,14 +30,14 @@
 
   <div class="viewbar">
     <span class="muted">Режим:</span>
-    <a href="/mission/{{ task.id }}{{ access_query_business }}" class="{{ 'active' if view_mode == 'business' else '' }}">Business View</a>
-    <a href="/mission/{{ task.id }}{{ access_query_system }}" class="{{ 'active' if view_mode == 'system' else '' }}">System View</a>
+    <a href="/mission/{{ task.id }}{{ access_query_business }}" class="{{ 'active' if view_mode == 'business' else '' }}">Бизнес</a>
+    <a href="/mission/{{ task.id }}{{ access_query_system }}" class="{{ 'active' if view_mode == 'system' else '' }}">Система</a>
   </div>
 
   {% if exploration_waiting %}
   <section class="card" style="margin-bottom:1rem;border-left:4px solid #38bdf8;background:#0c1222;">
-    <h2>Сценарии exploration</h2>
-    <p class="muted">Актуальный шаг: выбор сценария. Пока <code>selected_option_id</code> не задан, pipeline и суд не считаются текущим этапом (колонки triage ниже — из маршрутизации, не «завершённый court»).</p>
+    <h2>Сценарии</h2>
+    <p class="muted">Актуальный шаг: выбор сценария. Пока <code>selected_option_id</code> не задан, конвейер и суд не считаются текущим этапом (колонки triage ниже — из маршрутизации, не «завершённый суд»).</p>
     <p><strong>Статус задачи:</strong> {{ task.status }} · <strong>Домен triage:</strong> {{ task.domain or '—' }}</p>
     {% if exploration_options %}
     <ul style="list-style:none;padding-left:0;">

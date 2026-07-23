@@ -29,15 +29,15 @@ def _check_database() -> dict:
     try:
         with get_engine().connect() as conn:
             conn.execute(text("SELECT 1"))
-        return {"status": "ok", "message": "Database connection is healthy."}
+        return {"status": "ok", "message": "Подключение к базе данных в порядке."}
     except Exception as exc:
-        return {"status": "error", "message": f"Database check failed: {exc}"}
+        return {"status": "error", "message": f"Проверка БД не удалась: {exc}"}
 
 
 def _check_auth() -> dict:
     if get_owner_api_key():
-        return {"status": "ok", "message": "OWNER_API_KEY is configured."}
-    return {"status": "error", "message": "OWNER_API_KEY is missing."}
+        return {"status": "ok", "message": "OWNER_API_KEY настроен."}
+    return {"status": "error", "message": "OWNER_API_KEY отсутствует."}
 
 
 def _check_gateway() -> dict:
@@ -56,15 +56,15 @@ def _check_telegram() -> dict:
     token = cfg.get("bot_token") or os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = cfg.get("owner_chat_id") or os.getenv("OWNER_CHAT_ID")
     if token and chat_id:
-        return {"status": "ok", "message": "Telegram bot token and owner chat id are configured."}
-    return {"status": "warn", "message": "Telegram notifications are not fully configured."}
+        return {"status": "ok", "message": "Telegram: токен бота и chat id владельца настроены."}
+    return {"status": "warn", "message": "Telegram: уведомления настроены не полностью."}
 
 
 def _check_orchestration() -> dict:
     cfg = get_orchestration_config()
     engine = cfg.get("engine", "auto")
     if engine == "rule_based":
-        return {"status": "ok", "message": "Rule-based orchestration is active."}
+        return {"status": "ok", "message": "Оркестрация: rule-based активна."}
 
     try:
         from crewai import Agent  # type: ignore
@@ -94,8 +94,8 @@ def _check_orchestration() -> dict:
         status = "warn" if cfg.get("allow_fallback", True) else "error"
         return {"status": status, "message": "CrewAI enabled but model not configured (CREWAI_MODEL / CREWAI_DEFAULT_MODEL)."}
 
-    mode = "enabled" if is_crewai_enabled() else "inactive"
-    return {"status": "ok", "message": f"CrewAI runtime is {mode}; model={model or 'default'}."}
+    mode = "включён" if is_crewai_enabled() else "неактивен"
+    return {"status": "ok", "message": f"CrewAI runtime {mode}; model={model or 'default'}."}
 
 
 def _check_runner() -> dict:
@@ -118,9 +118,9 @@ def _check_runner() -> dict:
             f" ({'найден' if cr.get('cursor_binary_exists') else 'не найден в PATH'})."
         )
     except Exception as exc:
-        cursor_hint = f" Cursor runner config unavailable: {exc}."
+        cursor_hint = f" Конфиг Cursor runner недоступен: {exc}."
 
     if repo and token:
-        return {"status": "ok", "message": "Runner PR integration is configured." + cursor_hint}
-    msg = "Runner PR integration is partial: GITHUB_REPOSITORY or GH_TOKEN missing (проверьте gateway и env)."
+        return {"status": "ok", "message": "Интеграция Runner/PR настроена." + cursor_hint}
+    msg = "Интеграция Runner/PR частичная: нет GITHUB_REPOSITORY или GH_TOKEN (проверьте gateway и env)."
     return {"status": "warn", "message": msg + cursor_hint}

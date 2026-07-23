@@ -145,7 +145,7 @@
       <li>owner_feedback: {{ action.get('owner_feedback', '-') }}</li>
     </ul>
 
-    <h3>Execution Metrics</h3>
+    <h3>Метрики исполнения</h3>
     <ul>
       <li>actions_started: {{ metrics.get('actions_started', 0) }}</li>
       <li>actions_completed: {{ metrics.get('actions_completed', 0) }}</li>
@@ -153,7 +153,7 @@
       <li>useless_actions: {{ metrics.get('useless_actions', 0) }}</li>
     </ul>
 
-    <h3>Execution Scoring</h3>
+    <h3>Оценка пакета</h3>
     <ul>
       <li>specificity: {{ scoring.get('specificity', 0) }}</li>
       <li>actionability: {{ scoring.get('actionability', 0) }}</li>
@@ -164,19 +164,19 @@
     <ul>
       <li>Тип: {{ learning.get('pack_type', pack.get('pack_type', '-')) }}</li>
       <li>Надёжность: {{ learning.get('reliability', 'низкая') }}</li>
-      <li>Confidence: {{ learning.get('confidence', 0) }}</li>
-      <li>Historical usefulness: {{ learning.get('historical_usefulness', 0) }}</li>
-      <li>Failure rate: {{ learning.get('failure_rate', 0) }}</li>
+      <li>Уверенность: {{ learning.get('confidence', 0) }}</li>
+      <li>Историческая польза: {{ learning.get('historical_usefulness', 0) }}</li>
+      <li>Доля сбоев: {{ learning.get('failure_rate', 0) }}</li>
     </ul>
     <p class="muted">{{ learning.get('notes_for_builder', 'Сигнал пока недостаточный.') }}</p>
 
-    <h3>Revenue Tracking</h3>
+    <h3>Учёт выручки</h3>
     <ul>
-      <li>Leads: {{ revenue.get('leads', 0) }}</li>
-      <li>Sales: {{ revenue.get('sales', 0) }}</li>
-      <li>Revenue total: {{ revenue.get('revenue_total', 0) }}</li>
+      <li>Лиды: {{ revenue.get('leads', 0) }}</li>
+      <li>Продажи: {{ revenue.get('sales', 0) }}</li>
+      <li>Выручка всего: {{ revenue.get('revenue_total', 0) }}</li>
     </ul>
-    {% if revenue.get('warnings') %}<p class="muted">Warnings: {{ revenue.get('warnings')|join('; ') }}</p>{% endif %}
+    {% if revenue.get('warnings') %}<p class="muted">Предупреждения: {{ revenue.get('warnings')|join('; ') }}</p>{% endif %}
   </section>
 
   <script>
