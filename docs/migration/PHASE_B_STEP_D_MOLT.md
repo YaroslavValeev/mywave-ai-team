@@ -1,6 +1,6 @@
 # Этап B — Шаг D: Molt HTTP (Runtime) локально
 
-Статус: Molt local OK / Agents→Molt wiring in progress  
+Статус: **Molt local smoke OK** / Agents→Molt E2E script ready / junction pending  
 Дата: 2026-07-23
 
 ## Роль
@@ -10,10 +10,13 @@ Molt = Runtime Layer. На RU AI-TEAM **не** деплоим Molt в этом �
 
 ## Критерии
 
-- [x] Molt HTTP up (`:8765`) + `smoke_check_molt_http.py` OK
+- [x] Molt HTTP up (`:8765`) + `smoke_check_molt_http.py` OK (Owner PC)
 - [x] Thin facade `app/canonical_bridge.py` на C:`main` (no-op без shared-core)
-- [ ] Полный Agents→Molt HTTP E2E на локальном стеке (общий `canonical.db` + approve → `/executions`)
-- [ ] Junction `services/agents_live` → C:`main` после проверки bridge call-sites
+- [x] E2E script `scripts/integration/smoke_agents_molt_http_e2e.py` в umbrella
+- [ ] Повторный зелёный прогон E2E на локальном стеке (общий `canonical.db` + approve → `/executions`) после reboot/recovery
+- [ ] Junction `services/agents_live` → C:`main` (`link_agents_pointer.ps1`) — **на F: сейчас отсутствует**
+
+См. остаток: [POST_RECOVERY_REMAINING.md](POST_RECOVERY_REMAINING.md).
 
 ## Подготовка
 
@@ -31,6 +34,15 @@ cd "f:\Проекты MyWave\NEW2026\AI-Team"
 # .env.agents-http должен указывать на тот же CANONICAL_SQLITE_PATH, что и .env.molt
 python scripts\runtime\start_agents_http_mode.py
 python scripts\runtime\check_stack_status.py
+python scripts\integration\smoke_agents_molt_http_e2e.py
+```
+
+## Junction (Owner PC)
+
+```powershell
+cd "f:\Проекты MyWave\NEW2026\AI-Team"
+powershell -ExecutionPolicy Bypass -File scripts\integration\link_agents_pointer.ps1
+# ожидается: services\agents_live → C:\ProjectMyWave\MyWave_AI_TEAM_Presets_v1_1
 ```
 
 ## RU (только Control API)

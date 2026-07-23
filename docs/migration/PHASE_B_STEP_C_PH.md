@@ -1,7 +1,7 @@
 # docs/migration/PHASE_B_STEP_C_PH.md — критерии Step C (обновлено 2026-07-23)
 # Этап B — Шаг C: Personal_Helper → Control API
 
-Статус: headless closed / GUI optional  
+Статус: **headless + wiring closed** / visual GUI optional  
 Дата: 2026-07-23
 
 ## Роль
@@ -13,8 +13,11 @@ Bridge: `AIProjectManager/agents_control_bridge.py` → `packages/agents-http-cl
 
 - [x] Headless bridge smoke: propose→WAIT_OWNER→approve→DONE (**#8**, 2026-07-22)
 - [x] Health: `enabled=True` + Control API `status=ok` (Owner PC / bridge)
-- [ ] `run_ph_with_control.ps1` + GUI propose/apply (Owner, optional visual confirm)
-- [ ] Apply → задача `DONE` через desktop UI
+- [x] GUI **wiring** verified (`smoke_ph_gui_wiring.py` — AST/hooks, без окна)
+- [ ] **Visual** GUI propose/apply (`run_ph_with_control.ps1` + клик Owner) — optional Owner PC
+- [ ] Visual Apply → задача `DONE` через desktop UI — optional Owner PC
+
+См. остаток: [POST_RECOVERY_REMAINING.md](POST_RECOVERY_REMAINING.md).
 
 ## Headless (без GUI) — основная проверка
 
