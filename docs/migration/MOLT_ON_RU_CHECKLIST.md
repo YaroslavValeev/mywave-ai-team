@@ -1,58 +1,59 @@
-# Molt на RU — чеклист (без live deploy)
+# Molt на RU — Owner GO
 
-Статус: **overlay ready / live = Owner GO**  
+Статус: **GO enabled** (overlay + vendored service in Agents repo)  
 Дата: 2026-07-23  
-Связано: [PHASE_B_STEP_D_MOLT.md](PHASE_B_STEP_D_MOLT.md), [POST_RECOVERY_REMAINING.md](POST_RECOVERY_REMAINING.md), `docker-compose.molt.yml`
+Файлы: `docker-compose.molt.yml`, `services/molt_http_service/`, `packages/shared-core/`
 
 ## Политика
 
-- Molt = Runtime Layer. На прод RU сейчас **только** governance (`agm.mywavewake.ru`).
-- Overlay `docker-compose.molt.yml` с `profiles: [molt]` — **OFF by default** (без `--profile molt` не стартует).
-- **Не** включать Molt на RU без явного GO владельца.
-- **Не** публиковать `:8765` на `0.0.0.0` (в overlay только `127.0.0.1:8765`).
-- Код сервиса — umbrella `services/molt_http_service`, **не** dirty F-копия Agents.
+- Порт **только** `127.0.0.1:8765` (не публиковать наружу).
+- Governance `agm.mywavewake.ru` не зависит от Molt — rollback = `stop molt`.
+- `MOLT_RUN_OWNER=1` в `.env` app — опциональный второй шаг (Agents→Molt writes).
 
-## Проверка «Molt выключен» (сейчас — норма)
+## Deploy (Owner GO)
 
 ```bash
 cd /opt/mywave/ai-team && set -a; source .env; set +a
-bash scripts/server_ops_check.sh
-# секция «molt :8765» → OK: не слушает
-ss -lntp | grep 8765 || echo "OK: порт 8765 не слушается"
-```
+git pull origin main
 
-## Будущий deploy (только после Owner GO)
+# убедиться что в .env есть OWNER_API_KEY (уже есть)
+# опционально для ready→Agents: AGENTS_CONTROL_ENABLED=1 (default в overlay)
 
-```bash
-cd /opt/mywave/ai-team && set -a; source .env; set +a
-
-# 1) путь к checkout molt_http_service на сервере (НЕ dirty F: Agents)
-export MOLT_BUILD_CONTEXT=/opt/mywave/molt_http_service   # пример
-
-# 2) env (в .env или export):
-# AGENTS_CONTROL_API_URL=https://agm.mywavewake.ru
-# AGENTS_API_KEY=$OWNER_API_KEY
-# MOLT_RUN_OWNER=0   # включать 1 только когда готовы писать runs
-
-# 3) start profile
 docker compose -f docker-compose.yml -f docker-compose.server-full.yml \
   -f docker-compose.molt.yml --profile molt up -d --build
 
-# 4) smoke
+# дождаться ready
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  curl -sf http://127.0.0.1:8765/health && break
+  sleep 2
+done
 curl -sS http://127.0.0.1:8765/health
 curl -sS http://127.0.0.1:8765/ready
-
-# 5) rollback
-docker compose -f docker-compose.yml -f docker-compose.server-full.yml \
-  -f docker-compose.molt.yml --profile molt stop molt
+bash scripts/server_ops_check.sh
 ```
 
-## Rollback point
+## Включить запись Agents→Molt (шаг 2, после health/ready ok)
 
-Governance AI-TEAM на nginx/8088 **не зависит** от Molt. Остановка Molt = safe.
+```bash
+cd /opt/mywave/ai-team && set -a; source .env; set +a
+grep -q '^MOLT_HTTP_BASE_URL=' .env || echo 'MOLT_HTTP_BASE_URL=http://molt:8765' >> .env
+grep -q '^MOLT_TRANSPORT_MODE=' .env || echo 'MOLT_TRANSPORT_MODE=http' >> .env
+grep -q '^MOLT_RUN_OWNER=' .env || echo 'MOLT_RUN_OWNER=1' >> .env
+grep -q '^CANONICAL_PATH_ENABLED=' .env || echo 'CANONICAL_PATH_ENABLED=1' >> .env
+# если ключи уже есть — поправьте значения вручную (nano .env)
 
-## Что агенты не делают здесь
+docker compose -f docker-compose.yml -f docker-compose.server-full.yml \
+  -f docker-compose.molt.yml --profile molt up -d
+bash scripts/server_ops_check.sh
+```
 
-- Live `docker compose --profile molt up` на RU без Owner GO
-- Big-bang monorepo / submodule поверх dirty F:
-- Auto-merge в `main`
+## Rollback
+
+```bash
+cd /opt/mywave/ai-team && set -a; source .env; set +a
+docker compose -f docker-compose.yml -f docker-compose.server-full.yml \
+  -f docker-compose.molt.yml --profile molt stop molt
+# опционально выключить writes:
+# sed -i 's/^MOLT_RUN_OWNER=.*/MOLT_RUN_OWNER=0/' .env
+# docker compose -f docker-compose.yml -f docker-compose.server-full.yml up -d
+```
