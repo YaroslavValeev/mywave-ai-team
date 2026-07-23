@@ -1,17 +1,16 @@
 # Phase 6: канонические маршруты owner + observability (паритет каналов через единый Control API).
+#
+# Assert via OpenAPI paths — FastAPI 0.139+ nests include_router under _IncludedRouter,
+# so flat `app.routes` + getattr(path) misses /api/* (CI red). Prod routes still exist.
 
 
 def test_control_api_exposes_owner_and_observability_routes():
     """Все каналы (Telegram→логика, Dashboard form, Office fetch, MCP→api_client) сходятся к /api/*."""
     from app.dashboard.app import app
 
-    route_paths = []
-    for r in app.routes:
-        p = getattr(r, "path", None)
-        if p:
-            route_paths.append(p)
+    route_paths = list(app.openapi()["paths"].keys())
 
-    expected_substrings = [
+    expected = [
         "/api/tasks/{task_id}/approve",
         "/api/tasks/{task_id}/rework",
         "/api/tasks/{task_id}/clarify",
@@ -25,14 +24,19 @@ def test_control_api_exposes_owner_and_observability_routes():
         "/api/gateway/catalog",
         "/api/gateway/evaluate",
     ]
-    for fragment in expected_substrings:
-        assert any(fragment in path for path in route_paths), f"missing route containing {fragment}"
+    for path in expected:
+        assert path in route_paths, f"missing OpenAPI path {path}"
 
 
 def test_dashboard_html_routes_exist():
     """Формы task_detail дублируют те же действия через POST /tasks/{id}/… (cookie/query api_key)."""
     from app.dashboard.app import app
 
-    paths = [getattr(r, "path", "") for r in app.routes]
-    for suffix in ("/tasks/{task_id}/approve", "/tasks/{task_id}/rework", "/tasks/{task_id}/clarify", "/tasks/{task_id}/merged"):
-        assert any(p.endswith(suffix) or suffix in p for p in paths), suffix
+    paths = list(app.openapi()["paths"].keys())
+    for suffix in (
+        "/tasks/{task_id}/approve",
+        "/tasks/{task_id}/rework",
+        "/tasks/{task_id}/clarify",
+        "/tasks/{task_id}/merged",
+    ):
+        assert any(p.endswith(suffix) or p == suffix for p in paths), suffix
