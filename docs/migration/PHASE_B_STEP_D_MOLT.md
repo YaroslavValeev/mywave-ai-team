@@ -1,7 +1,7 @@
 # Этап B — Шаг D: Molt HTTP (Runtime) локально
 
-Статус: **Molt local smoke OK** / Agents→Molt E2E script ready / junction pending  
-Дата: 2026-07-23
+Статус: **Molt local smoke OK** / Agents→Molt E2E script ready / junction still MISSING on F:  
+Дата: 2026-07-23 (post `b9cddd3`)
 
 ## Роль
 
@@ -41,6 +41,8 @@ python scripts\integration\smoke_agents_molt_http_e2e.py
 
 ```powershell
 cd "f:\Проекты MyWave\NEW2026\AI-Team"
+powershell -ExecutionPolicy Bypass -File scripts\integration\check_agents_pointer.ps1
+# если FAIL:
 powershell -ExecutionPolicy Bypass -File scripts\integration\link_agents_pointer.ps1
 # ожидается: services\agents_live → C:\ProjectMyWave\MyWave_AI_TEAM_Presets_v1_1
 ```

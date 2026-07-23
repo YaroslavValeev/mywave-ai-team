@@ -14,7 +14,7 @@ Bridge: `AIProjectManager/agents_control_bridge.py` → `packages/agents-http-cl
 - [x] Headless bridge smoke: propose→WAIT_OWNER→approve→DONE (**#8**, 2026-07-22)
 - [x] Health: `enabled=True` + Control API `status=ok` (Owner PC / bridge)
 - [x] GUI **wiring** verified (`smoke_ph_gui_wiring.py` — AST/hooks, без окна)
-- [ ] **Visual** GUI propose/apply (`run_ph_with_control.ps1` + клик Owner) — optional Owner PC
+- [ ] **Visual** GUI propose/apply one-click (`run_ph_with_control.ps1` + клик Owner) — optional Owner PC
 - [ ] Visual Apply → задача `DONE` через desktop UI — optional Owner PC
 
 См. остаток: [POST_RECOVERY_REMAINING.md](POST_RECOVERY_REMAINING.md).
