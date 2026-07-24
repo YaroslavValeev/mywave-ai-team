@@ -1,6 +1,6 @@
 # Project Status
 
-Snapshot date: **2026-07-24** (Owner RU Molt GO + E2E done; ops parity next)
+Snapshot date: **2026-07-24** (Owner RU Molt GO + E2E + ops parity verified)
 
 ## What We Are Building
 
@@ -32,11 +32,10 @@ This is not a generic chatbot. It is a control plane for routing real MyWave tas
 
 Still open (detail: [migration/POST_RECOVERY_REMAINING.md](migration/POST_RECOVERY_REMAINING.md)):
 
-- **Ops parity:** Molt in `/api/system/health`, canonical.db backup, disk WARN/FAIL in ops-check
-
 - Optional PH **visual** GUI one-click propose/apply on Owner PC
 - Optional BotFather token rotation (only if token ever leaked)
 - Optional umbrella Cursor SDK live key (`CURSOR_API_KEY`)
+- Policy-deferred: big-bang monorepo, full TG stream, CrewAI no-fallback, auto-merge, LangGraph
 
 ## Product Scope Confirmed By Repo
 

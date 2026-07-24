@@ -19,7 +19,8 @@ Agents `main`: sync after this PR
 | ops-check asserts :8765 off when profile inactive | **done** |
 | **Live** Molt `--profile molt` на RU (Owner GO) | **done** — см. [MOLT_ON_RU_CHECKLIST.md](MOLT_ON_RU_CHECKLIST.md) |
 | Agents→Molt E2E на RU (bridge + auto_run task #16) | **done** (2026-07-24) |
-| Ops parity (health `molt`, canonical backup, disk thresholds) | **planned** — upcoming PR |
+| Ops parity (health `molt`, canonical backup, disk thresholds) | **done** (PR #31–#32; RU verified) |
+| Approve API→Molt hooks + auto_run `id` + health/ready cycle fix | **done** (PR #31–#32; #17 DONE) |
 
 ---
 
