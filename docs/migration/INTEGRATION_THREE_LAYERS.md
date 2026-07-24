@@ -133,7 +133,7 @@ Agents → Molt по-прежнему: `MOLT_TRANSPORT_MODE=http`, `MOLT_HTTP_BA
 - [x] PH headless propose→approve against prod (`smoke_ph_control_headless.py`) — см. [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md)
 - [x] PH GUI **wiring** verified (`smoke_ph_gui_wiring.py` + `projects_tab` hooks)
 - [x] PH headless **GUI apply-path** (`smoke_ph_gui_apply_headless.py`: bridge + DB crosswalk + approve→DONE) — без кликов
-- [ ] PH **visual** GUI one-click (`run_ph_with_control.ps1`) — optional Owner PC; см. [PHASE_B_STEP_C_PH.md](PHASE_B_STEP_C_PH.md)
+- [x] PH **visual** GUI one-click (`run_ph_with_control.ps1`) — Owner 2026-07-24, #19 DONE
 - [x] Agents→Molt HTTP E2E **script** (`smoke_agents_molt_http_e2e.py`) — Molt only on Owner PC, not RU
 - [x] Повторный зелёный Agents→Molt E2E после recovery — см. [PHASE_B_STEP_D_MOLT.md](PHASE_B_STEP_D_MOLT.md)
 - [x] Dashboard RU owner-facing labels (missions / office / health messages)
