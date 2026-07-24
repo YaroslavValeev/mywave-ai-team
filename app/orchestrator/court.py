@@ -217,6 +217,28 @@ def run_court(
                 report_lines.append(f"- {line}")
             report_lines.append("")
 
+    if triage_result.get("task_type") == "content_pipeline":
+        report_lines.extend(["", "## Контент / outreach (черновик для владельца)"])
+        blocks = _marketing_plan_blocks_from_handoffs(handoffs)  # same === section parser
+        if blocks:
+            for block in blocks:
+                report_lines.append(f"### {block['title']}")
+                for line in block["lines"]:
+                    report_lines.append(f"- {line}" if not line.startswith("•") and not line.startswith("Привет") else line)
+                report_lines.append("")
+        else:
+            report_lines.append(
+                "- Черновик не извлечён из handoffs. Проверьте шаг CONTENT или перезапустите с #CLOUD / Доработать."
+            )
+        report_lines.extend(
+            [
+                "",
+                "### Важно (PLAN vs EXECUTE)",
+                "- Черновик текста и чеклист — это результат PLAN.",
+                "- Сбор контактов из ParserNews и рассылка — только после вашего утверждения (EXECUTE).",
+            ]
+        )
+
     report_lines.extend([
         "",
         "## Что делать владельцу прямо сейчас",
@@ -337,6 +359,9 @@ def run_court(
         f"Передаточных документов: {len(handoffs)}, рисков: {len(risk_table)}. "
         + ("Требуется решение владельца." if owner_approval_needed else "Можно завершать проверку и закрытие без дополнительного решения владельца.")
     )
+    if triage_result.get("task_type") == "content_pipeline":
+        draft_hint = " Черновик сообщения и чеклист контактов — в полном отчёте (artifact). ParserNews/рассылка = после approve."
+        summary_core = summary_core.rstrip(".") + "." + draft_hint
     if gap_analysis.get("needs_external_access"):
         summary_core = (
             f"Задача #{task_id}: запрос требует данных вне доступа сервера (ПК/аккаунты OpenAI/Google) — итог процессный, не инвентарь. "
@@ -453,6 +478,29 @@ def _build_verdict_md(
         project=getattr(task, "project", None),
     ):
         lines.append(f"- {point}")
+
+    if triage_result.get("task_type") == "content_pipeline":
+        lines.extend(["", "## Контент / outreach (черновик для владельца)"])
+        blocks = _marketing_plan_blocks_from_handoffs(handoffs)
+        if blocks:
+            for block in blocks:
+                lines.append(f"### {block['title']}")
+                for line in block["lines"]:
+                    if line.startswith("•") or line.startswith("Привет"):
+                        lines.append(line)
+                    else:
+                        lines.append(f"- {line}")
+                lines.append("")
+        else:
+            lines.append("- Черновик не извлечён из handoffs.")
+        lines.extend(
+            [
+                "### Важно (PLAN vs EXECUTE)",
+                "- Черновик текста и чеклист — результат PLAN.",
+                "- Сбор контактов ParserNews и рассылка — только после утверждения (EXECUTE).",
+                "",
+            ]
+        )
 
     lines.extend([
         "",
@@ -732,6 +780,19 @@ def _build_plain_language_points(
                 f"Команда подготовила маркетинг-план (органика / 0 ₽) по миссии «{tl}» "
                 f"(направление: {ow}): ЦА/оффер, бесплатные каналы, контент на 30 дней, CTA и метрики."
             )
+        elif triage_result.get("task_type") == "content_pipeline":
+            points.append(
+                f"Команда подготовила черновик сообщения и план сбора контактов по миссии «{tl}» "
+                f"(направление: {ow}). Рассылка/парсинг — только после вашего утверждения."
+            )
+            bullets = _marketing_plan_bullets_from_handoffs(handoffs)
+            # Prefer message draft lines if present
+            draft_bits = [
+                b
+                for b in bullets
+                if any(tok in b.lower() for tok in ("привет", "mywave", "запис", "telegram", "контакт", "parser"))
+            ]
+            points.extend((draft_bits or bullets)[:6])
         else:
             points.append(
                 f"Команда подготовила материалы по миссии «{tl}» (направление: {ow}): "
