@@ -82,12 +82,24 @@ wait_health() {
 }
 
 echo "=== local health :8088 (wait up to 90s) ==="
-wait_health "local" "http://127.0.0.1:8088/api/system/health" 90 || true
+LOCAL_HEALTH="$(wait_health "local" "http://127.0.0.1:8088/api/system/health" 90 || true)"
+echo "${LOCAL_HEALTH:-}"
+if echo "${LOCAL_HEALTH:-}" | grep -q '"molt"'; then
+  echo "${LOCAL_HEALTH}" | python3 -c "import sys,json; d=json.load(sys.stdin); c=(d.get('checks') or {}).get('molt'); print('checks.molt:', c if c is not None else 'missing')" 2>/dev/null \
+    || echo "checks.molt: (parse skipped)"
+else
+  echo "checks.molt: not in local health body (app may still be starting)"
+fi
 echo
 echo
 
 echo "=== public health ${BASE_URL} (wait up to 60s) ==="
-wait_health "public" "${BASE_URL}/api/system/health" 60 || true
+PUB_HEALTH="$(wait_health "public" "${BASE_URL}/api/system/health" 60 || true)"
+echo "${PUB_HEALTH:-}"
+if echo "${PUB_HEALTH:-}" | grep -q '"molt"'; then
+  echo "${PUB_HEALTH}" | python3 -c "import sys,json; d=json.load(sys.stdin); c=(d.get('checks') or {}).get('molt'); print('checks.molt:', c if c is not None else 'missing')" 2>/dev/null \
+    || true
+fi
 echo
 echo
 

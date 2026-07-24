@@ -30,16 +30,11 @@ def main() -> int:
         return 1
     print(f"CURSOR_API_KEY set=True len={len(key)} prefix={key[:5]}...")
 
-    # Windows Python lacks os.get_blocking/set_blocking (Unix-only); cursor-sdk may call them.
-    if not hasattr(os, "get_blocking"):
-        def _get_blocking(fd: int) -> bool:  # noqa: ARG001
-            return True
+    # Shared helper (also used by sdk_runner before cursor_sdk import).
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from app.runners.cursor_runner.win_os_shim import ensure_windows_os_blocking_shim
 
-        def _set_blocking(fd: int, blocking: bool) -> None:  # noqa: ARG001
-            return None
-
-        os.get_blocking = _get_blocking  # type: ignore[attr-defined]
-        os.set_blocking = _set_blocking  # type: ignore[attr-defined]
+    if ensure_windows_os_blocking_shim():
         print("note: installed Windows shim for os.get_blocking/set_blocking")
 
     try:

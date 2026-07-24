@@ -30,12 +30,12 @@ This is not a generic chatbot. It is a control plane for routing real MyWave tas
 - **Molt on RU:** `--profile molt` live (Owner GO); E2E task #16 **done**
 - HTTP client: approve/rework/clarify/**merged**; default criticality `MEDIUM`
 
+Closed on Owner PC (2026-07-24): PH visual (#19 DONE), `CURSOR_API_KEY` + `SDK_SMOKE_OK`.
+
 Still open (detail: [migration/POST_RECOVERY_REMAINING.md](migration/POST_RECOVERY_REMAINING.md)):
 
-- Optional PH **visual** GUI one-click propose/apply on Owner PC
 - Optional BotFather token rotation (only if token ever leaked)
-- Optional umbrella Cursor SDK live key (`CURSOR_API_KEY`)
-- Policy-deferred: big-bang monorepo, full TG stream, CrewAI no-fallback, auto-merge, LangGraph
+- Policy-deferred (нужен отдельный GO): big-bang monorepo, full TG stream, CrewAI no-fallback, auto-merge, LangGraph
 
 ## Product Scope Confirmed By Repo
 

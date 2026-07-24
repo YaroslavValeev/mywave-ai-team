@@ -72,7 +72,29 @@ cfg = get_runner_config()
 argv = build_cursor_argv("")  # → ['…/cursor', '--version']
 ```
 
-Публичный API пакета (`app.runners.cursor_runner`): `merge_gateway_secrets_into_env`, `resolve_cursor_binary`, `build_cursor_argv`, `run_cursor_cli`, `run_cursor_cli_argv`, `get_runner_config`.
+Публичный API пакета (`app.runners.cursor_runner`): `merge_gateway_secrets_into_env`, `resolve_cursor_binary`, `build_cursor_argv`, `run_cursor_cli`, `run_cursor_cli_argv`, `get_runner_config`, `run_cursor_sdk_agent`, `build_task_prompt`, `ensure_windows_os_blocking_shim`.
+
+## Cursor SDK (Owner PC, optional executor)
+
+| Переменная | Описание |
+| ---------- | -------- |
+| `CURSOR_API_KEY` | User API Key с [cursor.com/dashboard/api](https://cursor.com/dashboard/api) |
+| `CURSOR_SDK_API_KEY` | Алиас того же ключа |
+| `CURSOR_SDK_MODEL` | Модель (default `composer-2.5`) |
+| `CURSOR_AUTO_APPROVE` | `1` — разрешить critical в headless (опасно; не для prod) |
+
+- Модуль: `app/runners/cursor_runner/sdk_runner.py` (`run_cursor_sdk_agent`).
+- Windows: перед импортом SDK вызывается `ensure_windows_os_blocking_shim()` (`win_os_shim.py`) — Python на Win без `os.get_blocking`.
+- Live smoke (без правок файлов):
+
+```powershell
+cd "C:\ProjectMyWave\MyWave_AI_TEAM_Presets_v1_1"
+$env:CURSOR_API_KEY = [Environment]::GetEnvironmentVariable("CURSOR_API_KEY","User")
+python scripts\smoke_cursor_sdk.py
+# OK → SDK_SMOKE_OK
+```
+
+CLI PR-loop и SDK — разные пути: CLI = `runner.py` / `pr_loop.py`; SDK = programmatic `Agent.prompt`. **Merge в `main` по-прежнему только Owner вручную.**
 
 ## Проверка состояния (Dashboard / API)
 
