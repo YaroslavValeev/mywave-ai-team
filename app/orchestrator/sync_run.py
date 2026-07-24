@@ -286,6 +286,30 @@ def run_sync_orchestration(
     if not task:
         return None
 
+    from app.orchestrator.llm_tier import (
+        describe_active_endpoint,
+        resolve_llm_tier,
+        set_active_llm_tier,
+    )
+
+    ba0 = dict(task.business_action_json or {}) if isinstance(task.business_action_json, dict) else {}
+    tier = resolve_llm_tier(
+        owner_text=task.owner_text or "",
+        business_action=ba0,
+        criticality=getattr(task, "criticality", None),
+    )
+    set_active_llm_tier(tier)
+    if ba0.get("llm_tier") != tier:
+        ba0["llm_tier"] = tier
+        repo.update_task(task_id, business_action_json=ba0)
+    logger.info("LLM_TIER task_id=%s %s", task_id, describe_active_endpoint())
+    log_audit(
+        repo,
+        "llm_tier_selected",
+        task_id=task_id,
+        payload={"tier": tier, "endpoint": describe_active_endpoint(), "source": source},
+    )
+
     limit = _summary_limit(summary_max_chars)
 
     if getattr(task, "status", None) == "EXECUTION_READY":

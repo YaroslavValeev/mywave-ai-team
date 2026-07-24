@@ -86,6 +86,8 @@ def _check_orchestration() -> dict:
         or os.getenv("OPENAI_MODEL_NAME")
         or os.getenv("MODEL")
         or os.getenv("CREWAI_DEFAULT_MODEL")
+        or os.getenv("LLM_LOCAL_MODEL")
+        or os.getenv("LLM_CLOUD_MODEL")
         or ""
     ).strip()
     if not has_llm_credentials():
@@ -98,8 +100,12 @@ def _check_orchestration() -> dict:
         status = "warn" if cfg.get("allow_fallback", True) else "error"
         return {"status": status, "message": "CrewAI enabled but model not configured (CREWAI_MODEL / CREWAI_DEFAULT_MODEL)."}
 
+    tier = cfg.get("llm_tier_default") or "local"
     mode = "включён" if is_crewai_enabled() else "неактивен"
-    return {"status": "ok", "message": f"CrewAI runtime {mode}; model={model or 'default'}."}
+    return {
+        "status": "ok",
+        "message": f"CrewAI runtime {mode}; default_tier={tier}; model={model or 'default'}.",
+    }
 
 
 def _check_runner() -> dict:
