@@ -1,5 +1,6 @@
 # LLM tier: local (RU) + OpenAI via EU
 
+**Status (2026-07-24):** **applied on RU** — smoke `#27` cloud (EU) OK, `#28` local (Ollama) OK.  
 См. [ADR-006](../decisions/ADR-006-llm-tier-local-eu.md).
 
 | Tier | Назначение | Endpoint |
