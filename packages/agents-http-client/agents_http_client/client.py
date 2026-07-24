@@ -120,9 +120,29 @@ class AgentsControlClient:
         return self._request("POST", f"/api/tasks/{task_id}/pipeline/run")
 
     def approve(self, task_id: int | str, note: str = "") -> dict[str, Any]:
-        return self._request(
-            "POST", f"/api/tasks/{task_id}/approve", {"note": note} if note else {}
-        )
+        """POST /api/tasks/{id}/approve. Idempotent if already DONE / APPROVED_WAIT_MERGE."""
+        try:
+            return self._request(
+                "POST", f"/api/tasks/{task_id}/approve", {"note": note} if note else {}
+            )
+        except AgentsControlError as exc:
+            if getattr(exc, "status", None) != 409:
+                raise
+            # Already decided / not WAIT_OWNER — treat terminal success as OK
+            try:
+                task = self.get_task(task_id)
+            except AgentsControlError:
+                raise exc from None
+            status = str(task.get("status") or "")
+            if status in {"DONE", "APPROVED_WAIT_MERGE", "ARCHIVED"}:
+                return {
+                    "id": task.get("id", task_id),
+                    "status": status,
+                    "decision": "approve",
+                    "idempotent": True,
+                    "detail": "already_terminal",
+                }
+            raise
 
     def rework(self, task_id: int | str, note: str = "") -> dict[str, Any]:
         return self._request(
