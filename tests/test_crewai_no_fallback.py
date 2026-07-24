@@ -75,3 +75,33 @@ def test_normalize_triage_keeps_scalars():
     assert out["domain"] == "PRODUCT_DEV"
     assert out["task_type"] == "feature_delivery"
     assert out["criticality"] == "LOW"
+
+
+def test_crew_kickoff_uses_thread_when_event_loop_running():
+    """Telegram runs orchestration inside asyncio; sync kickoff must offload."""
+    import asyncio
+    from app.orchestrator import crewai_bridge as bridge
+
+    class FakeCrew:
+        def __init__(self):
+            self.calls = 0
+
+        def kickoff(self):
+            self.calls += 1
+            # Would raise in real CrewAI if called on the main loop thread.
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                return {"ok": True}
+            raise RuntimeError(
+                "Agent execution was invoked synchronously from within a running event loop"
+            )
+
+    crew = FakeCrew()
+
+    async def _run():
+        return bridge._crew_kickoff(crew, timeout_sec=5)
+
+    out = asyncio.run(_run())
+    assert out == {"ok": True}
+    assert crew.calls == 1

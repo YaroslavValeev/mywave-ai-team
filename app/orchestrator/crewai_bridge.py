@@ -1,7 +1,9 @@
 # app/orchestrator/crewai_bridge.py — optional CrewAI bridge with safe fallback
+import asyncio
 import json
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from app.config import get_orchestration_config
@@ -313,7 +315,8 @@ def _run_json_task(
             process=Process.sequential,
             verbose=False,
         )
-        result = crew.kickoff()
+        timeout = int(get_orchestration_config().get("crewai_timeout", 120) or 120)
+        result = _crew_kickoff(crew, timeout_sec=timeout)
         raw = _extract_task_output(task, result)
         parsed = _safe_json_loads(raw)
         if not isinstance(parsed, dict):
@@ -328,6 +331,22 @@ def _run_json_task(
         _set_last_crewai_error(f"{type(exc).__name__}: {exc}")
         logger.warning("CrewAI bridge failed for role %s: %s", role, exc)
         return {}
+
+
+def _crew_kickoff(crew: Any, timeout_sec: int = 120) -> Any:
+    """Run crew.kickoff() safely from sync and from a running asyncio loop (Telegram).
+
+    CrewAI sync kickoff refuses to run when an event loop is already running
+    (Telegram handlers call orchestration via asyncio.create_task). Offload to a
+    worker thread in that case.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return crew.kickoff()
+
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="crewai-kickoff") as pool:
+        return pool.submit(crew.kickoff).result(timeout=max(1, int(timeout_sec)))
 
 
 def _load_crewai_classes() -> dict[str, Any] | None:

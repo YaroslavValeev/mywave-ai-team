@@ -101,11 +101,21 @@ docker compose -f docker-compose.yml -f docker-compose.server-full.yml \
 
 ### Откат
 
+**Важно:** после `set -a; source .env` переменная уже в shell. `sed` в `.env` **не** меняет export — compose подставляет `${ORCHESTRATION_ALLOW_FALLBACK}` из shell. Нужен `export` (или повторный `source`) **после** sed:
+
 ```bash
-cd /opt/mywave/ai-team && set -a; source .env; set +a
-sed -i 's/^ORCHESTRATION_ALLOW_FALLBACK=.*/ORCHESTRATION_ALLOW_FALLBACK=true/' .env
+cd /opt/mywave/ai-team
+grep -q '^ORCHESTRATION_ALLOW_FALLBACK=' .env \
+  && sed -i 's/^ORCHESTRATION_ALLOW_FALLBACK=.*/ORCHESTRATION_ALLOW_FALLBACK=true/' .env \
+  || echo 'ORCHESTRATION_ALLOW_FALLBACK=true' >> .env
+export ORCHESTRATION_ALLOW_FALLBACK=true
+set -a; source .env; set +a
 docker compose -f docker-compose.yml -f docker-compose.server-full.yml \
   -f docker-compose.molt.yml --profile molt up -d --force-recreate app
+docker compose -f docker-compose.yml -f docker-compose.server-full.yml \
+  -f docker-compose.molt.yml --profile molt exec app \
+  printenv ORCHESTRATION_ALLOW_FALLBACK
+# ожидание: true
 ```
 
 ## 4) Что агенты **не** включают без нового отдельного GO
