@@ -257,7 +257,7 @@ async def create_mission_and_run(
     business_meta: dict | None = None,
 ):
     """Создать задачу и запустить тот же оркестратор, что и для #TASK."""
-    from app.orchestrator.llm_tier import detect_tier_tag_in_text, merge_llm_tier_into_business_action
+    from app.orchestrator.llm_tier import detect_tier_tag_in_text, merge_llm_tier_into_business_action, resolve_llm_tier
 
     Session = get_session_factory()
     with Session() as session:
@@ -282,17 +282,16 @@ async def create_mission_and_run(
                 if val:
                     ba[str(key)] = val
         tagged = detect_tier_tag_in_text(owner_text)
-        if tagged:
-            ba = merge_llm_tier_into_business_action(ba, tagged)
-        if ba or business_meta:
-            repo.update_task(
-                task.id,
-                business_type=(business_meta or {}).get("business_type") or None,
-                impact_level=(business_meta or {}).get("impact_level") or None,
-                impact_score=(business_meta or {}).get("impact_score"),
-                business_action_json=ba if ba else None,
-                business_outcome=(business_meta or {}).get("business_outcome") or None,
-            )
+        tier = tagged or resolve_llm_tier(owner_text=owner_text, business_action=ba)
+        ba = merge_llm_tier_into_business_action(ba, tier)
+        repo.update_task(
+            task.id,
+            business_type=(business_meta or {}).get("business_type") or None,
+            impact_level=(business_meta or {}).get("impact_level") or None,
+            impact_score=(business_meta or {}).get("impact_score"),
+            business_action_json=ba,
+            business_outcome=(business_meta or {}).get("business_outcome") or None,
+        )
         task_id = task.id
         write_canonical_task_if_enabled(
             legacy_task_id=task_id,
