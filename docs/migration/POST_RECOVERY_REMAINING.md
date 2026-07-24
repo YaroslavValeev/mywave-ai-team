@@ -21,6 +21,7 @@ Agents `main`: sync after this PR
 | Agents→Molt E2E на RU (bridge + auto_run task #16) | **done** (2026-07-24) |
 | Ops parity (health `molt`, canonical backup, disk thresholds) | **done** (PR #31–#32; RU verified) |
 | Approve API→Molt hooks + auto_run `id` + health/ready cycle fix | **done** (PR #31–#32; #17 DONE) |
+| PH visual GUI one-click (Owner PC) | **done** 2026-07-24 — #19 DONE, 8 local tasks applied |
 
 ---
 

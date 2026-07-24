@@ -1,8 +1,8 @@
 # docs/migration/PHASE_B_STEP_C_PH.md — критерии Step C (обновлено 2026-07-23)
 # Этап B — Шаг C: Personal_Helper → Control API
 
-Статус: **headless apply-path closed** / visual GUI = optional Owner  
-Дата: 2026-07-23
+Статус: **Step C closed** (headless + visual GUI Owner)  
+Дата: 2026-07-24
 
 ## Роль
 
@@ -16,8 +16,8 @@ Crosswalk: `db.py` → `agent_actions.agents_task_id` (PySide **не** нуже�
 - [x] Health: `enabled=True` + Control API `status=ok` (Owner PC / bridge)
 - [x] GUI **wiring** verified (`smoke_ph_gui_wiring.py` — AST/hooks, без окна)
 - [x] Headless **GUI apply-path** closed (`smoke_ph_gui_apply_headless.py`: bridge + SQLite crosswalk + approve→DONE) — без кликов; prod evidence **#14**, **#15** (2026-07-23)
-- [ ] **Visual** GUI propose/apply one-click (`run_ph_with_control.ps1` + клик Owner) — **optional Owner PC**
-- [ ] Visual Apply → задача `DONE` через desktop UI — **optional Owner PC**
+- [x] **Visual** GUI propose/apply one-click (`run_ph_with_control.ps1` + клик Owner) — **done** 2026-07-24 (Site_MyWave → #19 DONE; «Применено. Создано задач: 8»)
+- [x] Visual Apply → задача `DONE` через desktop UI — **done** (#19)
 
 См. остаток: [POST_RECOVERY_REMAINING.md](POST_RECOVERY_REMAINING.md).
 
