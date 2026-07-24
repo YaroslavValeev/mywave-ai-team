@@ -26,16 +26,16 @@ Agents `main`: sync after this PR
 
 ## Owner PC optional
 
-1. Visual PH: `run_ph_with_control.ps1`
-2. BotFather / `CURSOR_API_KEY`
+1. Visual PH: `run_ph_with_control.ps1` — см. [OWNER_NEXT_WAVE.md](OWNER_NEXT_WAVE.md)
+2. BotFather / `CURSOR_API_KEY` — см. [OWNER_NEXT_WAVE.md](OWNER_NEXT_WAVE.md)
 
-## Still deferred (policy)
+## Still deferred (policy — отдельный GO, не «всё сразу»)
 
-1. Big-bang monorepo / dirty F: Agents — **не править**
+1. Big-bang monorepo / dirty F: Agents — **не взрывом**
 2. Полный stream каждой реплики агента в TG
-3. CrewAI без fallback
-4. Авто-merge в `main`
-5. LangGraph
+3. CrewAI без fallback — только осознанный флаг (см. OWNER_NEXT_WAVE)
+4. Авто-merge в `main` — **запрещено**
+5. LangGraph — отдельный эпик
 
 ## Owner RU (molt-first, после ops parity PR)
 
