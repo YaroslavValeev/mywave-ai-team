@@ -9,7 +9,8 @@
 |-------|---------|--------|
 | Visual PH GUI one-click | **done** (Owner PC, 2026-07-24) | #19 DONE; «Применено. Создано задач: 8» |
 | `CURSOR_API_KEY` | **done** (Owner PC, 2026-07-24) | `setx` + live `Agent.prompt` smoke → `SDK_SMOKE_OK` |
-| CrewAI без fallback | **Опционально на RU** (флаг) | При падении LLM миссии падают hard; не default |
+| CrewAI без fallback | **applied then rolled to fallback=true** | ADR-005; geo 403 → EU LiteLLM; keep `ALLOW_FALLBACK=true` as safety |
+| LLM tier local+EU | **done** (Owner RU, 2026-07-24) | ADR-006; #27 cloud OK, #28 local OK; buttons 🧠/🏠 |
 | Полный TG-stream каждой реплики | **Не сейчас** | Шум/лимиты TG/стоимость; уже есть stage-notify |
 | Auto-merge в `main` | **Запрещено** | Runner policy + git safety: merge только Owner |
 | Big-bang monorepo | **Запрещено взрывом** | Только по MERGE_PLAN инкрементально (уже идём) |
@@ -127,5 +128,7 @@ docker compose -f docker-compose.yml -f docker-compose.server-full.yml \
 
 ## Итог
 
-Боевой контур RU **готов**. CrewAI no-fallback — по GO + ADR-005 (после merge/apply на RU).  
-Опасные пункты требуют **нового явного GO по одному**.
+Боевой контур RU **готов**.  
+- CrewAI no-fallback: код ADR-005; на бою держим `ALLOW_FALLBACK=true` (geo/LLM safety).  
+- LLM tiers: **applied** — local Ollama + cloud EU LiteLLM (`72.56.99.214:4000`); smoke #27/#28.  
+Опасные пункты (auto-merge, big-bang, LangGraph, full TG stream) — только с **новым явным GO**.

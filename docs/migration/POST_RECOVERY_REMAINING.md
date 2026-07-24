@@ -21,6 +21,7 @@ Agents `main`: sync after this PR
 | Agents→Molt E2E на RU (bridge + auto_run task #16) | **done** (2026-07-24) |
 | Ops parity (health `molt`, canonical backup, disk thresholds) | **done** (PR #31–#32; RU verified) |
 | Approve API→Molt hooks + auto_run `id` + health/ready cycle fix | **done** (PR #31–#32; #17 DONE) |
+| LLM tier local (Ollama) + cloud (EU LiteLLM) | **done** 2026-07-24 — ADR-006; #27/#28 smoke |
 | PH visual GUI one-click (Owner PC) | **done** 2026-07-24 — #19 DONE, 8 local tasks applied |
 | `CURSOR_API_KEY` + SDK smoke | **done** — `SDK_SMOKE_OK`; shim + `sdk_runner` on Agents `main` (this PR) |
 
@@ -35,7 +36,7 @@ Agents `main`: sync after this PR
 
 1. Big-bang monorepo / dirty F: Agents — **не взрывом**
 2. Полный stream каждой реплики агента в TG
-3. CrewAI без fallback — **Owner GO 2026-07-24** (ADR-005; apply env + rebuild после merge)
+3. CrewAI `ALLOW_FALLBACK=false` как default — только после стабильного EU+local; сейчас **true** на бою
 4. Авто-merge в `main` — **запрещено**
 5. LangGraph — отдельный эпик
 
