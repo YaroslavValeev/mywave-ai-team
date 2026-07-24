@@ -301,7 +301,10 @@ def run_sync_orchestration(
     set_active_llm_tier(tier)
     if ba0.get("llm_tier") != tier:
         ba0["llm_tier"] = tier
-        repo.update_task(task_id, business_action_json=ba0)
+        try:
+            repo.update_task(task_id, business_action_json=ba0)
+        except Exception:
+            logger.exception("LLM_TIER persist failed task_id=%s tier=%s (continue)", task_id, tier)
     logger.info("LLM_TIER task_id=%s %s", task_id, describe_active_endpoint())
     log_audit(
         repo,

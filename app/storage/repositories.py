@@ -167,45 +167,84 @@ class TaskRepository:
         business_action_json: Optional[dict] = None,
         business_outcome: Optional[str] = None,
     ) -> Optional[Task]:
+        from sqlalchemy import update as sa_update
+        from sqlalchemy.orm.attributes import flag_modified
+        from sqlalchemy.orm.exc import StaleDataError
+
         task = self.get_task(task_id)
         if not task:
             return None
+
+        values: dict = {}
         if status is not None:
             task.status = status
+            values["status"] = status
         if domain is not None:
             task.domain = domain
+            values["domain"] = domain
         if task_type is not None:
             task.task_type = task_type
+            values["task_type"] = task_type
         if criticality is not None:
             task.criticality = criticality
+            values["criticality"] = criticality
         if plan_or_execute is not None:
             task.plan_or_execute = plan_or_execute
+            values["plan_or_execute"] = plan_or_execute
         if report_path is not None:
             task.report_path = report_path
+            values["report_path"] = report_path
         if summary is not None:
             task.summary = summary
+            values["summary"] = summary
         if risk_table_json is not None:
-            task.risk_table_json = risk_table_json
+            task.risk_table_json = dict(risk_table_json)
+            flag_modified(task, "risk_table_json")
+            values["risk_table_json"] = dict(risk_table_json)
         if rework_cycles is not None:
             task.rework_cycles = rework_cycles
+            values["rework_cycles"] = rework_cycles
         if pr_url is not None:
             task.pr_url = pr_url
+            values["pr_url"] = pr_url
         if commit_sha is not None:
             task.commit_sha = commit_sha
+            values["commit_sha"] = commit_sha
         if ci_url is not None:
             task.ci_url = ci_url
+            values["ci_url"] = ci_url
         if business_type is not None:
             task.business_type = business_type
+            values["business_type"] = business_type
         if impact_level is not None:
             task.impact_level = impact_level
+            values["impact_level"] = impact_level
         if impact_score is not None:
             task.impact_score = impact_score
+            values["impact_score"] = impact_score
         if business_action_json is not None:
-            task.business_action_json = business_action_json
+            payload = dict(business_action_json)
+            task.business_action_json = payload
+            flag_modified(task, "business_action_json")
+            values["business_action_json"] = payload
         if business_outcome is not None:
             task.business_outcome = business_outcome
-        self.session.commit()
-        self.session.refresh(task)
+            values["business_outcome"] = business_outcome
+
+        if not values:
+            return task
+
+        values["updated_at"] = datetime.utcnow()
+        task.updated_at = values["updated_at"]
+
+        try:
+            self.session.commit()
+        except StaleDataError:
+            # Some drivers report rowcount=-1 → ORM StaleDataError even when UPDATE succeeded.
+            self.session.rollback()
+            self.session.execute(sa_update(Task).where(Task.id == task_id).values(**values))
+            self.session.commit()
+        task = self.get_task(task_id)
         return task
 
     def append_owner_context(self, task_id: int, block: str) -> Optional[Task]:
