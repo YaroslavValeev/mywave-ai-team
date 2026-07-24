@@ -130,7 +130,11 @@ STEP_PROFILES = {
 
 
 def has_llm_credentials() -> bool:
-    """True if cloud key or OpenAI-compatible base URL is configured (local Ollama/LM Studio)."""
+    """True if local or cloud tier (or legacy env) can reach an LLM endpoint."""
+    from app.orchestrator.llm_tier import tier_credentials_ok
+
+    if tier_credentials_ok("local") or tier_credentials_ok("cloud"):
+        return True
     if (os.getenv("OPENAI_API_KEY") or os.getenv("CREWAI_API_KEY") or "").strip():
         return True
     if (os.getenv("OPENAI_BASE_URL") or os.getenv("CREWAI_BASE_URL") or "").strip():
@@ -360,13 +364,14 @@ def _load_crewai_classes() -> dict[str, Any] | None:
 
 
 def _build_llm(classes: dict[str, Any]) -> Any | None:
+    from app.orchestrator.llm_tier import describe_active_endpoint, endpoint_for_tier
+
     cfg = get_orchestration_config()
-    model = cfg.get("crewai_model") or os.getenv("OPENAI_MODEL_NAME") or os.getenv("MODEL") or ""
-    model = (model or "").strip()
-    if not model and (os.getenv("OPENAI_API_KEY") or os.getenv("CREWAI_API_KEY")):
-        # Чтобы роли STEP_PROFILES реально вызывались при заданном ключе, без отдельного CREWAI_MODEL.
+    ep = endpoint_for_tier()
+    model = (ep.get("model") or "").strip()
+    if not model and ep.get("api_key"):
         model = (os.getenv("CREWAI_DEFAULT_MODEL") or "gpt-4o-mini").strip()
-    model = _normalize_model_name(model, cfg.get("crewai_provider") or "")
+    model = _normalize_model_name(model, ep.get("provider") or cfg.get("crewai_provider") or "")
     if not model:
         return None
 
@@ -379,19 +384,19 @@ def _build_llm(classes: dict[str, Any]) -> Any | None:
     if cfg.get("crewai_use_responses_api"):
         kwargs["response_format"] = {"type": "json_object"}
 
-    base_url = (os.getenv("OPENAI_BASE_URL") or os.getenv("CREWAI_BASE_URL") or "").strip()
-    api_key = (os.getenv("OPENAI_API_KEY") or os.getenv("CREWAI_API_KEY") or "").strip()
+    base_url = (ep.get("base_url") or "").strip()
+    api_key = (ep.get("api_key") or "").strip()
     if base_url:
         # Ollama often listens without /v1; OpenAI-compatible clients expect it.
         if not base_url.rstrip("/").endswith("/v1"):
             base_url = base_url.rstrip("/") + "/v1"
         kwargs["base_url"] = base_url
-        # Local OpenAI-compatible servers usually accept any non-empty key.
         if not api_key:
             api_key = "local"
     if api_key:
         kwargs["api_key"] = api_key
 
+    logger.info("CrewAI LLM endpoint: %s", describe_active_endpoint())
     try:
         return classes["LLM"](**kwargs)
     except Exception as exc:

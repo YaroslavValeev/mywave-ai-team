@@ -126,7 +126,9 @@ def build_owner_buttons(task_id: int) -> InlineKeyboardBuilder:
     b.button(text=btns.get("rework", "🔁 Доработать"), callback_data=f"r:{task_id}")
     b.button(text=btns.get("clarify", "❓ Уточнить"), callback_data=f"c:{task_id}")
     b.button(text=btns.get("full", "📄 Полный отчёт"), callback_data=f"f:{task_id}")
-    b.adjust(2, 2)
+    b.button(text=btns.get("llm_cloud", "🧠 OpenAI (EU)"), callback_data=f"llm:c:{task_id}")
+    b.button(text=btns.get("llm_local", "🏠 Локально"), callback_data=f"llm:l:{task_id}")
+    b.adjust(2, 2, 2)
     b.row(InlineKeyboardButton(text=btns.get("dashboard", "📊 Панель"), url=_dashboard_tasks_url(task_id)))
     return b
 
@@ -141,7 +143,9 @@ def build_owner_buttons_with_merged(task_id: int) -> InlineKeyboardBuilder:
     b.button(text=btns.get("clarify", "❓ Уточнить"), callback_data=f"c:{task_id}")
     b.button(text=btns.get("merged", "✅ Я смержил"), callback_data=f"m:{task_id}")
     b.button(text=btns.get("full", "📄 Полный отчёт"), callback_data=f"f:{task_id}")
-    b.adjust(2, 2, 1)
+    b.button(text=btns.get("llm_cloud", "🧠 OpenAI (EU)"), callback_data=f"llm:c:{task_id}")
+    b.button(text=btns.get("llm_local", "🏠 Локально"), callback_data=f"llm:l:{task_id}")
+    b.adjust(2, 2, 1, 2)
     b.row(InlineKeyboardButton(text=btns.get("dashboard", "📊 Панель"), url=_dashboard_tasks_url(task_id)))
     return b
 
@@ -253,12 +257,14 @@ async def create_mission_and_run(
     business_meta: dict | None = None,
 ):
     """Создать задачу и запустить тот же оркестратор, что и для #TASK."""
+    from app.orchestrator.llm_tier import detect_tier_tag_in_text, merge_llm_tier_into_business_action
+
     Session = get_session_factory()
     with Session() as session:
         repo = TaskRepository(session)
         task = repo.create_task(owner_text=owner_text, project_id=project_id)
+        ba: dict = {}
         if business_meta:
-            ba: dict = {}
             raw_ba = business_meta.get("business_action")
             if isinstance(raw_ba, dict):
                 ba.update(raw_ba)
@@ -275,13 +281,17 @@ async def create_mission_and_run(
                 val = business_meta.get(key)
                 if val:
                     ba[str(key)] = val
+        tagged = detect_tier_tag_in_text(owner_text)
+        if tagged:
+            ba = merge_llm_tier_into_business_action(ba, tagged)
+        if ba or business_meta:
             repo.update_task(
                 task.id,
-                business_type=(business_meta.get("business_type") or None),
-                impact_level=(business_meta.get("impact_level") or None),
-                impact_score=business_meta.get("impact_score"),
+                business_type=(business_meta or {}).get("business_type") or None,
+                impact_level=(business_meta or {}).get("impact_level") or None,
+                impact_score=(business_meta or {}).get("impact_score"),
                 business_action_json=ba if ba else None,
-                business_outcome=(business_meta.get("business_outcome") or None),
+                business_outcome=(business_meta or {}).get("business_outcome") or None,
             )
         task_id = task.id
         write_canonical_task_if_enabled(
@@ -299,12 +309,18 @@ async def create_mission_and_run(
                 "source": source,
                 "business_type": (business_meta or {}).get("business_type"),
                 "impact_level": (business_meta or {}).get("impact_level"),
+                "llm_tier": ba.get("llm_tier"),
             },
         )
+    tier_note = ""
+    if ba.get("llm_tier") == "cloud":
+        tier_note = " Режим: OpenAI через EU."
+    elif ba.get("llm_tier") == "local":
+        tier_note = " Режим: локальная модель."
     await send_with_retry(
         bot,
         chat_id,
-        f"Принято. Миссия #{task_id} в работе. Итог пришлю сюда; полная лента — в панели.",
+        f"Принято. Миссия #{task_id} в работе.{tier_note} Итог пришлю сюда; полная лента — в панели.",
     )
     logger.info("TELEGRAM_ORCHESTRATION_SCHEDULED task_id=%s chat_id=%s source=%s", task_id, chat_id, source)
     asyncio.create_task(_run_orchestration(task_id, chat_id, bot))
@@ -904,6 +920,57 @@ async def handle_owner_callback(cb: CallbackQuery):
     await cb.answer()
 
 
+async def handle_llm_tier_callback(cb: CallbackQuery):
+    """Owner: перезапуск миссии на cloud (EU OpenAI) или local (Ollama)."""
+    if not cb.message or not is_owner(cb.message.chat.id):
+        await cb.answer("Доступ только для владельца.", show_alert=True)
+        return
+    parts = (cb.data or "").split(":")
+    # llm:c:123 or llm:l:123
+    if len(parts) != 3 or parts[0] != "llm":
+        await cb.answer("Неверная кнопка.")
+        return
+    mode, tid = parts[1], parts[2]
+    tier = "cloud" if mode == "c" else "local" if mode == "l" else ""
+    if not tier:
+        await cb.answer("Неверный режим LLM.")
+        return
+    try:
+        task_id = int(tid)
+    except ValueError:
+        await cb.answer("Неверный номер миссии.")
+        return
+
+    from app.orchestrator.llm_tier import merge_llm_tier_into_business_action
+
+    Session = get_session_factory()
+    with Session() as session:
+        repo = TaskRepository(session)
+        task = repo.get_task(task_id)
+        if not task:
+            await cb.answer("Миссия не найдена.", show_alert=True)
+            return
+        ba = merge_llm_tier_into_business_action(
+            dict(task.business_action_json or {}) if isinstance(task.business_action_json, dict) else {},
+            tier,
+        )
+        repo.update_task(task_id, business_action_json=ba, status="REWORK")
+        log_audit(
+            repo,
+            "OWNER_LLM_TIER",
+            task_id=task_id,
+            payload={"llm_tier": tier, "decision": "rerun"},
+        )
+    label = "OpenAI через EU" if tier == "cloud" else "локальная модель"
+    await send_with_retry(
+        cb.bot,
+        cb.message.chat.id,
+        f"🧠 Миссия #{task_id}: перезапуск на {label}…",
+    )
+    await cb.answer()
+    asyncio.create_task(_run_orchestration(task_id, cb.message.chat.id, cb.bot))
+
+
 async def handle_scenario_callback(cb: CallbackQuery):
     if not cb.message or not is_owner(cb.message.chat.id):
         await cb.answer("Доступ только для владельца.", show_alert=True)
@@ -964,6 +1031,7 @@ def register_handlers(dp: Dispatcher):
     dp.message.register(handle_smart_intake_text, F.text)
     dp.callback_query.register(handle_smart_intake_callback, F.data.startswith("si:"))
     dp.callback_query.register(handle_scenario_callback, F.data.startswith("sc:"))
+    dp.callback_query.register(handle_llm_tier_callback, F.data.startswith("llm:"))
     dp.callback_query.register(handle_owner_callback, F.data.startswith(("a:", "r:", "c:", "f:", "m:")))
     dp.callback_query.register(handle_execution_pack_callback, F.data.startswith("ep:"))
     dp.callback_query.register(handle_revenue_result_callback, F.data.startswith("rv:"))

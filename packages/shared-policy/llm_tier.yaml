@@ -1,0 +1,25 @@
+# LLM routing tiers (draft for shared-policy package)
+# Consumed conceptually by app/orchestrator/llm_tier.py via env overrides.
+
+version: 1
+default_tier: local
+
+tiers:
+  local:
+    description: RU Ollama / LM Studio — ordinary missions
+    base_url_env: LLM_LOCAL_BASE_URL
+    api_key_env: LLM_LOCAL_API_KEY
+    model_env: LLM_LOCAL_MODEL
+  cloud:
+    description: OpenAI via EU LiteLLM — Owner escalate / #CLOUD
+    base_url_env: LLM_CLOUD_BASE_URL
+    api_key_env: LLM_CLOUD_API_KEY
+    model_env: LLM_CLOUD_MODEL
+
+owner_tags:
+  cloud: ["#CLOUD", "#OPENAI", "#LLM_CLOUD"]
+  local: ["#LOCAL", "#OLLAMA", "#LLM_LOCAL"]
+
+escalate_suggest_criticality:
+  - HIGH
+  - CRITICAL

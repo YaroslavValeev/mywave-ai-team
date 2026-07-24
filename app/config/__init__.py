@@ -76,4 +76,25 @@ def get_orchestration_config() -> dict:
         "attachment_max_per_file": _int_env("ORCHESTRATION_ATTACHMENT_MAX_CHARS_PER_FILE", 60000),
         "attachment_max_total": _int_env("ORCHESTRATION_ATTACHMENT_MAX_TOTAL", 240000),
         "rule_fallback_excerpt_per_file": _int_env("ORCHESTRATION_RULE_EXCERPT_PER_FILE", 8000),
+        # ADR-006: local (RU Ollama) vs cloud (EU LiteLLM → OpenAI)
+        "llm_tier_default": (
+            os.getenv("LLM_TIER_DEFAULT", "").strip().lower()
+            or (
+                "local"
+                if (os.getenv("LLM_LOCAL_BASE_URL") or "").strip()
+                else (
+                    "cloud"
+                    if (os.getenv("LLM_CLOUD_BASE_URL") or os.getenv("OPENAI_API_KEY") or "").strip()
+                    else "local"
+                )
+            )
+        ),
+        "llm_local_base_url": os.getenv("LLM_LOCAL_BASE_URL", "").strip(),
+        "llm_local_api_key": os.getenv("LLM_LOCAL_API_KEY", "").strip(),
+        "llm_local_model": os.getenv("LLM_LOCAL_MODEL", "").strip(),
+        "llm_local_provider": os.getenv("LLM_LOCAL_PROVIDER", "openai").strip(),
+        "llm_cloud_base_url": os.getenv("LLM_CLOUD_BASE_URL", "").strip(),
+        "llm_cloud_api_key": os.getenv("LLM_CLOUD_API_KEY", "").strip(),
+        "llm_cloud_model": os.getenv("LLM_CLOUD_MODEL", "").strip(),
+        "llm_cloud_provider": os.getenv("LLM_CLOUD_PROVIDER", "openai").strip(),
     }

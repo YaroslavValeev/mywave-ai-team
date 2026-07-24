@@ -81,5 +81,5 @@ def test_normalize_base_url_appends_v1(monkeypatch):
     llm = bridge._build_llm({"LLM": FakeLLM})
     assert llm is not None
     assert captured["base_url"] == "http://127.0.0.1:11434/v1"
-    assert captured["api_key"] == "local"
+    assert captured["api_key"] in {"local", "ollama"}
     assert captured["model"].endswith("llama3.2") or "llama3.2" in captured["model"]

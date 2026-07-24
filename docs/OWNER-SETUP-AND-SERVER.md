@@ -89,13 +89,17 @@ scp .env user@SERVER_IP:/path/to/MyWave_AI_TEAM_Presets_v1_1/.env
 
 Telegram polling с RU-сервера: задайте `TELEGRAM_PROXY_URL` на socks5/http **к мосту** (порт — тот, что настроен на 72.56.99.214). Если мост уже проброшен на localhost RU-машины — `socks5://127.0.0.1:PORT`.
 
-### LLM: локальный → облако
+### LLM: local (RU) → cloud (EU)
 
-1. Если на сервере (или рядом) есть Ollama/LM Studio — `OPENAI_BASE_URL=http://127.0.0.1:11434/v1`, `OPENAI_API_KEY=ollama`, модель локальная.
-2. Иначе — облачный `OPENAI_API_KEY` + `CREWAI_MODEL=gpt-4.1-nano`.
-3. `ORCHESTRATION_ALLOW_FALLBACK=true` — при сбое LLM контур не падает (rule-based).
+См. [ADR-006](decisions/ADR-006-llm-tier-local-eu.md) и пошаговые команды:
+[docs/migration/LLM_TIER_EU.md](migration/LLM_TIER_EU.md).
 
-Код уже читает `OPENAI_BASE_URL` / `CREWAI_BASE_URL` в `app/orchestrator/crewai_bridge.py`.
+1. **local** — Ollama на RU (`LLM_LOCAL_*`, compose `docker-compose.ollama.yml`).
+2. **cloud** — LiteLLM на EU `72.56.99.214:4000` (`LLM_CLOUD_*`); реальный OpenAI key только на EU.
+3. Owner: `#CLOUD` / кнопка «🧠 OpenAI (EU)» в Telegram.
+4. `ORCHESTRATION_ALLOW_FALLBACK=true` — при сбое LLM контур не падает (rule-based).
+
+Legacy: одиночный `OPENAI_BASE_URL` / `OPENAI_API_KEY` всё ещё читается как fallback endpoint.
 
 ## 5. Точные команды на сервере (RU + nginx, без Caddy)
 
