@@ -20,9 +20,9 @@ This is not a generic chatbot. It is a control plane for routing real MyWave tas
 
 ## Current Stage
 
-**Production governance is up** on `https://agm.mywavewake.ru` (Owner `server_ops_check` OK; disk ~66%).
+**Production governance is up** on `https://agm.mywavewake.ru` (Owner `server_ops_check` OK; disk ~67%).
 
-- office-full + CrewAI path available on RU (with rule-based fallback)
+- office-full + CrewAI on RU; **no-fallback** live (`ALLOW_FALLBACK=false`, `ENGINE=crewai`, 2026-07-24)
 - Telegram RU UI + approve buttons work
 - Control API create / `auto_run` / approve proven; **#11 DONE**; `WAIT_OWNER` empty
 - Backups cron working (`20260723.sql.gz`)
@@ -30,12 +30,13 @@ This is not a generic chatbot. It is a control plane for routing real MyWave tas
 - **Molt on RU:** `--profile molt` live (Owner GO); E2E task #16 **done**
 - HTTP client: approve/rework/clarify/**merged**; default criticality `MEDIUM`
 
-Closed on Owner PC (2026-07-24): PH visual (#19 DONE), `CURSOR_API_KEY` + `SDK_SMOKE_OK`.
+Closed on Owner PC (2026-07-24): PH visual (#19 DONE), `CURSOR_API_KEY` + `SDK_SMOKE_OK`.  
+Closed on RU (2026-07-24): CrewAI no-fallback (ADR apply + env).
 
 Still open (detail: [migration/POST_RECOVERY_REMAINING.md](migration/POST_RECOVERY_REMAINING.md)):
 
 - Optional BotFather token rotation (only if token ever leaked)
-- Policy-deferred (нужен отдельный GO): big-bang monorepo, full TG stream, CrewAI no-fallback, auto-merge, LangGraph
+- Policy-deferred (нужен отдельный GO): big-bang monorepo, full TG stream, auto-merge, LangGraph
 
 ## Product Scope Confirmed By Repo
 

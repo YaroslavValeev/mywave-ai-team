@@ -35,7 +35,7 @@ Agents `main`: sync after this PR
 
 1. Big-bang monorepo / dirty F: Agents — **не взрывом**
 2. Полный stream каждой реплики агента в TG
-3. CrewAI без fallback — **Owner GO 2026-07-24** (ADR-005; apply env + rebuild после merge)
+3. ~~CrewAI без fallback~~ — **done на RU** 2026-07-24 (`false`/`crewai`, health ok)
 4. Авто-merge в `main` — **запрещено**
 5. LangGraph — отдельный эпик
 
