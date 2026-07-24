@@ -110,8 +110,10 @@ cd /opt/mywave/ai-team
 Ollama в Docker (лёгкая модель; при нехватке RAM — `llama3.2:3b`):
 
 ```bash
-docker compose -f docker-compose.ollama.yml up -d
-docker compose -f docker-compose.ollama.yml exec ollama ollama pull llama3.2:3b
+docker compose -f docker-compose.yml -f docker-compose.server-full.yml \
+  -f docker-compose.molt.yml -f docker-compose.ollama.yml --profile molt up -d
+
+docker exec ai-team-ollama-1 ollama pull llama3.2:3b
 ```
 
 Правки `.env` (подставь свой `LITELLM_MASTER_KEY` с EU; **не** клади sk-proj OpenAI на RU):
