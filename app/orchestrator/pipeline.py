@@ -4,7 +4,7 @@ from pathlib import Path
 
 from app.config import get_routing, get_orchestration_config
 from app.dashboard.documents import extract_document_text
-from app.orchestrator.crewai_bridge import run_crewai_pipeline
+from app.orchestrator.crewai_bridge import crewai_strict_required, run_crewai_pipeline
 from app.shared.redaction import redact
 
 
@@ -94,7 +94,9 @@ def run_pipeline(task_id: int, triage_result: dict, repo, control=None) -> dict:
         if "control" not in str(exc):
             raise
         crewai_payloads = run_crewai_pipeline(task_id, pipeline_steps, crewai_context)
-    if not crewai_payloads and not orchestration_cfg.get("allow_fallback", True) and orchestration_cfg.get("engine") == "crewai":
+    from app.orchestrator.crewai_bridge import crewai_strict_required
+
+    if not crewai_payloads and crewai_strict_required(orchestration_cfg):
         raise RuntimeError("CrewAI pipeline required but unavailable")
 
     handoffs = []
