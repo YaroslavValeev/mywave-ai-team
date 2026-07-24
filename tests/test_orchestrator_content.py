@@ -212,3 +212,73 @@ def test_court_verdict_includes_gap_sections_for_inventory_task(db_session, tmp_
     assert "OpenAI" in verdict_content
     assert "## Ограничения текущего контура" in verdict_content
     assert "не имеет доступа" in verdict_content
+
+
+def test_content_pipeline_handoff_includes_message_draft(db_session, tmp_path, monkeypatch):
+    """MEDIA_OPS/content_pipeline отдаёт черновик сообщения, а не только шаблон handoff."""
+    from app.storage.repositories import TaskRepository
+    from app.orchestrator import pipeline as pipeline_module
+
+    monkeypatch.setattr(pipeline_module, "ARTIFACTS_DIR", tmp_path)
+
+    brief = (
+        "#TASK Собери контакты из ParserNews. Дружелюбное сообщение: клуб на Озернинском, "
+        "чистая вода, mywavewake.ru, Telegram MyWave_Admin и MyWave_WakesurfNews."
+    )
+    repo = TaskRepository(db_session)
+    task = repo.create_task(owner_text=brief)
+    triage_result = {
+        "domain": "MEDIA_OPS",
+        "task_type": "content_pipeline",
+        "criticality": "HIGH",
+        "plan_or_execute": "PLAN",
+        "execute_gate": "OWNER_APPROVAL_IF_PUBLISH",
+        "route": ["DATA", "ARCH", "CONTENT", "ROUNDTABLE", "COURT"],
+    }
+    result = pipeline_module.run_pipeline(task.id, triage_result, repo)
+    joined = "\n".join(
+        "\n".join(h["payload"].get("summary") or []) for h in result["handoffs"]
+    )
+    assert "Привет" in joined
+    assert "ParserNews" in joined
+    assert "=== " in joined
+
+
+def test_court_surfaces_content_outreach_draft(db_session, tmp_path, monkeypatch):
+    from app.storage.repositories import TaskRepository
+    from app.orchestrator import court as court_module
+
+    monkeypatch.setattr(court_module, "ARTIFACTS_DIR", tmp_path)
+
+    repo = TaskRepository(db_session)
+    task = repo.create_task(owner_text="#TASK ParserNews + сообщение про клуб")
+    triage_result = {
+        "domain": "MEDIA_OPS",
+        "task_type": "content_pipeline",
+        "criticality": "HIGH",
+        "plan_or_execute": "PLAN",
+        "execute_gate": "OWNER_APPROVAL_IF_PUBLISH",
+    }
+    pipeline_result = {
+        "handoffs": [
+            {
+                "step": "CONTENT",
+                "payload": {
+                    "summary": [
+                        "=== Черновик сообщения ===",
+                        "Привет! Это команда MyWave",
+                        "ParserNews — выгрузить контакты",
+                    ]
+                },
+                "md_path": "x.md",
+            }
+        ]
+    }
+    roundtable_result = {"reviewers": [], "risk_table": []}
+    court_module.run_court(task.id, triage_result, pipeline_result, roundtable_result, repo)
+    verdict = (tmp_path / "tasks" / f"task_{task.id}" / "court" / "final_verdict.md").read_text(
+        encoding="utf-8"
+    )
+    assert "## Контент / outreach" in verdict
+    assert "Привет" in verdict
+    assert "PLAN vs EXECUTE" in verdict

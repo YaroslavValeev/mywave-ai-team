@@ -43,6 +43,15 @@ _MARKETING_STEP_SECTIONS = {
     "PM": ("owner_tomorrow", "Действия владельца"),
 }
 
+# Role → sections of content outreach draft (MEDIA_OPS/content_pipeline)
+_CONTENT_STEP_SECTIONS = {
+    "CONTENT": ("message_draft", "Черновик сообщения"),
+    "PROMPT": ("channels_cta", "Каналы и CTA"),
+    "DATA": ("contact_plan", "План сбора контактов (ParserNews и др.)"),
+    "ARCH": ("honest_limits", "Границы PLAN vs EXECUTE"),
+    "PM": ("owner_now", "Что сделать владельцу сейчас"),
+}
+
 
 def run_pipeline(task_id: int, triage_result: dict, repo, control=None) -> dict:
     """
@@ -191,6 +200,23 @@ def _build_handoff_payload(
             summary.append("=== Что сделать владельцу ===")
             summary.extend(draft.get("owner_tomorrow", []))
 
+    # Контент / outreach (MEDIA_OPS/content_pipeline) — черновик текста + чеклист контактов.
+    if task_type == "content_pipeline":
+        from app.orchestrator.content_intent import build_content_outreach_draft
+
+        draft = build_content_outreach_draft(owner_brief)
+        key_title = _CONTENT_STEP_SECTIONS.get(step_name)
+        if key_title:
+            section_key, title = key_title
+            summary.append(f"=== {title} ===")
+            summary.extend(draft.get(section_key, []))
+        else:
+            summary.append("=== Черновик сообщения (фрагмент) ===")
+            summary.extend(draft.get("message_draft", [])[:8])
+        if step_name == "CONTENT":
+            summary.append("=== Что сделать владельцу ===")
+            summary.extend(draft.get("owner_now", []))
+
     decisions = [
         f"Keep task criticality at {criticality}.",
         f"Hand off to {next_action}.",
@@ -259,8 +285,33 @@ def _merge_payloads(fallback_payload: dict, crewai_payload: dict | None, next_ac
             merged[key] = crewai_payload.get(key) or next_action or fallback_value
             continue
         candidate = crewai_payload.get(key)
+        # Keep owner-facing draft sections (=== ... ===) from rule fallback when CrewAI wins.
+        if key == "summary" and isinstance(fallback_value, list) and isinstance(candidate, list) and candidate:
+            draft_tail = _draft_section_lines(fallback_value)
+            if draft_tail:
+                merged[key] = list(candidate) + [""] + draft_tail
+            else:
+                merged[key] = candidate
+            continue
         merged[key] = candidate if candidate else fallback_value
     return merged
+
+
+def _draft_section_lines(summary_lines: list) -> list[str]:
+    """Extract === Title === blocks from rule-based summary (marketing/content drafts)."""
+    out: list[str] = []
+    capture = False
+    for line in summary_lines or []:
+        text = str(line).strip()
+        if text.startswith("===") and text.endswith("==="):
+            capture = True
+            out.append(text)
+            continue
+        if capture:
+            if text.startswith("Primary focus") or "prepared handoff" in text:
+                continue
+            out.append(str(line))
+    return out
 
 
 def _owner_brief_orchestration(owner_text: str, attachment_names: list[str]) -> str:
