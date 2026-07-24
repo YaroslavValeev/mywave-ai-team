@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 
 from app.config import get_routing, get_policy, get_orchestration_config
-from app.orchestrator.crewai_bridge import crewai_strict_required, run_crewai_triage
+from app.orchestrator.crewai_bridge import crewai_strict_required, get_last_crewai_error, run_crewai_triage
 from app.orchestrator.exploration import detect_exploration_intent
 from app.orchestrator.marketing_intent import detect_marketing_plan_intent
 from app.orchestrator.revenue_intent import detect_revenue_intent
@@ -131,7 +131,8 @@ def run_triage(owner_text: str) -> dict:
                 if value:
                     result[key] = value
         elif crewai_strict_required(orchestration_cfg):
-            raise RuntimeError("CrewAI triage required but unavailable")
+            detail = get_last_crewai_error() or "empty result"
+            raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")
         logger.info(
             "TRIAGE RESULT (revenue-first) domain=%s task_type=%s revenue_override=%s",
             result.get("domain"),
@@ -160,7 +161,8 @@ def run_triage(owner_text: str) -> dict:
                 if value:
                     result[key] = value
         elif crewai_strict_required(orchestration_cfg):
-            raise RuntimeError("CrewAI triage required but unavailable")
+            detail = get_last_crewai_error() or "empty result"
+            raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")
         logger.info(
             "TRIAGE RESULT (marketing-plan) domain=%s task_type=%s marketing_override=%s",
             result.get("domain"),
@@ -217,7 +219,8 @@ def run_triage(owner_text: str) -> dict:
             if value:
                 result[key] = value
     elif crewai_strict_required(orchestration_cfg):
-        raise RuntimeError("CrewAI triage required but unavailable")
+        detail = get_last_crewai_error() or "empty result"
+        raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")
 
     result["revenue_intent_override"] = False
     result["marketing_plan_override"] = False

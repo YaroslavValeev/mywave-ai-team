@@ -94,10 +94,11 @@ def run_pipeline(task_id: int, triage_result: dict, repo, control=None) -> dict:
         if "control" not in str(exc):
             raise
         crewai_payloads = run_crewai_pipeline(task_id, pipeline_steps, crewai_context)
-    from app.orchestrator.crewai_bridge import crewai_strict_required
+    from app.orchestrator.crewai_bridge import crewai_strict_required, get_last_crewai_error
 
     if not crewai_payloads and crewai_strict_required(orchestration_cfg):
-        raise RuntimeError("CrewAI pipeline required but unavailable")
+        detail = get_last_crewai_error() or "empty result"
+        raise RuntimeError(f"CrewAI pipeline required but unavailable: {detail}")
 
     handoffs = []
     previous_step = None
