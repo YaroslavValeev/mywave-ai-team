@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 
 from app.config import get_routing, get_policy, get_orchestration_config
-from app.orchestrator.crewai_bridge import run_crewai_triage
+from app.orchestrator.crewai_bridge import crewai_strict_required, run_crewai_triage
 from app.orchestrator.exploration import detect_exploration_intent
 from app.orchestrator.marketing_intent import detect_marketing_plan_intent
 from app.orchestrator.revenue_intent import detect_revenue_intent
@@ -130,7 +130,7 @@ def run_triage(owner_text: str) -> dict:
                 value = crewai_result.get(key)
                 if value:
                     result[key] = value
-        elif not orchestration_cfg.get("allow_fallback", True) and orchestration_cfg.get("engine") == "crewai":
+        elif crewai_strict_required(orchestration_cfg):
             raise RuntimeError("CrewAI triage required but unavailable")
         logger.info(
             "TRIAGE RESULT (revenue-first) domain=%s task_type=%s revenue_override=%s",
@@ -159,7 +159,7 @@ def run_triage(owner_text: str) -> dict:
                 value = crewai_result.get(key)
                 if value:
                     result[key] = value
-        elif not orchestration_cfg.get("allow_fallback", True) and orchestration_cfg.get("engine") == "crewai":
+        elif crewai_strict_required(orchestration_cfg):
             raise RuntimeError("CrewAI triage required but unavailable")
         logger.info(
             "TRIAGE RESULT (marketing-plan) domain=%s task_type=%s marketing_override=%s",
@@ -216,7 +216,7 @@ def run_triage(owner_text: str) -> dict:
             value = crewai_result.get(key)
             if value:
                 result[key] = value
-    elif not orchestration_cfg.get("allow_fallback", True) and orchestration_cfg.get("engine") == "crewai":
+    elif crewai_strict_required(orchestration_cfg):
         raise RuntimeError("CrewAI triage required but unavailable")
 
     result["revenue_intent_override"] = False

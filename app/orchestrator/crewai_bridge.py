@@ -119,17 +119,29 @@ def has_llm_credentials() -> bool:
     return False
 
 
+def crewai_strict_required(cfg: dict | None = None) -> bool:
+    """True when rule-based fallback is forbidden (ALLOW_FALLBACK=false) for crewai|auto."""
+    orchestration = cfg or get_orchestration_config()
+    if orchestration.get("allow_fallback", True):
+        return False
+    return orchestration.get("engine", "auto") in ("crewai", "auto")
+
+
 def is_crewai_enabled() -> bool:
     """
     CrewAI path is on for engine=crewai|auto.
-    In auto mode without credentials — skip CrewAI (fast safe fallback to rule-based).
-    Strict crewai still returns True so callers can enforce allow_fallback policy.
+    In auto mode without credentials — skip CrewAI (fast safe fallback to rule-based),
+    unless allow_fallback=false (strict: still attempt / callers raise on empty result).
+    Strict engine=crewai always returns True so callers can enforce allow_fallback policy.
     """
-    mode = get_orchestration_config().get("engine", "auto")
+    cfg = get_orchestration_config()
+    mode = cfg.get("engine", "auto")
     if mode == "crewai":
         return True
     if mode != "auto":
         return False
+    if crewai_strict_required(cfg):
+        return True
     return has_llm_credentials()
 
 
