@@ -27,8 +27,8 @@ Agents `main`: sync after this PR
 
 ## Owner PC optional
 
-1. Visual PH: `run_ph_with_control.ps1` — см. [OWNER_NEXT_WAVE.md](OWNER_NEXT_WAVE.md)
-2. BotFather / `CURSOR_API_KEY` — см. [OWNER_NEXT_WAVE.md](OWNER_NEXT_WAVE.md)
+1. ~~Visual PH~~ — **done** (#19)
+2. ~~`CURSOR_API_KEY` + live SDK smoke~~ — **done** (`SDK_SMOKE_OK`, 2026-07-24)
 
 ## Still deferred (policy — отдельный GO, не «всё сразу»)
 

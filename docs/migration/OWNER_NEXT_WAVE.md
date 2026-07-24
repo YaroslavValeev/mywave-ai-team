@@ -8,7 +8,7 @@
 | Пункт | Решение | Почему |
 |-------|---------|--------|
 | Visual PH GUI one-click | **Owner PC** (готовые скрипты) | Не сервер RU; нужен клик в desktop UI |
-| `CURSOR_API_KEY` | **Owner PC** (секрет вручную) | Ключ только у Owner; runner на RU уже без Cursor CLI |
+| `CURSOR_API_KEY` | **done** (Owner PC, 2026-07-24) | `setx` + live `Agent.prompt` smoke → `SDK_SMOKE_OK` |
 | CrewAI без fallback | **Опционально на RU** (флаг) | При падении LLM миссии падают hard; не default |
 | Полный TG-stream каждой реплики | **Не сейчас** | Шум/лимиты TG/стоимость; уже есть stage-notify |
 | Auto-merge в `main` | **Запрещено** | Runner policy + git safety: merge только Owner |
@@ -42,18 +42,10 @@ curl -sS -H "X-API-Key: $OWNER_API_KEY" https://agm.mywavewake.ru/api/tasks \
   | python3 -c "import sys,json; t=json.load(sys.stdin); print([(x['id'],x['status']) for x in t[:8]])"
 ```
 
-## 2) CURSOR_API_KEY (Owner PC)
+## 2) CURSOR_API_KEY (Owner PC) — **done**
 
-Нужен **только** для локального Cursor SDK / advanced runner на вашей машине.  
-На RU Cursor CLI **не установлен** — это нормально; governance не зависит от ключа.
-
-```powershell
-# Пример (НЕ коммитьте ключ в git):
-setx CURSOR_API_KEY "ваш_ключ_из_Cursor_dashboard"
-# или в F:\Проекты MyWave\NEW2026\AI-Team\.env.local (если используете umbrella scripts)
-```
-
-Runner по канону: **PR создаёт, merge делает только Owner** (`docs/CURSOR-RUNNER.md`).
+Ключ: [cursor.com/dashboard/api](https://cursor.com/dashboard/api) → User API Key → `setx CURSOR_API_KEY ...`  
+Live smoke: `python scripts/smoke_cursor_sdk.py` → `SDK_SMOKE_OK` (на Windows нужен shim `os.get_blocking` в скрипте).
 
 ## 3) CrewAI без fallback (RU — только если сознательно)
 
