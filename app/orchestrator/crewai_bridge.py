@@ -1,7 +1,9 @@
 # app/orchestrator/crewai_bridge.py — optional CrewAI bridge with safe fallback
+import asyncio
 import json
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from app.config import get_orchestration_config
@@ -10,6 +12,23 @@ logger = logging.getLogger(__name__)
 
 TRIAGE_KEYS = {"domain", "task_type", "criticality", "plan_or_execute", "execute_gate"}
 PAYLOAD_KEYS = {"summary", "artifacts", "decisions", "assumptions", "risks", "open_questions", "next_action"}
+
+# Last CrewAI failure detail for strict-mode error messages (Telegram / audit).
+_last_crewai_error: str = ""
+
+
+def get_last_crewai_error() -> str:
+    return _last_crewai_error
+
+
+def _set_last_crewai_error(message: str) -> None:
+    global _last_crewai_error
+    _last_crewai_error = (message or "").strip()[:500]
+
+
+def _strict_unavailable(kind: str) -> RuntimeError:
+    detail = get_last_crewai_error() or "empty result (see app logs for CrewAI bridge)"
+    return RuntimeError(f"CrewAI {kind} required but unavailable: {detail}")
 
 STEP_PROFILES = {
     "PM": {
@@ -146,8 +165,14 @@ def is_crewai_enabled() -> bool:
 
 
 def run_crewai_triage(text: str) -> dict:
-    """Try CrewAI triage. Return {} on unavailable/failure so caller can fallback."""
+    """Try CrewAI triage. Return {} on unavailable/failure so caller can fallback.
+
+    In strict mode (allow_fallback=false) raises RuntimeError with last failure detail.
+    """
     if not is_crewai_enabled():
+        _set_last_crewai_error("CrewAI path disabled (engine/credentials)")
+        if crewai_strict_required():
+            raise _strict_unavailable("triage")
         return {}
 
     description = (
@@ -158,18 +183,33 @@ def run_crewai_triage(text: str) -> dict:
         "Return JSON only, no markdown.\n\n"
         f"Owner task:\n{text or ''}"
     )
-    return _run_json_task(
+    result = _run_json_task(
         role="AGM Triage Analyst",
         goal="Route owner tasks into the correct domain and execution mode.",
         backstory="You classify MyWave tasks for a multi-agent operating system.",
         description=description,
         allowed_keys=TRIAGE_KEYS,
     )
+    if result and not str(result.get("domain") or "").strip():
+        _set_last_crewai_error("CrewAI triage returned empty domain")
+        result = {}
+    if not result and crewai_strict_required():
+        raise _strict_unavailable("triage")
+    return result
 
 
 def run_crewai_pipeline(task_id: int, steps: list[str], context: dict, control=None) -> list[dict]:
-    """Try CrewAI pipeline. Return [] on unavailable/failure so caller can fallback."""
+    """Try CrewAI pipeline. Return [] on unavailable/failure so caller can fallback.
+
+    In strict mode (allow_fallback=false) raises RuntimeError with last failure detail.
+    """
     if not is_crewai_enabled() or not steps:
+        if not steps:
+            _set_last_crewai_error("empty pipeline steps")
+        else:
+            _set_last_crewai_error("CrewAI path disabled (engine/credentials)")
+        if crewai_strict_required():
+            raise _strict_unavailable("pipeline")
         return []
 
     task_text = context.get("owner_text", "")
@@ -221,6 +261,9 @@ def run_crewai_pipeline(task_id: int, steps: list[str], context: dict, control=N
         )
         if not payload:
             logger.warning("CrewAI pipeline returned empty payload for step %s", step)
+            _set_last_crewai_error(f"empty payload for step {step}: {get_last_crewai_error() or 'unknown'}")
+            if crewai_strict_required():
+                raise _strict_unavailable("pipeline")
             return []
         payload["next_action"] = payload.get("next_action") or next_action
         outputs.append(payload)
@@ -247,6 +290,10 @@ def _run_json_task(
     Crew = classes["Crew"]
     Process = classes["Process"]
     llm = _build_llm(classes)
+    if llm is None:
+        _set_last_crewai_error("LLM not configured (CREWAI_MODEL / OPENAI_API_KEY / OPENAI_BASE_URL)")
+        logger.warning("CrewAI LLM missing for role %s", role)
+        return {}
 
     try:
         agent = Agent(
@@ -268,22 +315,45 @@ def _run_json_task(
             process=Process.sequential,
             verbose=False,
         )
-        result = crew.kickoff()
+        timeout = int(get_orchestration_config().get("crewai_timeout", 120) or 120)
+        result = _crew_kickoff(crew, timeout_sec=timeout)
         raw = _extract_task_output(task, result)
         parsed = _safe_json_loads(raw)
         if not isinstance(parsed, dict):
-            logger.warning("CrewAI returned non-dict output: %s", raw[:300])
+            snippet = (raw or "")[:300]
+            _set_last_crewai_error(f"non-dict LLM output: {snippet or '(empty)'}")
+            logger.warning("CrewAI returned non-dict output: %s", snippet)
             return {}
-        return _normalize_payload(parsed, allowed_keys)
+        normalized = _normalize_payload(parsed, allowed_keys)
+        _set_last_crewai_error("")
+        return normalized
     except Exception as exc:
+        _set_last_crewai_error(f"{type(exc).__name__}: {exc}")
         logger.warning("CrewAI bridge failed for role %s: %s", role, exc)
         return {}
+
+
+def _crew_kickoff(crew: Any, timeout_sec: int = 120) -> Any:
+    """Run crew.kickoff() safely from sync and from a running asyncio loop (Telegram).
+
+    CrewAI sync kickoff refuses to run when an event loop is already running
+    (Telegram handlers call orchestration via asyncio.create_task). Offload to a
+    worker thread in that case.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return crew.kickoff()
+
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="crewai-kickoff") as pool:
+        return pool.submit(crew.kickoff).result(timeout=max(1, int(timeout_sec)))
 
 
 def _load_crewai_classes() -> dict[str, Any] | None:
     try:
         from crewai import Agent, Task, Crew, Process, LLM  # type: ignore
     except Exception as exc:
+        _set_last_crewai_error(f"import failed: {exc}")
         logger.info("CrewAI unavailable, fallback to rule-based orchestration: %s", exc)
         return None
     return {"Agent": Agent, "Task": Task, "Crew": Crew, "Process": Process, "LLM": LLM}
@@ -325,6 +395,7 @@ def _build_llm(classes: dict[str, Any]) -> Any | None:
     try:
         return classes["LLM"](**kwargs)
     except Exception as exc:
+        _set_last_crewai_error(f"LLM build failed for {model}: {exc}")
         logger.warning("Failed to build CrewAI LLM for model %s: %s", model, exc)
         return None
 
@@ -359,6 +430,12 @@ def _normalize_payload(payload: dict, allowed_keys: set[str]) -> dict:
     normalized = {}
     for key in allowed_keys:
         value = payload.get(key)
+        # Triage fields are scalars (domain, task_type, …), not list handoffs.
+        if key in TRIAGE_KEYS:
+            if isinstance(value, list):
+                value = value[0] if value else ""
+            normalized[key] = str(value or "").strip()
+            continue
         if key == "next_action":
             normalized[key] = str(value or "").strip()
             continue
