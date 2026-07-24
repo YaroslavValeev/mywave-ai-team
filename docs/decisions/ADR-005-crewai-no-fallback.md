@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted (Owner GO 2026-07-24)
+Accepted and **applied on RU** (Owner GO + env 2026-07-24):
+`ORCHESTRATION_ALLOW_FALLBACK=false`, `ORCHESTRATION_ENGINE=crewai`, health orchestration ok.
 
 ## Context
 
