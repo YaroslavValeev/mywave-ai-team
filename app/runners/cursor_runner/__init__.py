@@ -10,6 +10,8 @@ from app.runners.cursor_runner.runner import (
     run_cursor_cli,
     run_cursor_cli_argv,
 )
+from app.runners.cursor_runner.sdk_runner import build_task_prompt, run_cursor_sdk_agent
+from app.runners.cursor_runner.win_os_shim import ensure_windows_os_blocking_shim
 
 __all__ = [
     "merge_gateway_secrets_into_env",
@@ -18,4 +20,7 @@ __all__ = [
     "run_cursor_cli",
     "run_cursor_cli_argv",
     "get_runner_config",
+    "run_cursor_sdk_agent",
+    "build_task_prompt",
+    "ensure_windows_os_blocking_shim",
 ]

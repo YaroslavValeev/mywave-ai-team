@@ -22,6 +22,7 @@ Agents `main`: sync after this PR
 | Ops parity (health `molt`, canonical backup, disk thresholds) | **done** (PR #31–#32; RU verified) |
 | Approve API→Molt hooks + auto_run `id` + health/ready cycle fix | **done** (PR #31–#32; #17 DONE) |
 | PH visual GUI one-click (Owner PC) | **done** 2026-07-24 — #19 DONE, 8 local tasks applied |
+| `CURSOR_API_KEY` + SDK smoke | **done** — `SDK_SMOKE_OK`; shim + `sdk_runner` on Agents `main` (this PR) |
 
 ---
 

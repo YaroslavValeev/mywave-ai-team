@@ -7,7 +7,7 @@
 
 | Пункт | Решение | Почему |
 |-------|---------|--------|
-| Visual PH GUI one-click | **Owner PC** (готовые скрипты) | Не сервер RU; нужен клик в desktop UI |
+| Visual PH GUI one-click | **done** (Owner PC, 2026-07-24) | #19 DONE; «Применено. Создано задач: 8» |
 | `CURSOR_API_KEY` | **done** (Owner PC, 2026-07-24) | `setx` + live `Agent.prompt` smoke → `SDK_SMOKE_OK` |
 | CrewAI без fallback | **Опционально на RU** (флаг) | При падении LLM миссии падают hard; не default |
 | Полный TG-stream каждой реплики | **Не сейчас** | Шум/лимиты TG/стоимость; уже есть stage-notify |
@@ -15,37 +15,26 @@
 | Big-bang monorepo | **Запрещено взрывом** | Только по MERGE_PLAN инкрементально (уже идём) |
 | LangGraph | **Отдельный эпик** | Замена оркестратора; не hotfix |
 
-## 1) Visual PH (Owner PC, Windows)
+## 1) Visual PH (Owner PC) — **done**
+
+Повторный запуск (если нужно):
 
 ```powershell
 cd "F:\Проекты MyWave\NEW2026\AI-Team"
-
-# env Control API (если нет — создаст из example и откроет notepad)
-if (-not (Test-Path .\.env.agents-control)) {
-  Copy-Item .\infra\env\.env.agents-control.example .\.env.agents-control
-  notepad .\.env.agents-control
-}
-# В файле обязательно:
-#   AGENTS_CONTROL_ENABLED=1
-#   AGENTS_CONTROL_API_URL=https://agm.mywavewake.ru
-#   AGENTS_API_KEY=<тот же что OWNER_API_KEY на RU>
-
 powershell -ExecutionPolicy Bypass -File .\scripts\integration\run_ph_with_control.ps1
-```
-
-В UI: проект → **AI: обновить план** → **Применить предложения**.  
-Проверка на RU после apply:
-
-```bash
-cd /opt/mywave/ai-team && set -a; source .env; set +a
-curl -sS -H "X-API-Key: $OWNER_API_KEY" https://agm.mywavewake.ru/api/tasks \
-  | python3 -c "import sys,json; t=json.load(sys.stdin); print([(x['id'],x['status']) for x in t[:8]])"
 ```
 
 ## 2) CURSOR_API_KEY (Owner PC) — **done**
 
-Ключ: [cursor.com/dashboard/api](https://cursor.com/dashboard/api) → User API Key → `setx CURSOR_API_KEY ...`  
-Live smoke: `python scripts/smoke_cursor_sdk.py` → `SDK_SMOKE_OK` (на Windows нужен shim `os.get_blocking` в скрипте).
+Live smoke (после `git pull` Agents):
+
+```powershell
+cd "C:\ProjectMyWave\MyWave_AI_TEAM_Presets_v1_1"
+$env:CURSOR_API_KEY = [Environment]::GetEnvironmentVariable("CURSOR_API_KEY","User")
+& "F:\Проекты MyWave\NEW2026\AI-Team\AIProjectManager\.venv\Scripts\python.exe" scripts\smoke_cursor_sdk.py
+```
+
+Ожидание: `SDK_SMOKE_OK`. Shim `os.get_blocking` — в `app/runners/cursor_runner/win_os_shim.py` (smoke + `sdk_runner`).
 
 ## 3) CrewAI без fallback (RU — только если сознательно)
 
