@@ -74,6 +74,17 @@ def init_db(engine=None):
 DEFAULT_PROJECT_SLUG = "default"
 
 
+def _json_clone(value):
+    """Copy JSON-serializable payloads (dict or list) without assuming dict-only."""
+    import copy
+
+    if value is None:
+        return None
+    if isinstance(value, (dict, list)):
+        return copy.deepcopy(value)
+    return value
+
+
 class TaskRepository:
     def __init__(self, session: Session):
         self.session = session
@@ -198,9 +209,10 @@ class TaskRepository:
             task.summary = summary
             values["summary"] = summary
         if risk_table_json is not None:
-            task.risk_table_json = dict(risk_table_json)
+            payload = _json_clone(risk_table_json)
+            task.risk_table_json = payload
             flag_modified(task, "risk_table_json")
-            values["risk_table_json"] = dict(risk_table_json)
+            values["risk_table_json"] = payload
         if rework_cycles is not None:
             task.rework_cycles = rework_cycles
             values["rework_cycles"] = rework_cycles
@@ -223,7 +235,7 @@ class TaskRepository:
             task.impact_score = impact_score
             values["impact_score"] = impact_score
         if business_action_json is not None:
-            payload = dict(business_action_json)
+            payload = _json_clone(business_action_json)
             task.business_action_json = payload
             flag_modified(task, "business_action_json")
             values["business_action_json"] = payload
