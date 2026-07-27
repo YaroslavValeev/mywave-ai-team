@@ -884,8 +884,23 @@ async def handle_owner_callback(cb: CallbackQuery):
             log_audit(repo, "OWNER_CLARIFY", task_id=task_id, payload={"decision": "clarify"})
 
         has_pr = bool(task.pr_url)
+        execute_pack_info = None
         if code == "a":
-            new_status = "APPROVED_WAIT_MERGE" if has_pr else "DONE"
+            from app.orchestrator.execution_pack import (
+                prepare_outreach_execution_pack,
+                resolve_status_after_approve,
+            )
+
+            new_status = resolve_status_after_approve(task, has_pr=has_pr)
+            if new_status == "EXECUTION_READY":
+                try:
+                    execute_pack_info = prepare_outreach_execution_pack(
+                        repo, task_id, source="telegram_approve"
+                    )
+                except Exception:
+                    logging.getLogger(__name__).exception(
+                        "execution pack prepare failed task_id=%s", task_id
+                    )
         elif code == "r":
             new_status = "REWORK"
         else:
@@ -908,6 +923,29 @@ async def handle_owner_callback(cb: CallbackQuery):
         if code == "a":
             if has_pr:
                 await send_with_retry(cb.bot, cb.message.chat.id, f"✅ Миссия #{task_id} одобрена. Смержите PR в GitHub, затем нажмите «Я смержил».")
+            elif new_status == "EXECUTION_READY":
+                if execute_pack_info and execute_pack_info.get("ok"):
+                    pack = execute_pack_info.get("pack_path") or "execution/EXECUTE_PACK.md"
+                    await send_with_retry(
+                        cb.bot,
+                        cb.message.chat.id,
+                        (
+                            f"✅ Миссия #{task_id} утверждена → EXECUTE-пакет готов (без авторассылки).\n"
+                            f"📁 {pack}\n"
+                            f"Текст: message_to_send.txt · лог: send_log.md\n"
+                            f"Cursor/ручная отправка; закрытие: prepare_outreach_execute.py --mark-done"
+                        ),
+                    )
+                else:
+                    await send_with_retry(
+                        cb.bot,
+                        cb.message.chat.id,
+                        (
+                            f"✅ Миссия #{task_id} утверждена → EXECUTION_READY.\n"
+                            f"Пакет не записался автоматически — на RU: "
+                            f"python scripts/prepare_outreach_execute.py --task-id {task_id}"
+                        ),
+                    )
             else:
                 await send_with_retry(cb.bot, cb.message.chat.id, f"✅ Миссия #{task_id} утверждена.")
         elif code == "r":

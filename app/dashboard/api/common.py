@@ -327,6 +327,11 @@ def _owner_status_summary(task, new_status: str, decision: str) -> str:
                 "Owner утвердил результат. AI-Team закончил работу. Осталось выполнить ручной merge и подтвердить закрытие задачи.",
                 task.summary,
             )
+        if new_status == "EXECUTION_READY":
+            return _merge_status_summary(
+                "Owner утвердил план. EXECUTE-пакет готов (message_to_send.txt). Рассылка вручную/Cursor; AI-TEAM не шлёт сам.",
+                task.summary,
+            )
         return _merge_status_summary(
             "Owner утвердил результат. Миссия завершена, активный цикл AI-Team остановлен, финальные документы доступны в архиве.",
             task.summary,
@@ -620,6 +625,7 @@ def _build_owner_actions(task, runner: dict) -> dict:
     summary = {
         "NEW": "Сейчас задача ещё не запускалась. Доступно только управление запуском.",
         "WAIT_OWNER": "Команда завершила работу. Сейчас владелец должен принять решение.",
+        "EXECUTION_READY": "План утверждён. EXECUTE-пакет готов: Cursor/ручная рассылка, без автоотправки из AI-TEAM.",
         "APPROVED_WAIT_MERGE": "Owner уже утвердил результат. Остался только ручной merge и его подтверждение.",
         "NEED_INFO": "Цикл остановлен до уточнения контекста. После новых вводных можно запустить AI-Team снова.",
         "REWORK": "Задача открыта на новый цикл доработки. Её можно запускать повторно.",
@@ -651,6 +657,9 @@ def _build_control_state(task, runner: dict, owner_actions: dict) -> dict:
     elif task.status == "APPROVED_WAIT_MERGE":
         status_summary = "AI-Team уже закончил. Owner approve зафиксирован, но задача ещё не закрыта из-за ожидания merge."
         owner_waiting_for = "Сделай ручной merge и затем подтверди его в сцене."
+    elif task.status == "EXECUTION_READY":
+        status_summary = "План утверждён. EXECUTE-пакет лежит в artifacts/execution — рассылка вручную или через Cursor."
+        owner_waiting_for = "Отправь сообщение по checklist, заполни send_log.md, затем --mark-done."
     elif task.status == "REWORK":
         status_summary = "Задача находится в режиме доработки. Новый цикл ещё не завершён."
         owner_waiting_for = "После исправлений снова запусти AI-Team."
@@ -688,7 +697,22 @@ def apply_owner_decision(repo: TaskRepository, task_id: int, decision: str, sour
         if not owner_actions["can_approve"]:
             raise HTTPException(status_code=409, detail=owner_actions["approve_reason"])
         log_decision(repo, task_id, decision="a", owner_approval=True)
-        new_status = "APPROVED_WAIT_MERGE" if task.pr_url else "DONE"
+        execute_pack_info = None
+        from app.orchestrator.execution_pack import (
+            prepare_outreach_execution_pack,
+            resolve_status_after_approve,
+        )
+
+        new_status = resolve_status_after_approve(task, has_pr=bool(task.pr_url))
+        if new_status == "EXECUTION_READY":
+            try:
+                execute_pack_info = prepare_outreach_execution_pack(
+                    repo, task_id, source=f"{source}_approve"
+                )
+            except Exception:
+                logging.getLogger(__name__).exception(
+                    "execution pack prepare failed task_id=%s", task_id
+                )
         updated = repo.update_task(task_id, status=new_status, summary=_owner_status_summary(task, new_status, "approve"))
         fresh_task = repo.get_task(task_id)
         _write_owner_approve_document(repo, fresh_task, new_status)
@@ -696,7 +720,12 @@ def apply_owner_decision(repo: TaskRepository, task_id: int, decision: str, sour
             repo,
             "OWNER_APPROVED",
             task_id=task_id,
-            payload={"decision": "approve", "source": source, "status_after": new_status},
+            payload={
+                "decision": "approve",
+                "source": source,
+                "status_after": new_status,
+                "execution_pack": (execute_pack_info or {}).get("pack_path"),
+            },
         )
         try:
             from app.canonical_bridge import apply_owner_decision_hooks_if_enabled
@@ -711,7 +740,10 @@ def apply_owner_decision(repo: TaskRepository, task_id: int, decision: str, sour
             logging.getLogger(__name__).exception(
                 "canonical approve hook failed task_id=%s", task_id
             )
-        return {"id": task_id, "status": updated.status if updated else new_status, "decision": normalized}
+        out = {"id": task_id, "status": updated.status if updated else new_status, "decision": normalized}
+        if execute_pack_info and execute_pack_info.get("ok"):
+            out["execution_pack"] = execute_pack_info
+        return out
 
     if normalized == "clarify":
         if not owner_actions["can_clarify"]:

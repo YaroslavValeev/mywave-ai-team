@@ -5,11 +5,11 @@
 
 ## Порядок (логический)
 
-1. **P1 / P1b** — structured `deliverable` + log/persist `agent_cluster` + TG hint ← *сейчас в коде*  
-2. **TG smoke** — Owner после merge  
-3. **P3** — isolation packs (убрать повтор Owner brief)  
-4. **PN** — ParserNews CSV unique emails (только после Owner GO)  
-5. **EX** — post-approve EXECUTE (Molt→Cursor)  
+1. **P1 / P1b** — structured `deliverable` + log/persist `agent_cluster` + TG hint ← *done*  
+2. **TG smoke** — Owner после merge ← *done (#32/#33)*  
+3. **P3** — isolation packs ← *done (#49)*  
+4. **PN** — ParserNews CSV unique emails ← *script done; export on GO*  
+5. **EX** — post-approve EXECUTE (pack/Cursor) ← *in this PR*  
 6. Deferred: EU auto-escalate, ALLOW_FALLBACK=false default, LangGraph  
 
 ## Матрица задач
@@ -19,10 +19,10 @@
 | P0 | ADR-007 hierarchy | Lead | merge #47 | **done** |
 | P1 | handoff deliverable object | parent | merge+RU | **done** (#48, #32) |
 | P1b | agent_cluster log + triage_meta + TG | parent | smoke | **done** |
-| P3 | context isolation | explore+parent | compare handoff size | **in progress** |
-| PN | CSV 116 emails | shell+DATA | **GO export** | **in progress** (script) |
-| EX | EXECUTE after approve | molt/sdk | policy | checklist drafted |
-| UX | court brief duplication | parent | — | open (with P3) |
+| P3 | context isolation | explore+parent | compare handoff size | **done** (#49, #33) |
+| PN | CSV unique contacts | shell+DATA | **GO export** | **done** (script; 3 email + 113 handles) |
+| EX | EXECUTE after approve | parent | approve→pack | **in progress** (minimal pack) |
+| UX | court brief duplication | parent | — | open (noise leftover) |
 | EU | HIGH→cloud auto | policy | GO | deferred |
 | FB | fallback=false default | shell | GO | deferred |
 | LG | LangGraph | — | — | blocked |
