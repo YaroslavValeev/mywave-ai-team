@@ -259,20 +259,51 @@ def _build_handoff_payload(
     if task_type == "marketing_plan":
         open_questions.append("Confirm city/geo and primary offer (trial vs membership) if not explicit in brief.")
 
-    return {
+    agent_cluster = triage_result.get("agent_cluster") or ""
+    payload: dict = {
         "summary": summary,
         "artifacts": [
             f"routing::{domain}/{task_type}",
             f"policy::{criticality}/{plan_or_execute}",
             f"handoff::{step_name.lower()}",
+            *([f"cluster::{agent_cluster}"] if agent_cluster else []),
             *(["deliverable::zero_budget_marketing_plan"] if task_type == "marketing_plan" else []),
+            *(["deliverable::content_outreach_draft"] if task_type == "content_pipeline" else []),
         ],
         "decisions": decisions,
         "assumptions": assumptions,
         "risks": risks,
         "open_questions": open_questions,
         "next_action": next_action,
+        "agent_cluster": agent_cluster or None,
     }
+
+    # Structured deliverable (handoff_v1) — owner-facing block for MEDIA content.
+    if task_type == "content_pipeline":
+        from app.orchestrator.content_intent import build_content_outreach_draft
+
+        draft = build_content_outreach_draft(owner_brief)
+        payload["deliverable"] = {
+            "kind": "message_draft",
+            "title": "Черновик outreach-сообщения",
+            "body_lines": list(draft.get("message_draft") or []),
+            "metrics": {},
+            "limits": list(draft.get("honest_limits") or []),
+            "contact_plan": list(draft.get("contact_plan") or []),
+        }
+    elif task_type == "marketing_plan" or triage_result.get("marketing_plan_override"):
+        from app.orchestrator.marketing_intent import build_zero_budget_marketing_draft
+
+        md = build_zero_budget_marketing_draft(owner_brief)
+        payload["deliverable"] = {
+            "kind": "marketing_plan",
+            "title": "Маркетинг-план (0 ₽)",
+            "body_lines": list(md.get("owner_tomorrow") or [])[:12],
+            "metrics": {},
+            "limits": ["Organic only; paid budget 0."],
+        }
+
+    return payload
 
 
 def _merge_payloads(fallback_payload: dict, crewai_payload: dict | None, next_action: str) -> dict:
@@ -292,6 +323,10 @@ def _merge_payloads(fallback_payload: dict, crewai_payload: dict | None, next_ac
                 merged[key] = list(candidate) + [""] + draft_tail
             else:
                 merged[key] = candidate
+            continue
+        # Keep structured deliverable / cluster from rule fallback (CrewAI often omits them).
+        if key in {"deliverable", "agent_cluster"} and fallback_value and not candidate:
+            merged[key] = fallback_value
             continue
         merged[key] = candidate if candidate else fallback_value
     return merged

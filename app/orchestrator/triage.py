@@ -12,6 +12,21 @@ from app.orchestrator.agent_clusters import attach_agent_cluster
 
 logger = logging.getLogger(__name__)
 
+
+def _finalize_triage(result: dict, *, log_tag: str = "") -> dict:
+    out = attach_agent_cluster(result)
+    tag = f" ({log_tag})" if log_tag else ""
+    logger.info(
+        "TRIAGE RESULT%s domain=%s task_type=%s agent_cluster=%s revenue_override=%s exploration_mode=%s",
+        tag,
+        out.get("domain"),
+        out.get("task_type"),
+        out.get("agent_cluster"),
+        out.get("revenue_intent_override"),
+        out.get("exploration_mode"),
+    )
+    return out
+
 REVENUE_OVERRIDE_DOMAIN = "BUSINESS"
 REVENUE_OVERRIDE_TASK_TYPE = "revenue_execution"
 MARKETING_OVERRIDE_DOMAIN = "MEDIA_OPS"
@@ -134,13 +149,7 @@ def run_triage(owner_text: str) -> dict:
         elif crewai_strict_required(orchestration_cfg):
             detail = get_last_crewai_error() or "empty result"
             raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")
-        logger.info(
-            "TRIAGE RESULT (revenue-first) domain=%s task_type=%s revenue_override=%s",
-            result.get("domain"),
-            result.get("task_type"),
-            result.get("revenue_intent_override"),
-        )
-        return attach_agent_cluster(result)
+        return _finalize_triage(result, log_tag="revenue-first")
 
     # Marketing plan (zero-budget / рекламный план): не уводить в PRODUCT_DEV/feature_delivery.
     if detect_marketing_plan_intent(owner_text):
@@ -164,13 +173,7 @@ def run_triage(owner_text: str) -> dict:
         elif crewai_strict_required(orchestration_cfg):
             detail = get_last_crewai_error() or "empty result"
             raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")
-        logger.info(
-            "TRIAGE RESULT (marketing-plan) domain=%s task_type=%s marketing_override=%s",
-            result.get("domain"),
-            result.get("task_type"),
-            result.get("marketing_plan_override"),
-        )
-        return attach_agent_cluster(result)
+        return _finalize_triage(result, log_tag="marketing-plan")
 
     domain = "PRODUCT_DEV"
     task_type = "feature_delivery"
@@ -226,11 +229,4 @@ def run_triage(owner_text: str) -> dict:
     result["revenue_intent_override"] = False
     result["marketing_plan_override"] = False
     result["exploration_mode"] = detect_exploration_intent(owner_text)
-    logger.info(
-        "TRIAGE RESULT domain=%s task_type=%s revenue_override=%s exploration_mode=%s",
-        result.get("domain"),
-        result.get("task_type"),
-        result.get("revenue_intent_override"),
-        result.get("exploration_mode"),
-    )
-    return attach_agent_cluster(result)
+    return _finalize_triage(result)

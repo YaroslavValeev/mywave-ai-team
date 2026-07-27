@@ -359,6 +359,9 @@ def run_court(
         f"Передаточных документов: {len(handoffs)}, рисков: {len(risk_table)}. "
         + ("Требуется решение владельца." if owner_approval_needed else "Можно завершать проверку и закрытие без дополнительного решения владельца.")
     )
+    cluster = triage_result.get("agent_cluster")
+    if cluster:
+        summary_core = summary_core.rstrip(".") + f". Кластер агентов: {cluster}."
     if triage_result.get("task_type") == "content_pipeline":
         draft_hint = " Черновик сообщения и чеклист контактов — в полном отчёте (artifact). ParserNews/рассылка = после approve."
         summary_core = summary_core.rstrip(".") + "." + draft_hint
