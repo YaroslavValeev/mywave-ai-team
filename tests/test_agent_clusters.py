@@ -48,3 +48,8 @@ def test_content_pipeline_payload_has_deliverable(db_session, tmp_path, monkeypa
     assert isinstance(first.get("deliverable"), dict)
     assert first["deliverable"].get("kind") == "message_draft"
     assert any("Привет" in str(x) for x in first["deliverable"].get("body_lines") or [])
+
+    # P3: later steps must not repeat full owner brief
+    second_summary = "\n".join(result["handoffs"][1]["payload"].get("summary") or [])
+    assert "Owner brief (excerpt):" in second_summary or "carried from" in second_summary
+    assert second_summary.count("#TASK контент анонс") <= 1

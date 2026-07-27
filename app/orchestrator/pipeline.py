@@ -169,18 +169,31 @@ def _build_handoff_payload(
     execute_gate = triage_result.get("execute_gate", "OWNER_APPROVAL_IF_PROD")
     focus = STEP_FOCUS.get(step_name, "structured review for the next handoff")
 
+    # Context isolation (ADR-007 / P3): full owner brief only on first step.
+    if previous_step:
+        brief_line = f"Owner brief: (carried from {previous_step}; see step-0 handoff / court owner preview)."
+        if owner_brief:
+            excerpt = owner_brief.strip().replace("\n", " ")
+            if len(excerpt) > 160:
+                excerpt = excerpt[:157] + "…"
+            brief_line = f"Owner brief (excerpt): {excerpt}"
+    else:
+        brief_line = f"Owner brief: {owner_brief}"
+
     summary = [
         f"{step_name} prepared handoff for task #{task_id} ({domain}/{task_type}).",
         f"Primary focus: {focus}.",
-        f"Owner brief: {owner_brief}",
+        brief_line,
     ]
-    if attachment_context:
-        summary.append(f"Owner files (short labels): {' | '.join(attachment_context)}")
-    if attachment_rule_excerpts:
-        summary.append(
-            "Excerpts from owner-uploaded files (rule-based fallback; read these for substance when LLM is off):"
-        )
-        summary.extend(attachment_rule_excerpts)
+    # Attachment excerpts only on first step (isolation).
+    if not previous_step:
+        if attachment_context:
+            summary.append(f"Owner files (short labels): {' | '.join(attachment_context)}")
+        if attachment_rule_excerpts:
+            summary.append(
+                "Excerpts from owner-uploaded files (rule-based fallback; read these for substance when LLM is off):"
+            )
+            summary.extend(attachment_rule_excerpts)
 
     # Маркетинговый план за 0 ₽ — substantive draft в summary (не IT feature pack).
     if task_type == "marketing_plan" or triage_result.get("marketing_plan_override"):
