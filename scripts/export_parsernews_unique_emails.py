@@ -1,6 +1,8 @@
-"""Export unique emails from ParserNews Google Sheet contacts tab.
+"""Export outreach contacts from ParserNews Google Sheet.
 
-Writes CSV locally. Does NOT print email values to stdout (COUNT + path only).
+Outputs CSV on Owner PC. Prints COUNTS only (no PII to stdout).
+- Real emails: values containing @
+- Telegram handles: username column + email-column values without @
 """
 from __future__ import annotations
 
@@ -52,51 +54,64 @@ def main() -> int:
 
     hdr = [str(h).strip().lower() for h in data[0]]
     rows = data[1:]
-    try:
-        email_i = hdr.index("email")
-        source_i = hdr.index("source") if "source" in hdr else None
-    except ValueError:
-        print("no email column", hdr)
-        return 1
+    idx = {name: hdr.index(name) for name in hdr}
 
-    # unique by normalized email; keep first source
-    uniq: dict[str, str] = {}
+    emails: dict[str, str] = {}
+    handles: dict[str, str] = {}
+
+    def cell(r: list, name: str) -> str:
+        i = idx.get(name)
+        if i is None or i >= len(r):
+            return ""
+        return str(r[i]).strip()
+
     for r in rows:
-        if email_i >= len(r):
-            continue
-        email = str(r[email_i]).strip()
-        if not email or "@" not in email:
-            continue
-        key = email.lower()
-        if key in uniq:
-            continue
-        src = str(r[source_i]).strip() if source_i is not None and source_i < len(r) else ""
-        uniq[key] = src
+        source = cell(r, "source")
+        email = cell(r, "email")
+        username = cell(r, "username")
+        if email:
+            if "@" in email:
+                key = email.lower()
+                emails.setdefault(key, source)
+            else:
+                # Often a TG handle stored in email column
+                h = email.lstrip("@")
+                if h:
+                    handles.setdefault(h.lower(), source)
+        if username:
+            handles.setdefault(username.lstrip("@").lower(), source)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
-    out_path = OUT_DIR / f"parsernews_unique_emails_{stamp}.csv"
+    out_path = OUT_DIR / f"parsernews_outreach_contacts_{stamp}.csv"
     with out_path.open("w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["email", "source", "consent_required", "notes"])
-        for email, src in sorted(uniq.items()):
-            w.writerow([email, src, "yes", "from ParserNews contacts; review before send"])
+        w.writerow(["channel", "value", "source", "consent_required", "notes"])
+        for email, src in sorted(emails.items()):
+            w.writerow(["email", email, src, "yes", "ParserNews contacts"])
+        for handle, src in sorted(handles.items()):
+            w.writerow(["telegram_username", handle, src, "yes", "ParserNews contacts/handle"])
 
-    meta_path = OUT_DIR / f"parsernews_unique_emails_{stamp}.meta.txt"
+    meta_path = OUT_DIR / f"parsernews_outreach_contacts_{stamp}.meta.txt"
     meta_path.write_text(
         "\n".join(
             [
                 f"rows_scanned={len(rows)}",
-                f"unique_emails={len(uniq)}",
+                f"unique_emails={len(emails)}",
+                f"unique_telegram_handles={len(handles)}",
                 f"csv={out_path}",
                 f"generated_utc={datetime.now(timezone.utc).isoformat()}",
-                "PII: do not commit to git; Owner-only transfer to RU artifacts if needed.",
+                "Note: most 'email' cells historically lack @ — treated as telegram handles.",
+                "PII: do not commit to git.",
             ]
         )
         + "\n",
         encoding="utf-8",
     )
-    print(f"OK unique_emails={len(uniq)} csv={out_path.name} meta={meta_path.name}")
+    print(
+        f"OK unique_emails={len(emails)} unique_telegram_handles={len(handles)} "
+        f"csv={out_path.name} meta={meta_path.name}"
+    )
     return 0
 
 
