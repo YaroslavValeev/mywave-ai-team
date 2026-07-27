@@ -27,6 +27,10 @@
    Появятся: `contacts_unique.csv`, `segment_inventory.md`, `segment_emails_pilot.csv`, `segment_telegram_hold.csv`, обновлённый `send_log.md`.
 3. Проверить согласие / сегмент (не слать всем подряд). Telegram-hold = HOLD.
 4. Рассылка — **вручную** или через согласованный tool; не через боевой TG-бот AI-TEAM без отдельного policy GO.
+   - **Тест на Owner TG** (1 сообщение, не CSV):
+     ```bash
+     docker compose exec app python scripts/send_outreach_owner_test.py --task-id N --i-confirm-owner-test
+     ```
 5. После реальной отправки дописать в `send_log.md`: дата, число, канал, результат.
 6. Закрыть миссию:
    ```bash
