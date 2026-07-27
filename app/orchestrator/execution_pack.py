@@ -61,7 +61,7 @@ def _deliverable_from_task(task: Any) -> Optional[dict]:
 def _message_lines(task: Any) -> list[str]:
     """Always rebuild from content_intent so EXECUTE pack tracks current marketing copy.
 
-    Stale handoff deliverable (PLAN-time) must not block YClients / USP updates.
+    Stale handoff deliverable (PLAN-time) must not block YClients / map / USP updates.
     """
     from app.orchestrator.content_intent import build_content_outreach_draft
 

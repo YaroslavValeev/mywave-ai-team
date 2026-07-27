@@ -18,6 +18,19 @@ DEFAULT_SITE = "https://mywavewake.ru"
 DEFAULT_YCLIENTS = (
     "https://n347190.yclients.com/company/2043174/personal/menu?o="
 )
+DEFAULT_MAP = "https://yandex.ru/maps/org/mywave_wake/90003306477/"
+
+
+def _html_a(url: str, label: str) -> str:
+    """Telegram HTML hyperlink (parse_mode=HTML)."""
+    safe_url = (url or "").replace('"', "&quot;")
+    safe_label = (
+        (label or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+    return f'<a href="{safe_url}">{safe_label}</a>'
 
 
 def is_content_outreach_brief(text: str) -> bool:
@@ -37,11 +50,12 @@ def build_content_outreach_draft(owner_brief: str) -> dict[str, list[str]]:
     channels = _extract_channels(brief)
     site = _extract_site(brief) or DEFAULT_SITE
     yclients = _extract_yclients(brief) or DEFAULT_YCLIENTS
+    maps = DEFAULT_MAP
 
     message_lines = [
         "Привет! Это команда MyWave 👋",
         "",
-        "Мы вместе с Loaded открыли клуб на Озернинском водохранилище.",
+        f"Мы вместе с Loaded открыли клуб на {_html_a(maps, 'Озернинском')} водохранилище.",
         "",
         "Почему к нам:",
     ]
@@ -50,9 +64,7 @@ def build_content_outreach_draft(owner_brief: str) -> dict[str, list[str]]:
     message_lines.extend(
         [
             "",
-            "Подробнее и запись:",
-            f"• сайт: {site}",
-            f"• онлайн-запись YClients: {yclients}",
+            f"Подробнее и запись: {_html_a(site, site)} или {_html_a(yclients, 'тут')}",
             "",
             "Telegram:",
         ]

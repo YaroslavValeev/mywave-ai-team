@@ -28,3 +28,7 @@ def test_default_draft_has_yclients_and_champion_2026():
     assert "мой ученик" in joined
     assert "эффективным тренером" in joined
     assert "громким вейксерфером" in joined
+    assert 'href="https://yandex.ru/maps/org/mywave_wake/90003306477/"' in joined
+    assert ">Озернинском</a>" in joined
+    assert ">тут</a>" in joined
+    assert "или" in joined

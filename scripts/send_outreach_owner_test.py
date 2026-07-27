@@ -78,7 +78,7 @@ def main() -> int:
         print("ERROR: OWNER_CHAT_ID not configured", file=sys.stderr)
         return 1
 
-    ok = asyncio.run(send_owner_message(text, parse_mode=None))
+    ok = asyncio.run(send_owner_message(text, parse_mode="HTML"))
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     log_path = exe / "send_log.md"
     prev = log_path.read_text(encoding="utf-8") if log_path.is_file() else "# send_log\n\n"
@@ -87,6 +87,7 @@ def main() -> int:
         f"- recipients_sent: **{'1' if ok else '0'}** (Owner only)\n"
         f"- channel: telegram_owner_dm\n"
         f"- target: OWNER_CHAT_ID (not CSV)\n"
+        f"- parse_mode: HTML\n"
         f"- result: {'ok' if ok else 'FAIL'}\n"
         f"- mass_send: false\n"
     )
