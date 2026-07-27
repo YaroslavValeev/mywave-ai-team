@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from app.config import get_routing
+from app.orchestrator.agent_clusters import agent_cluster_for_domain
 from app.orchestrator.exploration import detect_exploration_intent
 from app.orchestrator.revenue_intent import detect_revenue_intent
 from app.orchestrator.triage import REVENUE_OVERRIDE_DOMAIN, REVENUE_OVERRIDE_TASK_TYPE
@@ -52,6 +53,7 @@ def persist_triage_snapshot(repo: TaskRepository, task_id: int, triage_result: d
         "criticality": triage_result.get("criticality"),
         "plan_or_execute": triage_result.get("plan_or_execute"),
         "execute_gate": triage_result.get("execute_gate"),
+        "agent_cluster": triage_result.get("agent_cluster"),
     }
     repo.update_task(task_id, business_action_json=ba)
 
@@ -74,7 +76,15 @@ def resync_triage_dict_from_store(repo: TaskRepository, task_id: int, triage_res
         return out
 
     # exploration_mode не мержим вслепую из meta: False в JSON перезаписывал бы свежий True из triage.
-    for key in ("domain", "task_type", "criticality", "plan_or_execute", "execute_gate", "revenue_intent_override"):
+    for key in (
+        "domain",
+        "task_type",
+        "criticality",
+        "plan_or_execute",
+        "execute_gate",
+        "revenue_intent_override",
+        "agent_cluster",
+    ):
         if key in meta and meta[key] is not None:
             out[key] = meta[key]
     if not out.get("domain") and getattr(task, "domain", None):
@@ -86,6 +96,8 @@ def resync_triage_dict_from_store(repo: TaskRepository, task_id: int, triage_res
     if not out.get("plan_or_execute") and getattr(task, "plan_or_execute", None):
         out["plan_or_execute"] = task.plan_or_execute
     out["exploration_mode"] = bool(triage_result.get("exploration_mode")) or detect_exploration_intent(raw)
+    if not out.get("agent_cluster"):
+        out["agent_cluster"] = agent_cluster_for_domain(out.get("domain"))
     return out
 
 
@@ -110,7 +122,15 @@ def canonical_triage_for_court(task: Any, triage_result: dict[str, Any]) -> dict
         )
         return out
 
-    for key in ("domain", "task_type", "criticality", "plan_or_execute", "execute_gate", "revenue_intent_override"):
+    for key in (
+        "domain",
+        "task_type",
+        "criticality",
+        "plan_or_execute",
+        "execute_gate",
+        "revenue_intent_override",
+        "agent_cluster",
+    ):
         if key in meta and meta[key] is not None:
             out[key] = meta[key]
     if not out.get("domain") and getattr(task, "domain", None):
@@ -122,10 +142,13 @@ def canonical_triage_for_court(task: Any, triage_result: dict[str, Any]) -> dict
     if not out.get("plan_or_execute") and getattr(task, "plan_or_execute", None):
         out["plan_or_execute"] = task.plan_or_execute
     out["exploration_mode"] = bool((triage_result or {}).get("exploration_mode")) or detect_exploration_intent(raw)
+    if not out.get("agent_cluster"):
+        out["agent_cluster"] = agent_cluster_for_domain(out.get("domain"))
     logger.info(
-        "COURT INPUT domain=%s task_type=%s override=%s task.domain_col=%s",
+        "COURT INPUT domain=%s task_type=%s agent_cluster=%s override=%s task.domain_col=%s",
         out.get("domain"),
         out.get("task_type"),
+        out.get("agent_cluster"),
         out.get("revenue_intent_override"),
         getattr(task, "domain", None),
     )
