@@ -219,17 +219,37 @@ def run_court(
 
     if triage_result.get("task_type") == "content_pipeline":
         report_lines.extend(["", "## Контент / outreach (черновик для владельца)"])
-        blocks = _marketing_plan_blocks_from_handoffs(handoffs)  # same === section parser
-        if blocks:
-            for block in blocks:
-                report_lines.append(f"### {block['title']}")
-                for line in block["lines"]:
-                    report_lines.append(f"- {line}" if not line.startswith("•") and not line.startswith("Привет") else line)
-                report_lines.append("")
+        deliverable = _deliverable_from_handoffs(handoffs)
+        if deliverable and deliverable.get("body_lines"):
+            title = deliverable.get("title") or "Черновик"
+            report_lines.append(f"### {title}")
+            for line in deliverable.get("body_lines") or []:
+                text = str(line)
+                if _is_owner_brief_noise(text):
+                    continue
+                report_lines.append(
+                    f"- {text}" if not text.startswith("•") and not text.startswith("Привет") else text
+                )
+            report_lines.append("")
+            for lim in deliverable.get("limits") or []:
+                report_lines.append(f"- {lim}")
+            report_lines.append("")
         else:
-            report_lines.append(
-                "- Черновик не извлечён из handoffs. Проверьте шаг CONTENT или перезапустите с #CLOUD / Доработать."
-            )
+            blocks = _marketing_plan_blocks_from_handoffs(handoffs)
+            if blocks:
+                for block in blocks:
+                    report_lines.append(f"### {block['title']}")
+                    for line in block["lines"]:
+                        if _is_owner_brief_noise(str(line)):
+                            continue
+                        report_lines.append(
+                            f"- {line}" if not line.startswith("•") and not line.startswith("Привет") else line
+                        )
+                    report_lines.append("")
+            else:
+                report_lines.append(
+                    "- Черновик не извлечён из handoffs. Проверьте шаг CONTENT или перезапустите с #CLOUD / Доработать."
+                )
         report_lines.extend(
             [
                 "",
@@ -699,16 +719,39 @@ def _localize_evidence(value: str, include_code: bool = True) -> str:
     return "; ".join(parts)
 
 
+def _is_owner_brief_noise(text: str) -> bool:
+    t = (text or "").strip().lower()
+    return t.startswith("owner brief:") or t.startswith("owner brief (excerpt)")
+
+
+def _deliverable_from_handoffs(handoffs: list[dict]) -> dict | None:
+    for h in handoffs:
+        payload = h.get("payload") or {}
+        d = payload.get("deliverable")
+        if isinstance(d, dict) and (d.get("body_lines") or d.get("kind")):
+            return d
+    return None
+
+
 def _marketing_plan_bullets_from_handoffs(handoffs: list[dict]) -> list[str]:
     bullets: list[str] = []
     for h in handoffs:
         payload = h.get("payload") or {}
+        # Prefer structured deliverable when present.
+        deliverable = payload.get("deliverable")
+        if isinstance(deliverable, dict):
+            for line in deliverable.get("body_lines") or []:
+                text = str(line).strip()
+                if text and not _is_owner_brief_noise(text):
+                    bullets.append(text)
+                if len(bullets) >= 8:
+                    return bullets
         summary = payload.get("summary") or []
         if isinstance(summary, str):
             summary = [summary]
         for line in summary:
             text = str(line).strip()
-            if text.startswith("==="):
+            if text.startswith("===") or _is_owner_brief_noise(text):
                 continue
             if any(
                 key in text.lower()
@@ -722,6 +765,9 @@ def _marketing_plan_bullets_from_handoffs(handoffs: list[dict]) -> list[str]:
                     "канал",
                     "reels",
                     "метрик",
+                    "привет",
+                    "parser",
+                    "контакт",
                 )
             ):
                 bullets.append(text)
@@ -748,6 +794,8 @@ def _marketing_plan_blocks_from_handoffs(handoffs: list[dict]) -> list[dict]:
                 title = text.strip("= ").strip() or title
                 continue
             if capture and text and not text.startswith("Primary focus") and "prepared handoff" not in text:
+                if _is_owner_brief_noise(text):
+                    continue
                 lines.append(text)
         if lines:
             blocks.append({"title": title, "lines": lines[:12]})
@@ -789,13 +837,13 @@ def _build_plain_language_points(
                 f"(направление: {ow}). Рассылка/парсинг — только после вашего утверждения."
             )
             bullets = _marketing_plan_bullets_from_handoffs(handoffs)
-            # Prefer message draft lines if present
             draft_bits = [
                 b
                 for b in bullets
-                if any(tok in b.lower() for tok in ("привет", "mywave", "запис", "telegram", "контакт", "parser"))
+                if not _is_owner_brief_noise(b)
+                and any(tok in b.lower() for tok in ("привет", "mywave", "запис", "telegram", "контакт", "parser", "•"))
             ]
-            points.extend((draft_bits or bullets)[:6])
+            points.extend((draft_bits or [b for b in bullets if not _is_owner_brief_noise(b)])[:6])
         else:
             points.append(
                 f"Команда подготовила материалы по миссии «{tl}» (направление: {ow}): "

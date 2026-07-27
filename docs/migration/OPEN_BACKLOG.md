@@ -17,11 +17,11 @@
 | ID | Задача | Agent / subagent | Owner HITL | Статус |
 |----|--------|------------------|------------|--------|
 | P0 | ADR-007 hierarchy | Lead | merge #47 | **done** |
-| P1 | handoff deliverable object | parent | merge+RU | **in progress** |
-| P1b | agent_cluster log + triage_meta + TG | parent | smoke | **in progress** |
-| P3 | context isolation | explore+parent | compare handoff size | open |
-| PN | CSV 116 emails | shell+DATA | **GO export** | open |
-| EX | EXECUTE after approve | molt/sdk | policy | open |
+| P1 | handoff deliverable object | parent | merge+RU | **done** (#48, #32) |
+| P1b | agent_cluster log + triage_meta + TG | parent | smoke | **done** |
+| P3 | context isolation | explore+parent | compare handoff size | **in progress** |
+| PN | CSV 116 emails | shell+DATA | **GO export** | **in progress** (script) |
+| EX | EXECUTE after approve | molt/sdk | policy | checklist drafted |
 | UX | court brief duplication | parent | — | open (with P3) |
 | EU | HIGH→cloud auto | policy | GO | deferred |
 | FB | fallback=false default | shell | GO | deferred |
