@@ -18,11 +18,16 @@
 ## Шаги (человек + Cursor)
 
 1. Открыть `EXECUTE_PACK.md` / `message_to_send.txt`.
-2. CSV: положить `contacts_unique.csv` в `execution/`  
-   (или уже есть `parsernews_outreach_contacts_*.csv` с RU).
-3. Проверить согласие / сегмент (не слать всем подряд).
+2. Финализировать prep (копия CSV + сегменты, **без отправки**):
+   ```bash
+   python3 scripts/finalize_outreach_prep.py --task-id N
+   # или в контейнере:
+   docker compose exec app python scripts/finalize_outreach_prep.py --task-id N
+   ```
+   Появятся: `contacts_unique.csv`, `segment_inventory.md`, `segment_emails_pilot.csv`, `segment_telegram_hold.csv`, обновлённый `send_log.md`.
+3. Проверить согласие / сегмент (не слать всем подряд). Telegram-hold = HOLD.
 4. Рассылка — **вручную** или через согласованный tool; не через боевой TG-бот AI-TEAM без отдельного policy GO.
-5. Записать в `send_log.md`: дата, число получателей, канал, результат.
+5. После реальной отправки дописать в `send_log.md`: дата, число, канал, результат.
 6. Закрыть миссию:
    ```bash
    docker compose exec app python scripts/prepare_outreach_execute.py --task-id N --mark-done
