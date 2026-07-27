@@ -53,10 +53,13 @@ def test_prepare_pack_writes_files(db_session, tmp_path, monkeypatch):
     pack = Path(result["pack_path"])
     msg = Path(result["message_path"])
     assert pack.is_file()
-    assert "auto_send" in pack.read_text(encoding="utf-8").lower() or "авто" in pack.read_text(
-        encoding="utf-8"
-    ).lower() or "не шлёт" in pack.read_text(encoding="utf-8")
-    assert "Привет! Это команда MyWave" in msg.read_text(encoding="utf-8")
+    text = msg.read_text(encoding="utf-8")
+    assert "yclients.com/company/2043174" in text
+    assert "yandex.ru/maps/org/mywave_wake" in text
+    assert ">Озернинском</a>" in text
+    assert ">тут</a>" in text
+    assert "чемпион Москвы 2026" in text
+    assert "Привет! Это команда MyWave" in text
     refreshed = repo.get_task(task.id)
     ba = refreshed.business_action_json or {}
     assert ba.get("execution_ready") is True
