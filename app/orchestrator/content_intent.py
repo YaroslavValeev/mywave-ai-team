@@ -14,6 +14,11 @@ _MESSAGE_RE = re.compile(
     re.IGNORECASE | re.UNICODE,
 )
 
+DEFAULT_SITE = "https://mywavewake.ru"
+DEFAULT_YCLIENTS = (
+    "https://n347190.yclients.com/company/2043174/personal/menu?o="
+)
+
 
 def is_content_outreach_brief(text: str) -> bool:
     raw = (text or "").strip()
@@ -30,7 +35,8 @@ def build_content_outreach_draft(owner_brief: str) -> dict[str, list[str]]:
     brief = (owner_brief or "").strip()
     usp = _extract_usp_bullets(brief)
     channels = _extract_channels(brief)
-    site = _extract_site(brief) or "https://mywavewake.ru"
+    site = _extract_site(brief) or DEFAULT_SITE
+    yclients = _extract_yclients(brief) or DEFAULT_YCLIENTS
 
     message_lines = [
         "Привет! Это команда MyWave 👋",
@@ -44,7 +50,9 @@ def build_content_outreach_draft(owner_brief: str) -> dict[str, list[str]]:
     message_lines.extend(
         [
             "",
-            f"Подробнее и запись: {site}",
+            "Подробнее и запись:",
+            f"• сайт: {site}",
+            f"• онлайн-запись YClients: {yclients}",
             "",
             "Telegram:",
         ]
@@ -72,8 +80,9 @@ def build_content_outreach_draft(owner_brief: str) -> dict[str, list[str]]:
         ],
         "channels_cta": [
             f"Площадка: {site}",
+            f"YClients: {yclients}",
             *(channels or ["@MyWave_Admin (запись)", "@MyWave_WakesurfNews (новости)"]),
-            "CTA: «Напиши в @MyWave_Admin — подберём слот» / «Запись на сайте».",
+            "CTA: «Напиши в @MyWave_Admin — подберём слот» / «Запись на сайте или в YClients».",
         ],
         "owner_now": [
             "1) Проверь черновик сообщения ниже — тон/факты/USP.",
@@ -94,7 +103,8 @@ def _extract_usp_bullets(brief: str) -> list[str]:
         "самая чистая вода — водохранилище со статусом питьевого запаса Москвы",
         "большая акватория, красивые заливы и укрытия от ветра",
         "без катеров с волной (только рыбацкие резиновые лодки)",
-        "тренер с 24-летним стажем; чемпион Москвы (ФСР) — ученик тренера",
+        "тренер с 24-летним стажем; чемпион Москвы 2026 (ФСР) — ученик тренера",
+        "Ваш тренер — мой ученик. Тренируйся с эффективным тренером, а не с громким вейксерфером",
     ]
     found: list[str] = []
     lower = brief.lower()
@@ -103,12 +113,22 @@ def _extract_usp_bullets(brief: str) -> list[str]:
         ("акватор", "большая акватория и заливы / укрытия от ветра"),
         ("катер", "без катеров с волной"),
         ("24", "тренер с 24-летним стажем в вейк-индустрии"),
-        ("чемпион", "ученик тренера — чемпион Москвы (ФСР)"),
+        ("чемпион", "чемпион Москвы 2026 (ФСР) — ученик тренера"),
+        ("эффективн", "Ваш тренер — мой ученик. Тренируйся с эффективным тренером, а не с громким вейксерфером"),
         ("loaded", "совместный проект MyWave + Loaded"),
     ]
     for needle, line in checks:
         if needle in lower:
             found.append(line)
+    # Always keep champion + coach positioning if brief mentions them partially.
+    if found and not any("чемпион Москвы 2026" in x for x in found) and "чемпион" in lower:
+        found.append("чемпион Москвы 2026 (ФСР) — ученик тренера")
+    if found and not any("мой ученик" in x for x in found) and (
+        "ученик" in lower or "эффективн" in lower or "громк" in lower
+    ):
+        found.append(
+            "Ваш тренер — мой ученик. Тренируйся с эффективным тренером, а не с громким вейксерфером"
+        )
     return found or defaults
 
 
@@ -129,10 +149,19 @@ def _extract_channels(brief: str) -> list[str]:
 
 
 def _extract_site(brief: str) -> str | None:
-    m = re.search(r"(https?://[^\s]+|mywavewake\.ru[^\s]*)", brief, re.IGNORECASE)
+    # Prefer site URL; ignore yclients links here.
+    for m in re.finditer(r"(https?://[^\s]+|mywavewake\.ru[^\s]*)", brief, re.IGNORECASE):
+        url = m.group(1).rstrip(").,;")
+        if "yclients.com" in url.lower():
+            continue
+        if not url.startswith("http"):
+            url = "https://" + url
+        return url
+    return None
+
+
+def _extract_yclients(brief: str) -> str | None:
+    m = re.search(r"(https?://[^\s]*yclients\.com[^\s]*)", brief, re.IGNORECASE)
     if not m:
         return None
-    url = m.group(1).rstrip(").,;")
-    if not url.startswith("http"):
-        url = "https://" + url
-    return url
+    return m.group(1).rstrip(").,;")

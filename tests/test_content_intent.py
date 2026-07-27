@@ -18,3 +18,13 @@ def test_build_content_outreach_draft_includes_message_and_limits():
     assert any("ParserNews" in x for x in draft["contact_plan"])
     assert any("EXECUTE" in x or "не выполняются" in x.lower() for x in draft["honest_limits"])
     assert any("MyWave_Admin" in x or "@MyWave_Admin" in x for x in draft["channels_cta"] + draft["message_draft"])
+
+
+def test_default_draft_has_yclients_and_champion_2026():
+    draft = build_content_outreach_draft("")
+    joined = "\n".join(draft["message_draft"])
+    assert "yclients.com/company/2043174" in joined
+    assert "чемпион Москвы 2026" in joined
+    assert "мой ученик" in joined
+    assert "эффективным тренером" in joined
+    assert "громким вейксерфером" in joined
