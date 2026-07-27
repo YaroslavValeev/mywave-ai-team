@@ -54,11 +54,13 @@ def test_prepare_pack_writes_files(db_session, tmp_path, monkeypatch):
     msg = Path(result["message_path"])
     assert pack.is_file()
     text = msg.read_text(encoding="utf-8")
+    # Fresh content_intent wins over stale handoff body_lines
     assert "yclients.com/company/2043174" in text
     assert "yandex.ru/maps/org/mywave_wake" in text
     assert ">Озернинском</a>" in text
     assert ">тут</a>" in text
     assert "чемпион Москвы 2026" in text
+    assert "мой ученик" in text
     assert "Привет! Это команда MyWave" in text
     refreshed = repo.get_task(task.id)
     ba = refreshed.business_action_json or {}

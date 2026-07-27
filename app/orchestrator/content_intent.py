@@ -111,7 +111,7 @@ def build_content_outreach_draft(owner_brief: str) -> dict[str, list[str]]:
 
 
 def _extract_usp_bullets(brief: str) -> list[str]:
-    """Canonical outreach USP (marketing SoT)."""
+    """Canonical outreach USP (marketing SoT). Brief may add extras later; do not drop defaults."""
     defaults = [
         "самая чистая вода — водохранилище со статусом питьевого запаса Москвы",
         "большая акватория, красивые заливы и укрытия от ветра",
@@ -119,6 +119,7 @@ def _extract_usp_bullets(brief: str) -> list[str]:
         "тренер с 24-летним стажем; чемпион Москвы 2026 (ФСР) — ученик тренера",
         "Ваш тренер — мой ученик. Тренируйся с эффективным тренером, а не с громким вейксерфером",
     ]
+    # Keep signature for callers; brief reserved for future optional extras.
     _ = (brief or "").strip()
     return list(defaults)
 
