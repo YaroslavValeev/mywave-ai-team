@@ -59,16 +59,20 @@ def _deliverable_from_task(task: Any) -> Optional[dict]:
 
 
 def _message_lines(task: Any) -> list[str]:
-    deliverable = _deliverable_from_task(task)
-    if deliverable:
-        lines = [str(x).rstrip() for x in (deliverable.get("body_lines") or []) if str(x).strip()]
-        if lines:
-            return lines
-    # Fallback: regenerate from brief (same rule engine as PLAN)
+    """Always rebuild from content_intent so EXECUTE pack tracks current marketing copy.
+
+    Stale handoff deliverable (PLAN-time) must not block YClients / USP updates.
+    """
     from app.orchestrator.content_intent import build_content_outreach_draft
 
     draft = build_content_outreach_draft(getattr(task, "owner_text", None) or "")
-    return list(draft.get("message_draft") or [])
+    raw = list(draft.get("message_draft") or [])
+    if raw:
+        return [str(x).rstrip() for x in raw]
+    deliverable = _deliverable_from_task(task)
+    if deliverable:
+        return [str(x).rstrip() for x in (deliverable.get("body_lines") or []) if str(x).strip()]
+    return []
 
 
 def _find_contacts_csv(task_id: int) -> Optional[Path]:

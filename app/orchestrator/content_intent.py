@@ -99,6 +99,7 @@ def build_content_outreach_draft(owner_brief: str) -> dict[str, list[str]]:
 
 
 def _extract_usp_bullets(brief: str) -> list[str]:
+    """Canonical outreach USP (marketing SoT). Brief may add extras later; do not drop defaults."""
     defaults = [
         "самая чистая вода — водохранилище со статусом питьевого запаса Москвы",
         "большая акватория, красивые заливы и укрытия от ветра",
@@ -106,30 +107,9 @@ def _extract_usp_bullets(brief: str) -> list[str]:
         "тренер с 24-летним стажем; чемпион Москвы 2026 (ФСР) — ученик тренера",
         "Ваш тренер — мой ученик. Тренируйся с эффективным тренером, а не с громким вейксерфером",
     ]
-    found: list[str] = []
-    lower = brief.lower()
-    checks = [
-        ("чист", "самая чистая вода — питьевой запас Москвы"),
-        ("акватор", "большая акватория и заливы / укрытия от ветра"),
-        ("катер", "без катеров с волной"),
-        ("24", "тренер с 24-летним стажем в вейк-индустрии"),
-        ("чемпион", "чемпион Москвы 2026 (ФСР) — ученик тренера"),
-        ("эффективн", "Ваш тренер — мой ученик. Тренируйся с эффективным тренером, а не с громким вейксерфером"),
-        ("loaded", "совместный проект MyWave + Loaded"),
-    ]
-    for needle, line in checks:
-        if needle in lower:
-            found.append(line)
-    # Always keep champion + coach positioning if brief mentions them partially.
-    if found and not any("чемпион Москвы 2026" in x for x in found) and "чемпион" in lower:
-        found.append("чемпион Москвы 2026 (ФСР) — ученик тренера")
-    if found and not any("мой ученик" in x for x in found) and (
-        "ученик" in lower or "эффективн" in lower or "громк" in lower
-    ):
-        found.append(
-            "Ваш тренер — мой ученик. Тренируйся с эффективным тренером, а не с громким вейксерфером"
-        )
-    return found or defaults
+    # Keep signature for callers; brief reserved for future optional extras.
+    _ = (brief or "").strip()
+    return list(defaults)
 
 
 def _extract_channels(brief: str) -> list[str]:
