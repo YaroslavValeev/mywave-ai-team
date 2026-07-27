@@ -8,6 +8,7 @@ from app.orchestrator.crewai_bridge import crewai_strict_required, get_last_crew
 from app.orchestrator.exploration import detect_exploration_intent
 from app.orchestrator.marketing_intent import detect_marketing_plan_intent
 from app.orchestrator.revenue_intent import detect_revenue_intent
+from app.orchestrator.agent_clusters import attach_agent_cluster
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ def run_triage(owner_text: str) -> dict:
             result.get("task_type"),
             result.get("revenue_intent_override"),
         )
-        return result
+        return attach_agent_cluster(result)
 
     # Marketing plan (zero-budget / рекламный план): не уводить в PRODUCT_DEV/feature_delivery.
     if detect_marketing_plan_intent(owner_text):
@@ -169,7 +170,7 @@ def run_triage(owner_text: str) -> dict:
             result.get("task_type"),
             result.get("marketing_plan_override"),
         )
-        return result
+        return attach_agent_cluster(result)
 
     domain = "PRODUCT_DEV"
     task_type = "feature_delivery"
@@ -232,4 +233,4 @@ def run_triage(owner_text: str) -> dict:
         result.get("revenue_intent_override"),
         result.get("exploration_mode"),
     )
-    return result
+    return attach_agent_cluster(result)

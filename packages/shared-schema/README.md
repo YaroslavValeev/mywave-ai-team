@@ -11,6 +11,7 @@
 ## Состав (черновик)
 
 - `entities.yaml` — канонический реестр сущностей и обязательных полей.
+- `handoff_v1.yaml` — Structured I/O между L3 шагами pipeline (ADR-007).
 - Далее: JSON Schema/OpenAPI fragments + versioning.
 
 ## Версионирование

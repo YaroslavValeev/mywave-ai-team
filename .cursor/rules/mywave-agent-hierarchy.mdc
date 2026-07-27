@@ -1,0 +1,40 @@
+---
+description: MyWave agent hierarchy (ADR-007) — Molt orchestrates, Agents govern, no second Master
+alwaysApply: true
+---
+
+# MyWave AI-TEAM — иерархия агентов
+
+## Канон слоёв (не ломать)
+
+- Personal_Helper = Product
+- Agents = Governance (triage, pipeline, court, approve)
+- Molt = Runtime orchestration owner (Run lifecycle)
+
+**Запрещено:** создавать второго «Master Orchestrator» агента, конкурирующего с Molt; превращать Agents в UI-продукт; держать policy только в промптах.
+
+## Паттерны из методологии Сейсембаева (берём)
+
+1. **Context Isolation** — субагенту только brief excerpt + prior deliverable + policy snippet.
+2. **Structured I/O** — handoff по `packages/shared-schema/handoff_v1.yaml`.
+3. **Human-in-the-Loop** — publish, mass outreach, git push, PII export, money → Owner approve.
+
+## Кластеры L2 → domains
+
+- MEDIA → MEDIA_OPS (CONTENT, PROMPT, BRAND, DATA…)
+- STRATEGY → PRODUCT_DEV / GAME (PS, FIN, ARCH, RC)
+- KNOWLEDGE → DATA / evidence / ParserNews inventory
+- EFFICIENCY → только Personal_Helper (не в этом control-plane)
+
+## Cursor team
+
+- Parent = Lead Integrator (план, ADR, PR, команды Owner).
+- Subagents: explore / shell / generalPurpose / bugbot / security-review по задаче.
+- Итог миссии: SoT task + artifact + точные RU/Telegram команды Owner.
+- Не выгружать PII в чат; COUNT/метрики — ок.
+
+## Docs
+
+- `docs/architecture/MARGULAN_APPLICABILITY.md`
+- `docs/decisions/ADR-007-agent-hierarchy-adaptation.md`
+- `docs/migration/AGENT_TEAM_ROLLOUT.md`

@@ -1,0 +1,43 @@
+# packages/shared-schema/handoff_v1.yaml
+# Structured I/O between L3 pipeline steps (ADR-007 / Margulan Structured I/O).
+# Compatible with existing list-based payloads: lists remain; deliverable is additive.
+
+version: "1.0-draft"
+
+agent_clusters:
+  MEDIA: { domains: [MEDIA_OPS], description: "Контент и медиапроизводство" }
+  STRATEGY: { domains: [PRODUCT_DEV, GAME], description: "Продукт, экономика, стратегия" }
+  KNOWLEDGE: { domains: [RUZA], description: "Данные, доказательства, знания (расширяется)" }
+  EVENTS: { domains: [EVENTS], description: "События и операционные runbook" }
+  EFFICIENCY: { domains: [], description: "Личная эффективность — только Personal_Helper" }
+
+handoff_v1:
+  required:
+    - step_name          # L3 role code: CONTENT, DATA, ARCH, ...
+    - agent_cluster      # MEDIA | STRATEGY | KNOWLEDGE | EVENTS | EFFICIENCY | UNKNOWN
+    - summary            # list[str] — human-readable bullets
+    - decisions          # list[str]
+    - artifacts          # list[str] — routing:: / policy:: / paths
+    - next_action        # str — next L3 or ROUNDTABLE/COURT/OWNER
+  optional:
+    - assumptions        # list[str]
+    - risks              # list[str]
+    - open_questions     # list[str]
+    - deliverable        # object — owner-facing result for this step/cluster
+    - context_refs       # list[str] — ids/paths of prior handoffs used (isolation)
+
+deliverable:
+  description: >
+    Owner-facing artifact block. Preferred over repeating full owner_brief.
+  properties:
+    kind:                # message_draft | contact_inventory | marketing_plan | runbook | other
+    title: string
+    body_lines: list[str]
+    metrics: object      # e.g. {rows: 968, distinct_emails: 116}
+    limits: list[str]    # PLAN vs EXECUTE honesty
+
+validation:
+  mode_default: soft     # soft = warn in logs; hard = fail step (future flag HANDOFF_V1_VALIDATE=hard)
+  reject_if_missing_deliverable_for:
+    - content_pipeline
+    - marketing_plan
