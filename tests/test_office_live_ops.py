@@ -211,3 +211,6 @@ def test_office_routes_render_shell_and_deeplink(db_session):
     assert ".upload-card" in css_resp.text
     assert "@media (max-width: 640px)" in css_resp.text
     assert "grid-template-columns: 1fr;" in css_resp.text
+    assert "@media (hover: hover) and (pointer: fine)" in css_resp.text
+    assert ":focus-visible" in css_resp.text
+    assert ":not(:disabled):active" in css_resp.text
