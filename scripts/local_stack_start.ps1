@@ -75,6 +75,8 @@ if ($FullAI) {
     $env:CREWAI_MODEL = $LocalModel
     $env:CREWAI_DEFAULT_MODEL = $LocalModel
     $env:CREWAI_PROVIDER = "openai"
+    $env:CREWAI_TIMEOUT = "300"
+    $env:CREWAI_MAX_TOKENS = "800"
     if (-not $Build) {
         $currentImage = docker compose images -q app
         if (-not $currentImage) {

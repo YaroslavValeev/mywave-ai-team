@@ -26,7 +26,7 @@ powershell -ExecutionPolicy Bypass -File scripts/local_stack_start.ps1 -FullAI -
 powershell -ExecutionPolicy Bypass -File scripts/local_stack_start.ps1 -FullAI -NoCaddy -Build
 ```
 
-Скрипт использует `qwen2.5:3b`, отключает локальный Telegram polling и stage-notify, ждёт Docker health до 120 секунд и публикует Office на `http://localhost:8080/office`.
+Скрипт использует `qwen2.5:3b`, ограничивает локальные handoff-ответы 800 токенами (triage — 256), отключает Telegram polling и stage-notify, ждёт Docker health до 120 секунд и публикует Office на `http://localhost:8080/office`.
 
 ## Быстрая проверка
 
@@ -79,5 +79,5 @@ PASS:
 ## Известные границы v1
 
 - `Stop AI-Team` отменяет выполнение на безопасной checkpoint-точке; уже выполняющийся вызов локальной LLM может завершиться до фактической остановки.
-- Локальная 3B-модель медленнее rule-based режима; UI остаётся живым благодаря фоновому job и polling.
+- Cold start локальной 3B-модели может занять до нескольких минут; повторные ответы быстрее. UI остаётся живым благодаря фоновому job и polling.
 - Runner/PR и Molt являются опциональными интеграциями и не блокируют локальную работу Office, но требуют отдельной production-проверки, если включены.
