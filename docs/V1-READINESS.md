@@ -6,6 +6,8 @@
 
 Локальный v1-кандидат работает в Docker и прошёл unit/integration, browser и изолированный Docker E2E. Это не является доказательством состояния production: production-деплой и внешние бизнес-действия в рамках этой работы не выполнялись.
 
+Repository gate закрыт через PR `#56`: обязательные GitHub CI checks `test` и `token-scan` должны оставаться зелёными для текущего head перед merge.
+
 ## Что владелец может делать
 
 1. Войти в `/office` один раз по owner-паролю; подписанная cookie-сессия авторизует Office API без ключа в URL.
@@ -59,12 +61,11 @@ PASS:
 
 До объявления production ready обязательны отдельные подтверждения на целевом сервере:
 
-1. Чистый commit SHA и успешный CI полного тестового набора.
-2. Backup Postgres и проверенный restore-runbook без удаления текущих данных.
-3. `docker compose config`, миграции Alembic, health app/postgres/reverse proxy.
-4. Проверка реального Telegram intake/callback без конфликта polling.
-5. Проверка HTTPS, DNS, firewall и mobile Office через публичный URL.
-6. Один канонический production smoke без внешней публикации/денег и явный Owner GO.
+1. Backup Postgres и проверенный restore-runbook без удаления текущих данных.
+2. `docker compose config`, миграции Alembic, health app/postgres/reverse proxy на целевом сервере.
+3. Проверка реального Telegram intake/callback без конфликта polling.
+4. Проверка HTTPS, DNS, firewall и mobile Office через публичный URL.
+5. Один канонический production smoke без внешней публикации/денег и явный Owner GO.
 
 Пока эти пункты не подтверждены свежими данными, корректный статус: **local v1 candidate, production unverified**.
 
