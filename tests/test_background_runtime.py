@@ -3,11 +3,22 @@ import time
 from fastapi.testclient import TestClient
 
 from app.dashboard.app import app
+from app.storage.repositories import TaskRepository
+
+
+def test_runtime_update_for_unknown_run_returns_idle_without_deadlock():
+    from app.orchestrator.runtime import OrchestrationRuntime
+
+    runtime = OrchestrationRuntime()
+
+    result = runtime.update(999, "stale-run", state="completed")
+
+    assert result["state"] == "idle"
+    assert result["task_id"] == 999
 
 
 def test_background_pipeline_can_be_stopped_and_marks_task_rework(db_session, monkeypatch):
     from app.dashboard import api_router
-    from app.storage.repositories import TaskRepository
 
     client = TestClient(app, raise_server_exceptions=False)
     headers = {"X-API-Key": "test_key_for_smoke"}

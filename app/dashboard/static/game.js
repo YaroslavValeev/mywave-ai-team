@@ -53,6 +53,7 @@
     compose: {
       activeField: "",
       lockUntil: 0,
+      pendingRender: false,
     },
     stale: {
       scope: "",
@@ -232,7 +233,10 @@
   }
 
   function isComposeLocked() {
-    return Boolean(state.compose.activeField) && Date.now() < state.compose.lockUntil;
+    if (!state.compose.activeField) return false;
+    const active = document.activeElement;
+    if (active && active.id === state.compose.activeField) return true;
+    return Date.now() < state.compose.lockUntil;
   }
 
   function officeUrl() {
@@ -254,8 +258,9 @@
   }
 
   function apiUrl(path) {
-    const separator = path.includes("?") ? "&" : "?";
     const apiKey = new URLSearchParams(apiKeyQuery.replace(/^\?/, "")).get("api_key") || "";
+    if (!apiKey) return path;
+    const separator = path.includes("?") ? "&" : "?";
     return `${path}${separator}api_key=${encodeURIComponent(apiKey)}`;
   }
 
@@ -576,8 +581,16 @@
   async function loadRoute() {
     state.loading = true;
     render();
+    let healthError = null;
+    const healthPromise = refreshHealth().catch((error) => {
+      healthError = error;
+    });
     try {
-      await Promise.all([refreshTasks(), refreshHealth(), refreshOfficeFeed({ reset: true })]);
+      const overviewResults = await Promise.allSettled([refreshTasks(), refreshOfficeFeed({ reset: true })]);
+      const overviewError = overviewResults.find((result) => result.status === "rejected");
+      if (overviewError) throw overviewError.reason;
+      state.loading = false;
+      render();
       if (state.selectedTaskId) {
         await refreshScene(state.selectedTaskId);
         await refreshTaskFeed(state.selectedTaskId, { reset: true });
@@ -585,7 +598,12 @@
           syncHistory("replace");
         }
       }
-      clearStale();
+      await healthPromise;
+      if (healthError) {
+        setStale("health", `Health временно недоступен: ${healthError.message}`);
+      } else {
+        clearStale();
+      }
     } catch (error) {
       setToast(`Ошибка загрузки: ${error.message}`);
       setStale("overview", `Автообновление временно недоступно: ${error.message}`);
@@ -1666,23 +1684,28 @@
       };
     }
     if (eventType === "OWNER_APPROVED") {
+      const isDone = task.status === "DONE";
       return {
         mode: "owner-approve",
         roomLabel: "Режим утверждения",
         headline: "Owner одобрил результат",
-        signalText: "Решение принято. Остался merge и финальное подтверждение.",
+        signalText: isDone
+          ? "Решение принято. Миссия закрыта, итоговые документы сохранены в архиве."
+          : "Решение принято. Остался merge и финальное подтверждение.",
         actorCode: "OWNER",
         nextActorCode: "OWNER",
         currentZone: "owner",
-        nextZone: task.status === "DONE" ? "archive" : "owner",
-        route: ["court", "owner", task.status === "DONE" ? "archive" : "owner"],
+        nextZone: isDone ? "archive" : "owner",
+        route: ["court", "owner", isDone ? "archive" : "owner"],
         currentCue: "Решение принято",
-        nextCue: task.status === "DONE" ? "Архив миссии" : "Ожидание merge",
-        currentSpeech: latestEvent?.note || "Результат меня устраивает. Подтверждаю переход к merge.",
-        nextSpeech: task.status === "DONE"
+        nextCue: isDone ? "Архив миссии" : "Ожидание merge",
+        currentSpeech: latestEvent?.note || (isDone
+          ? "Результат принят. Закрываю миссию и сохраняю документы."
+          : "Результат меня устраивает. Подтверждаю переход к merge."),
+        nextSpeech: isDone
           ? "Сохраняю итог в архив и закрываю миссию."
           : "Жду ручной merge и финального закрытия задачи.",
-        transitionNote: task.status === "DONE"
+        transitionNote: isDone
           ? "После approve задача сразу переходит в архив."
           : "Owner открыл финальный merge-gate без возврата в pipeline.",
       };
@@ -2405,8 +2428,10 @@
         state.live.shouldScrollTaskFeed = true;
       }
       clearStale("taskEvents");
-      if (!composeLocked || hasStructuralEvents) {
+      if (!composeLocked) {
         render();
+      } else {
+        state.compose.pendingRender = true;
       }
     } finally {
       state.live.taskBusy = false;
@@ -2468,6 +2493,10 @@
       if (!(target instanceof HTMLTextAreaElement) && !(target instanceof HTMLInputElement)) return;
       if (target.id === "mission-chat-input" || target.id === "task-composer-input") {
         clearComposeActivity(target.id);
+        if (state.compose.pendingRender) {
+          state.compose.pendingRender = false;
+          window.requestAnimationFrame(() => render());
+        }
       }
     });
 

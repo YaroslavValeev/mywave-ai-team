@@ -1,5 +1,7 @@
 # Project Status
 
+> **Важно:** этот файл содержит исторический snapshot от 2026-07-24. Текущий локально проверенный статус, команды запуска, production-гейты и rollback находятся в [V1-READINESS.md](V1-READINESS.md). Старые утверждения ниже не следует считать свежим подтверждением production.
+
 Snapshot date: **2026-07-24** (Owner RU Molt GO + E2E + ops parity verified)
 
 ## What We Are Building

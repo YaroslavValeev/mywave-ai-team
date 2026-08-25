@@ -8,6 +8,7 @@ from sqlalchemy import text
 from app.config import get_orchestration_config, get_telegram_config
 from app.orchestrator.crewai_bridge import is_crewai_enabled
 from app.shared.auth import get_owner_api_key
+from app.shared.release_info import get_release_info
 from app.storage.repositories import get_engine
 
 
@@ -26,7 +27,7 @@ def collect_system_health() -> dict:
         overall = "error"
     elif any(item["status"] == "warn" for item in checks.values()):
         overall = "warn"
-    return {"status": overall, "checks": checks}
+    return {"status": overall, "release": get_release_info(), "checks": checks}
 
 
 def _check_database() -> dict:
@@ -59,6 +60,17 @@ def _check_telegram() -> dict:
     cfg = get_telegram_config()
     token = cfg.get("bot_token") or os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = cfg.get("owner_chat_id") or os.getenv("OWNER_CHAT_ID")
+    polling_enabled = os.getenv("TELEGRAM_POLLING_ENABLED", "true").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    if not polling_enabled:
+        return {
+            "status": "ok",
+            "message": "Telegram polling отключён для этого runtime; отправка уведомлений остаётся доступной.",
+        }
     if token and chat_id:
         return {"status": "ok", "message": "Telegram: токен бота и chat id владельца настроены."}
     return {"status": "warn", "message": "Telegram: уведомления настроены не полностью."}

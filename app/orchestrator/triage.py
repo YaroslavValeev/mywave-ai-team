@@ -31,6 +31,14 @@ REVENUE_OVERRIDE_DOMAIN = "BUSINESS"
 REVENUE_OVERRIDE_TASK_TYPE = "revenue_execution"
 MARKETING_OVERRIDE_DOMAIN = "MEDIA_OPS"
 MARKETING_OVERRIDE_TASK_TYPE = "marketing_plan"
+VALID_CRITICALITIES = {"LOW", "MEDIUM", "HIGH", "CRITICAL"}
+VALID_EXECUTION_MODES = {"PLAN", "EXECUTE"}
+CRITICALITY_RANK = {"LOW": 0, "MEDIUM": 1, "HIGH": 2, "CRITICAL": 3}
+PROJECT_ROUTE_HINTS: tuple[tuple[tuple[str, ...], str, str], ...] = (
+    (("snowpolia", "снегополия"), "GAME", "economy_balance"),
+    (("sponsorship platform", "спонсорская платформа"), "SPONSOR_PLATFORM", "mvp_scoring"),
+    (("extrememedia", "extreme media"), "RND_EXTREME", "judge_console_mvp"),
+)
 
 # Порядок важен: первое совпадение побеждает (специфичные фразы — выше общих «спонсор» / «event»).
 DOMAIN_HINT_ORDERED: list[tuple[str, tuple[str, str]]] = [
@@ -80,6 +88,55 @@ DOMAIN_HINT_ORDERED: list[tuple[str, tuple[str, str]]] = [
 ]
 
 
+def _merge_crewai_triage(
+    result: dict,
+    crewai_result: dict,
+    routing: dict,
+    *,
+    locked_keys: set[str] | None = None,
+) -> dict:
+    """Accept only CrewAI values that belong to the canonical routing contract."""
+    merged = dict(result)
+    locked = locked_keys or set()
+    domains = routing.get("domains", {})
+
+    candidate_domain = str(crewai_result.get("domain") or "").strip().upper()
+    candidate_task_type = str(crewai_result.get("task_type") or "").strip()
+    if "domain" not in locked and "task_type" not in locked and candidate_domain in domains:
+        candidate_config = (domains[candidate_domain].get("task_types") or {}).get(candidate_task_type)
+        if candidate_config:
+            merged["domain"] = candidate_domain
+            merged["task_type"] = candidate_task_type
+            merged["criticality"] = candidate_config.get("criticality", merged.get("criticality"))
+            merged["execute_gate"] = candidate_config.get("execute_gate", merged.get("execute_gate"))
+    elif "task_type" not in locked:
+        active_domain = str(merged.get("domain") or "")
+        candidate_config = ((domains.get(active_domain) or {}).get("task_types") or {}).get(candidate_task_type)
+        if candidate_config:
+            merged["task_type"] = candidate_task_type
+            merged["criticality"] = candidate_config.get("criticality", merged.get("criticality"))
+            merged["execute_gate"] = candidate_config.get("execute_gate", merged.get("execute_gate"))
+
+    criticality = str(crewai_result.get("criticality") or "").strip().upper()
+    current_criticality = str(merged.get("criticality") or "MEDIUM").upper()
+    if (
+        "criticality" not in locked
+        and criticality in VALID_CRITICALITIES
+        and CRITICALITY_RANK[criticality] >= CRITICALITY_RANK.get(current_criticality, 1)
+    ):
+        merged["criticality"] = criticality
+
+    execution_mode = str(crewai_result.get("plan_or_execute") or "").strip().upper()
+    if (
+        "plan_or_execute" not in locked
+        and execution_mode in VALID_EXECUTION_MODES
+        and not (merged.get("plan_or_execute") == "EXECUTE" and execution_mode == "PLAN")
+    ):
+        merged["plan_or_execute"] = execution_mode
+
+    return merged
+
+
 def _revenue_triage_result(owner_text: str, routing: dict) -> dict:
     domains_cfg = routing.get("domains", {})
     tt_cfg = (domains_cfg.get(REVENUE_OVERRIDE_DOMAIN) or {}).get("task_types", {})
@@ -110,6 +167,26 @@ def _marketing_triage_result(owner_text: str, routing: dict) -> dict:
     }
 
 
+def _explicit_project_triage(owner_text: str, routing: dict) -> dict | None:
+    """Return the canonical route when the owner names a known MyWave project."""
+    text_lower = (owner_text or "").lower()
+    domains = routing.get("domains", {})
+    for aliases, domain, task_type in PROJECT_ROUTE_HINTS:
+        if not any(alias in text_lower for alias in aliases):
+            continue
+        config = ((domains.get(domain) or {}).get("task_types") or {}).get(task_type, {})
+        return {
+            "domain": domain,
+            "task_type": task_type,
+            "criticality": config.get("criticality", "MEDIUM"),
+            "plan_or_execute": "PLAN",
+            "execute_gate": config.get("execute_gate", "OWNER_APPROVAL_IF_PROD"),
+            "revenue_intent_override": False,
+            "marketing_plan_override": False,
+        }
+    return None
+
+
 def run_triage(owner_text: str) -> dict:
     """
     Rule-based triage. Возвращает:
@@ -127,6 +204,24 @@ def run_triage(owner_text: str) -> dict:
     criticality_cfg = policy.get("criticality", {})
     execute_types = set(criticality_cfg.get("always_critical_if", []))
 
+    # Explicit MyWave project names are a stronger signal than generic intent words.
+    project_result = _explicit_project_triage(owner_text, routing)
+    if project_result:
+        project_result["exploration_mode"] = detect_exploration_intent(owner_text)
+        orchestration_cfg = get_orchestration_config()
+        crewai_result = run_crewai_triage(owner_text)
+        if crewai_result:
+            project_result = _merge_crewai_triage(
+                project_result,
+                crewai_result,
+                routing,
+                locked_keys={"domain", "task_type", "revenue_intent_override", "marketing_plan_override"},
+            )
+        elif crewai_strict_required(orchestration_cfg):
+            detail = get_last_crewai_error() or "empty result"
+            raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")
+        return _finalize_triage(project_result, log_tag="explicit-project")
+
     # Revenue-first: не даём DOMAIN_HINT (wakesafari → EVENTS) и CrewAI перебить коммерческий контур.
     if detect_revenue_intent(owner_text):
         result = _revenue_triage_result(owner_text, routing)
@@ -134,18 +229,18 @@ def run_triage(owner_text: str) -> dict:
         orchestration_cfg = get_orchestration_config()
         crewai_result = run_crewai_triage(owner_text)
         if crewai_result:
-            for key in result.keys():
-                if key in {
+            result = _merge_crewai_triage(
+                result,
+                crewai_result,
+                routing,
+                locked_keys={
                     "domain",
                     "task_type",
                     "revenue_intent_override",
                     "marketing_plan_override",
                     "plan_or_execute",
-                }:
-                    continue
-                value = crewai_result.get(key)
-                if value:
-                    result[key] = value
+                },
+            )
         elif crewai_strict_required(orchestration_cfg):
             detail = get_last_crewai_error() or "empty result"
             raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")
@@ -158,18 +253,18 @@ def run_triage(owner_text: str) -> dict:
         orchestration_cfg = get_orchestration_config()
         crewai_result = run_crewai_triage(owner_text)
         if crewai_result:
-            for key in result.keys():
-                if key in {
+            result = _merge_crewai_triage(
+                result,
+                crewai_result,
+                routing,
+                locked_keys={
                     "domain",
                     "task_type",
                     "revenue_intent_override",
                     "marketing_plan_override",
                     "plan_or_execute",
-                }:
-                    continue
-                value = crewai_result.get(key)
-                if value:
-                    result[key] = value
+                },
+            )
         elif crewai_strict_required(orchestration_cfg):
             detail = get_last_crewai_error() or "empty result"
             raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")
@@ -218,10 +313,7 @@ def run_triage(owner_text: str) -> dict:
     orchestration_cfg = get_orchestration_config()
     crewai_result = run_crewai_triage(owner_text)
     if crewai_result:
-        for key in result.keys():
-            value = crewai_result.get(key)
-            if value:
-                result[key] = value
+        result = _merge_crewai_triage(result, crewai_result, routing)
     elif crewai_strict_required(orchestration_cfg):
         detail = get_last_crewai_error() or "empty result"
         raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")

@@ -2,7 +2,7 @@
 import logging
 import os
 
-from fastapi import Header, HTTPException, Query
+from fastapi import Header, HTTPException, Query, Request
 
 logger = logging.getLogger(__name__)
 
@@ -69,13 +69,18 @@ def assert_dashboard_task_write(request, task_id: int) -> None:
 
 
 async def require_owner_key(
+    request: Request,
     x_api_key: str = Header(None, alias="X-API-Key"),
     api_key: str = Query(None, description="Локальный dev: ?api_key=OWNER_API_KEY"),
 ) -> None:
-    """FastAPI Depends: X-API-Key или ?api_key= (для браузера на localhost)."""
+    """FastAPI Depends: owner session, X-API-Key or local ?api_key=."""
     expected = get_owner_api_key()
     if not expected:
         raise HTTPException(status_code=500, detail="Server misconfiguration: OWNER_API_KEY not set")
+    from app.shared.dashboard_session import request_has_owner_session
+
+    if request_has_owner_session(request):
+        return
     key = normalize_owner_key_input(x_api_key or api_key)
     if not key or key != expected:
-        raise HTTPException(status_code=401, detail="Unauthorized: valid X-API-Key required")
+        raise HTTPException(status_code=401, detail="Unauthorized: valid owner session or X-API-Key required")

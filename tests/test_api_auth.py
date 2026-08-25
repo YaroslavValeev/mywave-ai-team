@@ -7,6 +7,7 @@ def test_health_no_auth_required(client):
     r = client.get("/health")
     assert r.status_code == 200
     assert r.json().get("status") == "ok"
+    assert r.json()["release"]["commit_sha"]
 
 
 def test_api_tasks_401_without_key(client, db_session):
@@ -22,12 +23,24 @@ def test_api_tasks_200_with_key(client, auth_headers, db_session):
     assert isinstance(r.json(), list)
 
 
+def test_api_tasks_200_with_owner_session_cookie(client, db_session):
+    login = client.post(
+        "/login",
+        data={"password": "test_key_for_smoke", "next": "/office"},
+        follow_redirects=False,
+    )
+
+    assert login.status_code == 303
+    assert client.get("/api/tasks").status_code == 200
+
+
 def test_api_system_health_200_with_key(client, auth_headers, db_session):
     """GET /api/system/health с ключом → сводный health payload."""
     r = client.get("/api/system/health", headers=auth_headers)
     assert r.status_code == 200
     data = r.json()
     assert data["status"] in {"ok", "warn", "error"}
+    assert data["release"]["version"]
     assert "database" in data["checks"]
 
 
