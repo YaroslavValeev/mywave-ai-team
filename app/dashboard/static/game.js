@@ -21,13 +21,20 @@
     "pipeline_background_completed",
     "pipeline_background_stopped",
     "pipeline_background_failed",
+    "execution_started",
+    "execution_cancelled",
+    "execution_failed",
+    "validation_done",
+    "knowledge_draft_created",
+    "knowledge_published",
+    "knowledge_rejected",
     "OWNER_APPROVED",
     "OWNER_REWORK",
     "OWNER_CLARIFY",
     "OWNER_MERGED",
   ]);
   const OVERVIEW_VIEWS = new Set(["office", "missions", "control"]);
-  const ACTIVE_WORK_STATUSES = new Set(["TRIAGED", "IN_PIPELINE", "IN_ROUNDTABLE", "IN_COURT"]);
+  const ACTIVE_WORK_STATUSES = new Set(["TRIAGED", "IN_PIPELINE", "IN_ROUNDTABLE", "IN_COURT", "EXECUTING", "VALIDATING"]);
   const FINAL_STATUSES = new Set(["DONE", "ARCHIVED"]);
 
   const state = {
@@ -73,7 +80,7 @@
   };
 
   const pollers = {};
-  const stageOrder = ["NEW", "TRIAGED", "IN_PIPELINE", "IN_ROUNDTABLE", "IN_COURT", "WAIT_OWNER", "APPROVED_WAIT_MERGE", "DONE"];
+  const stageOrder = ["NEW", "TRIAGED", "IN_PIPELINE", "IN_ROUNDTABLE", "IN_COURT", "WAIT_OWNER", "EXECUTION_READY", "EXECUTING", "VALIDATING", "APPROVED_WAIT_MERGE", "DONE"];
   const stageLabels = {
     NEW: "Новая",
     TRIAGED: "Разбор",
@@ -81,6 +88,10 @@
     IN_ROUNDTABLE: "Совещание",
     IN_COURT: "Суд",
     WAIT_OWNER: "Ждёт владельца",
+    EXECUTION_READY: "Готово к исполнению",
+    EXECUTING: "Исполнение",
+    VALIDATING: "Проверка",
+    EXECUTION_FAILED: "Ошибка исполнения",
     APPROVED_WAIT_MERGE: "Ждёт merge",
     NEED_INFO: "Нужно уточнение",
     REWORK: "Доработка",
@@ -132,6 +143,10 @@
     IN_ROUNDTABLE: "RC",
     IN_COURT: "JUDGE",
     WAIT_OWNER: "OWNER",
+    EXECUTION_READY: "OWNER",
+    EXECUTING: "BE",
+    VALIDATING: "QA",
+    EXECUTION_FAILED: "DEVOPS",
     APPROVED_WAIT_MERGE: "OWNER",
     NEED_INFO: "OWNER",
     REWORK: "PM",
@@ -930,6 +945,83 @@
     `;
   }
 
+  function renderKnowledgeIntake() {
+    const knowledge = state.scene?.knowledge || {};
+    const hasDraft = knowledge && Object.keys(knowledge).length > 0;
+    const status = String(knowledge.status || "");
+    const claims = Array.isArray(knowledge.claims) ? knowledge.claims : [];
+    const sources = Array.isArray(knowledge.sources) ? knowledge.sources : [];
+    const pending = status === "pending_owner_approval";
+    const statusLabel = {
+      pending_owner_approval: "Ждёт решения владельца",
+      published: "Опубликовано",
+      rejected: "Отклонено",
+    }[status] || "Черновика нет";
+    if (!hasDraft) {
+      return `
+        <section class="scene-card knowledge-card" id="mission-knowledge-panel">
+          <div class="scene-head">
+            <div>
+              <div class="scene-title">База знаний</div>
+              <div class="scene-subtitle">Команда может подготовить черновик знания из твоего сообщения, но публикует его только после твоего подтверждения.</div>
+            </div>
+            <span class="scene-pill">Draft-first</span>
+          </div>
+          <div class="knowledge-empty">
+            <div class="mission-brief">Напиши в чат: «В базу знаний: конкретный факт, правило или контекст проекта».</div>
+            <button type="button" class="small-btn" data-chat-suggestion="В базу знаний: ">Подготовить черновик</button>
+          </div>
+        </section>
+      `;
+    }
+    return `
+      <section class="scene-card knowledge-card is-${escapeHtml(status || "draft")}" id="mission-knowledge-panel">
+        <div class="scene-head">
+          <div>
+            <div class="scene-title">База знаний</div>
+            <div class="scene-subtitle">Черновик проверяется владельцем перед записью в каноническую Knowledge Base.</div>
+          </div>
+          <span class="scene-pill">${escapeHtml(statusLabel)}</span>
+        </div>
+        <div class="knowledge-summary">
+          <div>
+            <div class="doc-title">${escapeHtml(knowledge.title || "Черновик знания")}</div>
+            <div class="mission-brief">${escapeHtml(knowledge.summary || "Краткое описание пока не сформировано.")}</div>
+          </div>
+          ${knowledge.memory_entry_id ? `<span class="scene-pill">KB #${escapeHtml(knowledge.memory_entry_id)}</span>` : ""}
+        </div>
+        <div class="knowledge-grid">
+          <div class="knowledge-panel">
+            <div class="current-state-kicker">Извлечённые утверждения</div>
+            ${claims.length ? claims.slice(0, 5).map((claim, index) => `
+              <div class="knowledge-claim">
+                <span>${index + 1}</span>
+                <p>${escapeHtml(claim.statement || claim.text || "Без текста")}</p>
+              </div>
+            `).join("") : `<div class="empty-state">Утверждения не извлечены.</div>`}
+          </div>
+          <div class="knowledge-panel">
+            <div class="current-state-kicker">Источник</div>
+            ${sources.length ? sources.slice(0, 3).map((source) => `
+              <div class="knowledge-source">
+                <div class="doc-title">${escapeHtml(source.title || "Источник владельца")}</div>
+                <div class="doc-subtitle">${escapeHtml(source.locator || "task chat")}</div>
+              </div>
+            `).join("") : `<div class="empty-state">Источник не указан.</div>`}
+            ${status === "rejected" ? `<div class="mission-brief">Причина: ${escapeHtml(knowledge.rejection_reason || "Отклонено владельцем.")}</div>` : ""}
+            ${status === "published" ? `<div class="mission-brief">Знание доступно команде как MemoryEntry scope=knowledge_base.</div>` : ""}
+          </div>
+        </div>
+        ${pending ? `
+          <div class="inline-actions interactive-layer knowledge-actions">
+            <button type="button" class="primary-btn" data-action="approve-knowledge">Опубликовать в базу знаний</button>
+            <button type="button" class="warn-btn" data-action="reject-knowledge">Отклонить черновик</button>
+          </div>
+        ` : ""}
+      </section>
+    `;
+  }
+
   function renderChatPreview() {
     const chat = state.scene?.chat || { messages: [], can_send: false };
     const latest = [...(chat.messages || [])].reverse().find((item) => item.role === "team") || chat.messages?.[chat.messages.length - 1];
@@ -1101,6 +1193,7 @@
   function normalizedProgressStatus(status) {
     if (status === "REWORK") return "IN_PIPELINE";
     if (status === "NEED_INFO") return "WAIT_OWNER";
+    if (status === "EXECUTION_FAILED") return "EXECUTION_READY";
     if (status === "ARCHIVED") return "DONE";
     return status || "NEW";
   }
@@ -1113,7 +1206,10 @@
       IN_ROUNDTABLE: 64,
       IN_COURT: 81,
       WAIT_OWNER: 92,
-      APPROVED_WAIT_MERGE: 97,
+      EXECUTION_READY: 93,
+      EXECUTING: 95,
+      VALIDATING: 97,
+      APPROVED_WAIT_MERGE: 99,
       DONE: 100,
     }[normalizedProgressStatus(status)] || 6;
   }
@@ -1157,6 +1253,8 @@
     if (runner.state === "failed") return "Ошибка";
     if (ACTIVE_WORK_STATUSES.has(task.status)) return "Работает";
     if (task.status === "WAIT_OWNER") return "Ждёт владельца";
+    if (task.status === "EXECUTION_READY") return "Ждёт запуска исполнения";
+    if (task.status === "EXECUTION_FAILED") return "Ошибка исполнения";
     if (task.status === "APPROVED_WAIT_MERGE") return "Ждёт merge";
     if (task.status === "NEED_INFO") return "Ждёт уточнения";
     if (task.status === "REWORK") return "Ожидает перезапуск";
@@ -1170,7 +1268,7 @@
     if (runner.is_active) return runner.state === "stopping" ? "status-warn" : "status-ok";
     if (runner.state === "cancelled" || runner.state === "failed") return "status-warn";
     if (ACTIVE_WORK_STATUSES.has(task.status)) return "status-ok";
-    if (["WAIT_OWNER", "APPROVED_WAIT_MERGE", "NEED_INFO", "REWORK"].includes(task.status)) return "status-warn";
+    if (["WAIT_OWNER", "EXECUTION_READY", "EXECUTION_FAILED", "APPROVED_WAIT_MERGE", "NEED_INFO", "REWORK"].includes(task.status)) return "status-warn";
     if (FINAL_STATUSES.has(task.status)) return "status-ok";
     return "status-pill";
   }
@@ -1183,7 +1281,7 @@
     if (ACTIVE_WORK_STATUSES.has(task.status)) {
       return currentActor?.label || personaForTask(task).label;
     }
-    if (["WAIT_OWNER", "APPROVED_WAIT_MERGE", "NEED_INFO"].includes(task.status)) {
+    if (["WAIT_OWNER", "EXECUTION_READY", "EXECUTION_FAILED", "APPROVED_WAIT_MERGE", "NEED_INFO"].includes(task.status)) {
       return "Владелец";
     }
     if (FINAL_STATUSES.has(task.status)) {
@@ -1204,6 +1302,10 @@
       IN_ROUNDTABLE: "Дождаться фиксации рисков и передачи в суд.",
       IN_COURT: "Дождаться финального вердикта команды.",
       WAIT_OWNER: "Выбрать решение владельца: утвердить, доработать или запросить уточнение.",
+      EXECUTION_READY: "Нажать «Исполнить утверждённое», если execution request настроен.",
+      EXECUTING: "Дождаться применения patch или остановить job на checkpoint-точке.",
+      VALIDATING: "Дождаться тестов и создания PR.",
+      EXECUTION_FAILED: "Прочитать причину ошибки и подготовить исправленный patch.",
       APPROVED_WAIT_MERGE: "Сделать ручной merge и нажать «Подтвердить merge».",
       NEED_INFO: "Добавить недостающие вводные и снова запустить AI-Team.",
       REWORK: "После правок снова запустить AI-Team.",
@@ -1232,6 +1334,10 @@
     return {
       NEW: "AI-Team ещё не стартовал. Сейчас ничего не выполняется, пока ты не запустишь задачу вручную.",
       WAIT_OWNER: "Команда уже закончила свою часть. Сейчас ничего не исполняется: система ждёт только решение владельца.",
+      EXECUTION_READY: "Owner approve получен. Исполнение ещё не запущено; доступность кнопки зависит от безопасной конфигурации execution request.",
+      EXECUTING: "Execution layer применяет утверждённый patch в отдельной git-ветке.",
+      VALIDATING: "Изменение создано. QA запускает тесты и собирает evidence перед PR.",
+      EXECUTION_FAILED: "Исполнение остановлено с ошибкой. Merge и deploy заблокированы.",
       APPROVED_WAIT_MERGE: "Команда уже закончила работу. Owner одобрил результат, остался только ручной merge.",
       NEED_INFO: "Текущий цикл остановлен. AI-Team ждёт дополнительный контекст перед следующим запуском.",
       REWORK: "Прошлый цикл завершён. Задача возвращена на доработку и ждёт повторного запуска.",
@@ -1279,6 +1385,26 @@
         "Открой финальный вердикт и краткий отчёт команды.",
         "Выбери одно действие: утвердить, вернуть на доработку или запросить уточнение.",
         "Если решение положительное, после фактического merge подтверди его в сцене.",
+      ],
+      EXECUTION_READY: [
+        "Проверь описание подготовленного execution request.",
+        "Нажми «Исполнить утверждённое», если кнопка доступна.",
+        "После завершения открой PR и evidence тестов.",
+      ],
+      EXECUTING: [
+        "Следи за текущей фазой исполнения и live-событиями.",
+        "При необходимости нажми «Остановить AI-Team».",
+        "Не выполняй merge, пока проверка не завершена.",
+      ],
+      VALIDATING: [
+        "Дождись окончания тестов и создания PR.",
+        "Проверь evidence и ссылку на PR.",
+        "Merge выполняй только после успешной проверки.",
+      ],
+      EXECUTION_FAILED: [
+        "Открой последнее событие ошибки исполнения.",
+        "Исправь или замени утверждённый patch.",
+        "Повтори запуск; merge и deploy пока запрещены.",
       ],
       APPROVED_WAIT_MERGE: [
         "Сделай ручной merge вне этой сцены.",
@@ -1393,6 +1519,10 @@
       IN_ROUNDTABLE: `${label} участвует в обсуждении рисков и компромиссов.`,
       IN_COURT: `${label} собирает итоговую позицию и финальный отчёт.`,
       WAIT_OWNER: `Система ждёт решения владельца по готовому результату.`,
+      EXECUTION_READY: `Утверждённое изменение ожидает отдельного запуска execution layer.`,
+      EXECUTING: `${label} применяет утверждённый patch в git-ветке.`,
+      VALIDATING: `QA запускает тесты и проверяет evidence перед PR.`,
+      EXECUTION_FAILED: `Исполнение остановлено; система сохраняет ошибку и блокирует merge.`,
       APPROVED_WAIT_MERGE: `Задача одобрена. Остался ручной merge и подтверждение закрытия.`,
       NEED_INFO: `Система ждёт дополнительные вводные от владельца.`,
       REWORK: `${label} повторно проводит задачу по циклу доработки.`,
@@ -1409,7 +1539,7 @@
     const latestEvent = latestImportantTaskEvent(task);
     let percent = progressBasePercent(normalized);
 
-    if (["IN_PIPELINE", "IN_ROUNDTABLE", "IN_COURT", "WAIT_OWNER", "APPROVED_WAIT_MERGE", "DONE"].includes(normalized)) {
+    if (["IN_PIPELINE", "IN_ROUNDTABLE", "IN_COURT", "WAIT_OWNER", "EXECUTION_READY", "EXECUTING", "VALIDATING", "APPROVED_WAIT_MERGE", "DONE"].includes(normalized)) {
       percent = Math.max(percent, 18 + Math.min(handoffCount, 6) / 6 * 34);
     }
     if (["IN_ROUNDTABLE", "IN_COURT", "WAIT_OWNER", "APPROVED_WAIT_MERGE", "DONE"].includes(normalized)) {
@@ -1420,6 +1550,9 @@
     }
     if (normalized === "WAIT_OWNER") {
       percent = Math.max(percent, 92);
+    }
+    if (["EXECUTION_READY", "EXECUTING", "VALIDATING"].includes(normalized)) {
+      percent = Math.max(percent, progressBasePercent(normalized));
     }
     if (normalized === "APPROVED_WAIT_MERGE") {
       percent = Math.max(percent, 97);
@@ -1448,6 +1581,7 @@
     const canToggleLive = Boolean(state.live.userPaused || OVERVIEW_VIEWS.has(state.view) || state.scene?.live?.can_auto_refresh);
     const toggleLabel = state.live.userPaused ? "Продолжить live" : "Остановить live";
     const returnLabel = state.view === "docs" ? "Вернуться к миссии" : "К началу миссии";
+    const metrics = state.scene?.outcome_metrics || {};
     return `
       <section class="scene-card current-state-card" id="mission-top">
         <div class="scene-head">
@@ -1487,6 +1621,13 @@
           </div>
         </div>
         <div class="current-state-note">${escapeHtml(truth.note)}</div>
+        <div class="outcome-metrics" aria-label="KPI миссии">
+          <div class="current-state-metric"><div class="current-state-kicker">Время владельца</div><div class="current-state-value">${escapeHtml(metrics.owner_minutes ?? 0)} мин</div></div>
+          <div class="current-state-metric"><div class="current-state-kicker">Автономно</div><div class="current-state-value">${escapeHtml(metrics.autonomous_actions ?? 0)} / ${escapeHtml(metrics.total_actions ?? 0)}</div></div>
+          <div class="current-state-metric"><div class="current-state-kicker">Сэкономлено</div><div class="current-state-value">${escapeHtml(metrics.owner_hours_saved ?? 0)} ч</div></div>
+          <div class="current-state-metric"><div class="current-state-kicker">Rework</div><div class="current-state-value">${escapeHtml(metrics.rework_count ?? 0)}</div></div>
+        </div>
+        ${metrics.business_outcome ? `<div class="current-state-team">Бизнес-результат: ${escapeHtml(metrics.business_outcome)}</div>` : ""}
         <div class="current-state-team">Сейчас система ждёт: ${escapeHtml(truth.ownerWaitingFor)}</div>
         ${truth.teamSummary ? `<div class="current-state-team">Командный итог: ${escapeHtml(truth.teamSummary)}</div>` : ""}
         <div class="owner-now-block">
@@ -2033,6 +2174,8 @@
 
         ${renderMissionChat()}
 
+        ${renderKnowledgeIntake()}
+
         <div class="scene-layout">
         <section>
           <div class="office-map">${zoneCards()}</div>
@@ -2158,12 +2301,17 @@
             <div class="action-grid interactive-layer">
               <button type="button" class="primary-btn" data-action="run-pipeline" ${canRunPipeline(task) ? "" : "disabled"}>Запустить AI-Team</button>
               <button type="button" class="danger-btn" data-action="stop-pipeline" ${canStopTeam() ? "" : "disabled"}>Остановить AI-Team</button>
+              <button type="button" class="primary-btn execution-btn" data-action="start-execution" ${state.scene.execution?.can_start ? "" : "disabled"}>Исполнить утверждённое</button>
               <button type="button" class="primary-btn" data-owner-action="approve" ${state.scene.owner_actions.can_approve ? "" : "disabled"}>Утвердить</button>
               <button type="button" class="warn-btn" data-owner-action="rework" ${state.scene.owner_actions.can_rework ? "" : "disabled"}>На доработку</button>
               <button type="button" class="ghost-btn" data-owner-action="clarify" ${state.scene.owner_actions.can_clarify ? "" : "disabled"}>Нужно уточнение</button>
               <button type="button" class="ghost-btn" data-owner-action="merged" ${state.scene.owner_actions.can_mark_merged ? "" : "disabled"}>Подтвердить merge</button>
             </div>
             <div class="docs-grid" style="margin-top:0.75rem;">
+              <div class="doc-card">
+                <div class="doc-title">Execution layer</div>
+                <div class="mission-brief">${escapeHtml(state.scene.execution?.reason || "Исполнение для этой миссии не настроено.")}</div>
+              </div>
               <div class="doc-card">
                 <div class="doc-title">Запуск AI-Team</div>
                 <div class="mission-brief">${escapeHtml(state.scene.runner?.start_reason || "—")}</div>
@@ -2620,8 +2768,20 @@
         await stopPipeline();
         return;
       }
+      if (target.dataset.action === "start-execution") {
+        await startExecution();
+        return;
+      }
       if (target.dataset.action === "send-chat") {
         await submitMissionChat();
+        return;
+      }
+      if (target.dataset.action === "approve-knowledge") {
+        await submitKnowledgeDecision("approve");
+        return;
+      }
+      if (target.dataset.action === "reject-knowledge") {
+        await submitKnowledgeDecision("reject");
         return;
       }
       if (target.dataset.action === "upload-attachments") {
@@ -2726,6 +2886,19 @@
     }
   }
 
+  async function startExecution() {
+    if (!state.selectedTaskId) return;
+    try {
+      setToast(`Запускаю утверждённое исполнение для миссии #${state.selectedTaskId}...`);
+      await fetchJson(`/api/tasks/${state.selectedTaskId}/execution/start`, { method: "POST" });
+      await Promise.all([refreshTasks(), refreshOfficeFeed({ reset: true })]);
+      await openTask(state.selectedTaskId, { historyMode: "replace", withSpinner: false });
+      setToast("Execution layer запущен: patch → тесты → PR. Merge выполняется только вручную.");
+    } catch (error) {
+      setToast(`Не удалось запустить исполнение: ${error.message}`);
+    }
+  }
+
   async function submitOwnerAction(action) {
     if (!state.selectedTaskId) return;
     const mapping = {
@@ -2766,6 +2939,25 @@
       setToast("Команда ответила в чате миссии.");
     } catch (error) {
       setToast(`Не удалось отправить сообщение: ${error.message}`);
+    }
+  }
+
+  async function submitKnowledgeDecision(action) {
+    if (!state.selectedTaskId) return;
+    const endpoint = action === "approve" ? "approve" : "reject";
+    const payload = action === "approve"
+      ? { note: "Подтверждено владельцем из AI Office." }
+      : { reason: "Отклонено владельцем из AI Office." };
+    try {
+      await fetchJson(`/api/tasks/${state.selectedTaskId}/knowledge/${endpoint}`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      await Promise.all([refreshTasks(), refreshOfficeFeed({ reset: true })]);
+      await openTask(state.selectedTaskId, { historyMode: "replace", withSpinner: false });
+      setToast(action === "approve" ? "Знание опубликовано в базе." : "Черновик знания отклонён.");
+    } catch (error) {
+      setToast(`Не удалось обработать знание: ${error.message}`);
     }
   }
 

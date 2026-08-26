@@ -87,6 +87,11 @@ async def run_pr_loop(
     workspace_path: str,
     apply_callback: Optional[Callable[[str, dict], None]] = None,
     mode: RunnerMode = "manual",
+    *,
+    task_data_override: Optional[dict] = None,
+    task_update_callback: Optional[Callable[..., object]] = None,
+    cancel_check: Optional[Callable[[], None]] = None,
+    branch_name: Optional[str] = None,
 ) -> dict:
     """
     PR-loop: получить задачу → ветка → правки → тесты → commit → push → PR → PATCH.
@@ -97,29 +102,74 @@ async def run_pr_loop(
     if not workspace.exists():
         return {"success": False, "error": f"Workspace not found: {workspace_path}"}
 
-    task_data, err = api_client.task_get(task_id)
-    if err or not task_data:
-        return {"success": False, "error": err or "Task not found"}
+    if mode == "manual":
+        return {
+            "success": False,
+            "mode": "manual",
+            "requires_owner_action": True,
+            "error": "Manual mode is evidence-only and cannot modify, commit or push a workspace.",
+        }
+    if mode not in ("patch", "cursor_agent"):
+        return {"success": False, "error": f"Unsupported runner mode: {mode}"}
+    if not callable(apply_callback):
+        return {
+            "success": False,
+            "mode": mode,
+            "error": "Executable mode requires an explicit apply_callback.",
+        }
 
-    artifacts_data, _ = api_client.artifacts_list(task_id)
-    branch_name = f"chore/task-{task_id}"
+    if cancel_check:
+        cancel_check()
+    if task_data_override is None:
+        task_data, err = api_client.task_get(task_id)
+        if err or not task_data:
+            return {"success": False, "error": err or "Task not found"}
+    else:
+        task_data = dict(task_data_override)
+
+    resolved_branch_name = branch_name or f"chore/task-{task_id}"
 
     code, out, err_out = _run(["git", "status", "--porcelain"], workspace)
     if code != 0:
         return {"success": False, "error": f"git status failed: {err_out}"}
+    if out.strip():
+        return {
+            "success": False,
+            "error": "Workspace must be clean before execution; existing changes were not touched.",
+        }
 
-    code, _, err_out = _run(["git", "checkout", "-b", branch_name], workspace)
-    if code != 0 and "already exists" not in err_out:
-        _run(["git", "checkout", branch_name], workspace)
+    merged_base = merge_gateway_secrets_into_env()
+    gh_token = merged_base.get("GH_TOKEN") or merged_base.get("GITHUB_TOKEN")
+    if not gh_token:
+        return {
+            "success": False,
+            "pr_url": "",
+            "commit_sha": "",
+            "ci_url": "",
+            "error": "GH_TOKEN not set; execution was not started.",
+        }
 
-    if mode not in ("manual", "patch", "cursor_agent"):
-        mode = "manual"
-    if callable(apply_callback) and mode != "manual":
-        try:
-            apply_callback(str(workspace), task_data)
-        except Exception as e:
-            logger.exception("apply_callback failed")
-            return {"success": False, "error": str(e)}
+    code, _, err_out = _run(["git", "checkout", "-b", resolved_branch_name], workspace)
+    if code != 0:
+        return {
+            "success": False,
+            "error": f"git branch creation failed; execution was not started: {err_out}",
+        }
+
+    try:
+        apply_callback(str(workspace), task_data)
+    except Exception as e:
+        logger.exception("apply_callback failed")
+        return {"success": False, "error": str(e)}
+    if cancel_check:
+        cancel_check()
+
+    code, out, err_out = _run(["git", "status", "--porcelain"], workspace)
+    if code != 0:
+        return {"success": False, "error": f"git status after execution failed: {err_out}"}
+    changed = [line.split(maxsplit=1)[-1] for line in out.strip().splitlines() if line.strip()]
+    if not changed:
+        return {"success": False, "error": "Executor produced no workspace changes."}
 
     code, pytest_out, pytest_err = _run(
         ["python", "-m", "pytest", "tests/", "-q", "--tb=short"],
@@ -130,11 +180,15 @@ async def run_pr_loop(
         },
     )
     pytest_ok = code == 0
-
-    changed = []
-    code, out, _ = _run(["git", "status", "--porcelain"], workspace)
-    if code == 0:
-        changed = [line.split()[-1] for line in out.strip().split("\n") if line.strip()]
+    if not pytest_ok:
+        return {
+            "success": False,
+            "error": "Validation failed; commit and push were blocked.",
+            "pytest_output": (pytest_out + "\n" + pytest_err)[-8000:],
+            "changed_files": changed,
+        }
+    if cancel_check:
+        cancel_check()
 
     repo = os.getenv("GITHUB_REPOSITORY", "YaroslavValeev/mywave-ai-team")
     report = _build_dev_report(task_id, task_data.get("summary", "")[:200], changed, pytest_ok, mode, None)
@@ -152,15 +206,9 @@ async def run_pr_loop(
     code, out, err_out = _run(["git", "rev-parse", "HEAD"], workspace)
     commit_sha = out.strip()[:12] if code == 0 else ""
 
-    code, _, err_out = _run(["git", "push", "-u", "origin", branch_name], workspace)
+    code, _, err_out = _run(["git", "push", "-u", "origin", resolved_branch_name], workspace)
     if code != 0:
         return {"success": False, "error": f"git push failed: {err_out}"}
-
-    merged_base = merge_gateway_secrets_into_env()
-    gh_token = merged_base.get("GH_TOKEN") or merged_base.get("GITHUB_TOKEN")
-    if not gh_token:
-        api_client.task_update(task_id, status="WAIT_OWNER", pr_url="", commit_sha=commit_sha, ci_url=None)
-        return {"success": True, "pr_url": "", "commit_sha": commit_sha, "ci_url": "", "error": "GH_TOKEN not set, PR not created"}
 
     env = {**merged_base, "GH_TOKEN": gh_token}
     code, out, err_out = _run(
@@ -181,16 +229,21 @@ async def run_pr_loop(
                         pass
                 break
     if not pr_url:
-        pr_url = f"https://github.com/{repo}/compare/main...{branch_name}"
+        return {
+            "success": False,
+            "commit_sha": commit_sha,
+            "error": f"GitHub PR creation failed: {err_out or 'no PR URL returned'}",
+        }
 
     if repo:
-        ci_url_val = f"https://github.com/{repo}/actions?query=branch%3A{branch_name}" if branch_name else f"https://github.com/{repo}/actions"
+        ci_url_val = f"https://github.com/{repo}/actions?query=branch%3A{resolved_branch_name}"
     else:
         ci_url_val = ""
 
-    _, _ = api_client.task_update(
+    update_task = task_update_callback or api_client.task_update
+    update_task(
         task_id,
-        status="WAIT_OWNER",
+        status="APPROVED_WAIT_MERGE",
         pr_url=pr_url,
         commit_sha=commit_sha,
         ci_url=ci_url_val or None,

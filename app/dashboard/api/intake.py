@@ -3,6 +3,13 @@
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
+from app.knowledge_intake import (
+    approve_knowledge_draft,
+    create_knowledge_draft,
+    reject_knowledge_draft,
+)
 
 from app.dashboard.api.common import (
     ExplorationSelectBody,
@@ -19,6 +26,18 @@ from app.dashboard.api.common import (
 router = APIRouter()
 
 
+class KnowledgeDraftBody(BaseModel):
+    material: str = Field(min_length=4, max_length=20000)
+    title: str = Field(min_length=2, max_length=200)
+    source_locator: str = Field(min_length=2, max_length=500)
+    category: str = Field(default="project", min_length=2, max_length=64)
+
+
+class KnowledgeDecisionBody(BaseModel):
+    note: str = Field(default="", max_length=1000)
+    reason: str = Field(default="", max_length=1000)
+
+
 @router.post("/intake/normalize")
 async def api_intake_normalize(body: NormalizeIntakeRequest):
     """Нормализация входа (Smart Intake v0/v1): без создания задачи. Требует X-API-Key."""
@@ -27,6 +46,51 @@ async def api_intake_normalize(body: NormalizeIntakeRequest):
         repo = TaskRepository(session)
         resp = normalize_intake(body, repo=repo)
     return response_to_public_dict(resp)
+
+
+@router.post("/tasks/{task_id}/knowledge/draft")
+async def api_create_knowledge_draft(task_id: int, body: KnowledgeDraftBody):
+    """Создать draft знания; каноническая KB пока не изменяется."""
+    Session = get_session_factory()
+    with Session() as session:
+        try:
+            draft = create_knowledge_draft(
+                TaskRepository(session),
+                task_id,
+                material=body.material,
+                title=body.title,
+                source_locator=body.source_locator,
+                category=body.category,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return {"ok": True, "task_id": task_id, "draft": draft}
+
+
+@router.post("/tasks/{task_id}/knowledge/approve")
+async def api_approve_knowledge_draft(task_id: int, body: KnowledgeDecisionBody):
+    """Owner approval: опубликовать draft в project Knowledge Base."""
+    Session = get_session_factory()
+    with Session() as session:
+        try:
+            draft = approve_knowledge_draft(TaskRepository(session), task_id, note=body.note)
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return {"ok": True, "task_id": task_id, "draft": draft}
+
+
+@router.post("/tasks/{task_id}/knowledge/reject")
+async def api_reject_knowledge_draft(task_id: int, body: KnowledgeDecisionBody):
+    """Отклонить draft без изменения канонической Knowledge Base."""
+    Session = get_session_factory()
+    with Session() as session:
+        try:
+            draft = reject_knowledge_draft(
+                TaskRepository(session), task_id, reason=body.reason or "Отклонено владельцем."
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        return {"ok": True, "task_id": task_id, "draft": draft}
 
 
 @router.post("/owner/overrides")

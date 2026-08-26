@@ -10,6 +10,7 @@ from app.dashboard.api.common import (
     owner_daily_checklist_bullets,
     TaskRepository,
 )
+from app.shared.release_info import get_release_info
 
 router = APIRouter()
 
@@ -18,6 +19,12 @@ router = APIRouter()
 async def api_system_health():
     """Сводный статус интеграций и runtime-конфигурации."""
     return collect_system_health()
+
+
+@router.get("/system/release")
+async def api_system_release():
+    """Явная identity сборки: release, SHA, build timestamp и версия миграций."""
+    return get_release_info()
 
 
 @router.get("/system/data_health")
