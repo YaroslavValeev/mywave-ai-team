@@ -11,6 +11,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: ${DOCKER_BUILD_TARGET:-lite}
+      args:
+        APP_BUILD_TIMESTAMP: ${APP_BUILD_TIMESTAMP:-unknown}
     env_file:
       - .env
     environment:
@@ -42,6 +44,7 @@ services:
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
       APP_VERSION: ${APP_VERSION:-dev}
       APP_COMMIT_SHA: ${APP_COMMIT_SHA:-unknown}
+      APP_BUILD_TIMESTAMP: ${APP_BUILD_TIMESTAMP:-unknown}
       APP_ENVIRONMENT: ${APP_ENVIRONMENT:-local}
     depends_on:
       postgres:

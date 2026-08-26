@@ -5,8 +5,10 @@
 FROM python:3.11-slim AS base
 
 WORKDIR /app
+ARG APP_BUILD_TIMESTAMP=unknown
 ENV PYTHONPATH=/app:/app/packages/shared-core
 ENV ARTIFACTS_DIR=/app/app/artifacts
+ENV APP_BUILD_TIMESTAMP=${APP_BUILD_TIMESTAMP}
 RUN mkdir -p app/artifacts/handoffs app/artifacts/reports app/artifacts/tasks
 
 FROM base AS deps-lite
