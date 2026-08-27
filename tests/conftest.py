@@ -15,6 +15,9 @@ from fastapi.testclient import TestClient
 if not os.environ.get("DATABASE_URL") or os.environ.get("DATABASE_URL") in ("postgresql+psycopg2://", "postgresql://"):
     os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["OWNER_API_KEY"] = os.environ.get("PYTEST_OWNER_API_KEY", "test_key_for_smoke")
+# Tests must never send proactive messages through credentials inherited from .env.
+os.environ["TELEGRAM_PROACTIVE_NOTIFY_ENABLED"] = "false"
+os.environ["TELEGRAM_STAGE_NOTIFY"] = "false"
 # Без вызовов LLM в CI: pytest по умолчанию rule_based (роли CrewAI не трогаем сеть).
 os.environ.setdefault("ORCHESTRATION_ENGINE", "rule_based")
 
