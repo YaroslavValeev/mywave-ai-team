@@ -11,6 +11,33 @@ def test_system_health_includes_molt(client, auth_headers):
     assert "molt" in checks
 
 
+def test_telegram_health_reports_safe_dashboard_only_mode(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_POLLING_ENABLED", "false")
+    monkeypatch.setenv("TELEGRAM_PROACTIVE_NOTIFY_ENABLED", "false")
+
+    from app.shared.system_health import _check_telegram
+
+    result = _check_telegram()
+
+    assert result["status"] == "ok"
+    assert "polling и фоновые уведомления отключены" in result["message"]
+
+
+def test_telegram_health_warns_when_proactive_enabled_without_credentials(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_POLLING_ENABLED", "false")
+    monkeypatch.setenv("TELEGRAM_PROACTIVE_NOTIFY_ENABLED", "true")
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
+    monkeypatch.delenv("OWNER_CHAT_ID", raising=False)
+
+    from app.shared import system_health
+
+    with patch.object(system_health, "get_telegram_config", return_value={}):
+        result = system_health._check_telegram()
+
+    assert result["status"] == "warn"
+    assert "фоновые уведомления включены" in result["message"]
+
+
 def test_check_molt_not_configured(monkeypatch):
     monkeypatch.delenv("MOLT_HTTP_BASE_URL", raising=False)
     monkeypatch.setenv("MOLT_TRANSPORT_MODE", "local")

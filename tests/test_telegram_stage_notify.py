@@ -19,6 +19,24 @@ def test_notify_stage_sync_respects_flag(monkeypatch):
         mock_stage.assert_not_called()
 
 
+def test_proactive_notifications_are_disabled_by_default(monkeypatch):
+    monkeypatch.delenv("TELEGRAM_PROACTIVE_NOTIFY_ENABLED", raising=False)
+    from app.config import get_orchestration_config
+
+    assert get_orchestration_config()["telegram_proactive_notify"] is False
+
+
+def test_send_owner_message_does_not_create_bot_without_explicit_opt_in(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_PROACTIVE_NOTIFY_ENABLED", "false")
+    with patch("app.bot.notify.Bot") as bot_class:
+        from app.bot.notify import send_owner_message
+
+        ok = asyncio.run(send_owner_message("background message"))
+
+    assert ok is False
+    bot_class.assert_not_called()
+
+
 def test_notify_stage_message_format():
     with patch("app.bot.notify.send_owner_message", new_callable=AsyncMock) as mock_send:
         mock_send.return_value = True

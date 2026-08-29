@@ -67,6 +67,10 @@ async def send_with_retry(
 
 async def send_owner_message(text: str, parse_mode: Optional[str] = "Markdown", reply_markup: Optional[Any] = None) -> bool:
     """Отправить сообщение Owner. Возвращает True при успехе."""
+    orchestration_cfg = get_orchestration_config()
+    if not orchestration_cfg.get("telegram_proactive_notify", False):
+        logger.info("Proactive Telegram notification skipped: explicit opt-in is disabled")
+        return False
     cfg = get_telegram_config()
     token = cfg.get("bot_token") or os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = cfg.get("owner_chat_id") or os.getenv("OWNER_CHAT_ID")
@@ -134,7 +138,7 @@ def _log_stage_task_result(task: "asyncio.Task[Any]") -> None:
 def notify_stage_sync(task_id: int, stage: str, detail: str = "") -> None:
     """Sync wrapper for orchestrator (best-effort; never raises to caller)."""
     cfg = get_orchestration_config()
-    if not cfg.get("telegram_stage_notify", True):
+    if not cfg.get("telegram_stage_notify", False):
         return
     try:
         coro = notify_stage(task_id, stage, detail)

@@ -66,14 +66,31 @@ def _check_telegram() -> dict:
         "yes",
         "on",
     }
+    proactive_enabled = os.getenv(
+        "TELEGRAM_PROACTIVE_NOTIFY_ENABLED", "false"
+    ).strip().lower() in {"1", "true", "yes", "on"}
+    if not polling_enabled and not proactive_enabled:
+        return {
+            "status": "ok",
+            "message": "Telegram polling и фоновые уведомления отключены для этого runtime.",
+        }
+    if proactive_enabled and not (token and chat_id):
+        return {
+            "status": "warn",
+            "message": "Telegram: фоновые уведомления включены, но токен или chat id не настроены.",
+        }
     if not polling_enabled:
         return {
             "status": "ok",
-            "message": "Telegram polling отключён для этого runtime; отправка уведомлений остаётся доступной.",
+            "message": "Telegram polling отключён; фоновые уведомления явно включены.",
         }
     if token and chat_id:
-        return {"status": "ok", "message": "Telegram: токен бота и chat id владельца настроены."}
-    return {"status": "warn", "message": "Telegram: уведомления настроены не полностью."}
+        proactive_note = "включены" if proactive_enabled else "отключены"
+        return {
+            "status": "ok",
+            "message": f"Telegram polling настроен; фоновые уведомления {proactive_note}.",
+        }
+    return {"status": "warn", "message": "Telegram polling включён, но токен или chat id не настроены."}
 
 
 def _check_orchestration() -> dict:
