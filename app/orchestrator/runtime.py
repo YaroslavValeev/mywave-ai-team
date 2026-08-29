@@ -102,10 +102,11 @@ class OrchestrationRuntime:
     def update(self, task_id: int, run_id: str, **fields) -> dict:
         with self._lock:
             current = self._jobs.get(task_id)
-            if not current or current.get("run_id") != run_id:
-                return self.snapshot(task_id)
-            current.update(fields)
-            return dict(current)
+            if current and current.get("run_id") == run_id:
+                current.update(fields)
+                return dict(current)
+        # snapshot() acquires the same non-reentrant lock, so call it only after release.
+        return self.snapshot(task_id)
 
     def start(self, task_id: int, *, source: str, target: Callable[[OrchestrationControl], dict]) -> dict:
         with self._lock:

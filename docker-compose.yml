@@ -23,6 +23,26 @@ services:
       POSTGRES_USER: mywave
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: mywave_ai
+      TELEGRAM_POLLING_ENABLED: ${TELEGRAM_POLLING_ENABLED:-false}
+      TELEGRAM_STAGE_NOTIFY: ${TELEGRAM_STAGE_NOTIFY:-false}
+      ORCHESTRATION_ALLOW_FALLBACK: ${ORCHESTRATION_ALLOW_FALLBACK:-true}
+      LLM_TIER_DEFAULT: ${LLM_TIER_DEFAULT:-local}
+      LLM_LOCAL_BASE_URL: ${LLM_LOCAL_BASE_URL:-}
+      LLM_LOCAL_API_KEY: ${LLM_LOCAL_API_KEY:-ollama}
+      LLM_LOCAL_MODEL: ${LLM_LOCAL_MODEL:-}
+      LLM_LOCAL_PROVIDER: ${LLM_LOCAL_PROVIDER:-openai}
+      LLM_CLOUD_BASE_URL: ${LLM_CLOUD_BASE_URL:-}
+      LLM_CLOUD_API_KEY: ${LLM_CLOUD_API_KEY:-}
+      LLM_CLOUD_MODEL: ${LLM_CLOUD_MODEL:-}
+      CREWAI_MODEL: ${CREWAI_MODEL:-}
+      CREWAI_DEFAULT_MODEL: ${CREWAI_DEFAULT_MODEL:-}
+      CREWAI_PROVIDER: ${CREWAI_PROVIDER:-openai}
+      CREWAI_TIMEOUT: ${CREWAI_TIMEOUT:-120}
+      CREWAI_MAX_TOKENS: ${CREWAI_MAX_TOKENS:-8192}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      APP_VERSION: ${APP_VERSION:-dev}
+      APP_COMMIT_SHA: ${APP_COMMIT_SHA:-unknown}
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-local}
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,6 +61,18 @@ services:
         "i=0; until alembic upgrade head; do i=$$((i+1)); if [ $$i -ge 15 ]; then echo 'alembic failed'; exit 1; fi; echo \"alembic retry $$i/15\"; sleep 2; done; exec python -m app.main",
       ]
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
 
   postgres:
     image: postgres:15-alpine
@@ -50,11 +82,13 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mywave -d mywave_ai"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
+      start_period: 120s
 
   caddy:
     image: caddy:2
@@ -68,7 +102,9 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - app
+      app:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   pgdata: {}

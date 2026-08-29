@@ -1,9 +1,10 @@
-# MyWave AI-TEAM MVP v0
+# MyWave AI-TEAM / AI Office v1 candidate
 
 **AI Office System** — control-plane: Telegram → задача → оркестрация по ролям → approve → артефакты.  
 **Канон runtime, профили `office-full` / `office-lite`, границы MVP:** [docs/CANONICAL-RUNTIME.md](docs/CANONICAL-RUNTIME.md).  
 **Первый живой сценарий (Telegram → артефакты):** [docs/CANONICAL-SCENARIO-V1.md](docs/CANONICAL-SCENARIO-V1.md).  
 **Deploy и секреты (owner playbook):** [docs/OWNER-SETUP-AND-SERVER.md](docs/OWNER-SETUP-AND-SERVER.md).
+**Текущая readiness, локальный запуск, production gates и rollback:** [docs/V1-READINESS.md](docs/V1-READINESS.md).
 
 Иерархическая multi-agent система **«Конвейер → Круглый стол → Суд (AGM)»** для MyWave.
 
@@ -73,8 +74,8 @@ docker compose up -d
 Примеры:
 
 ```powershell
-# 1) Ручной запуск
-powershell -ExecutionPolicy Bypass -File .\scripts\local_stack_start.ps1
+# 1) Полный локальный AI Office с установленной Ollama/qwen2.5:3b
+powershell -ExecutionPolicy Bypass -File .\scripts\local_stack_start.ps1 -FullAI -NoCaddy
 
 # 2) Проверка
 powershell -ExecutionPolicy Bypass -File .\scripts\local_stack_status.ps1

@@ -293,7 +293,9 @@ def _run_json_task(
     Task = classes["Task"]
     Crew = classes["Crew"]
     Process = classes["Process"]
-    llm = _build_llm(classes)
+    configured_max_tokens = int(get_orchestration_config().get("crewai_max_tokens", 8192) or 8192)
+    max_tokens = min(configured_max_tokens, 256) if allowed_keys == TRIAGE_KEYS else configured_max_tokens
+    llm = _build_llm(classes, max_tokens=max_tokens)
     if llm is None:
         _set_last_crewai_error("LLM not configured (CREWAI_MODEL / OPENAI_API_KEY / OPENAI_BASE_URL)")
         logger.warning("CrewAI LLM missing for role %s", role)
@@ -363,7 +365,7 @@ def _load_crewai_classes() -> dict[str, Any] | None:
     return {"Agent": Agent, "Task": Task, "Crew": Crew, "Process": Process, "LLM": LLM}
 
 
-def _build_llm(classes: dict[str, Any]) -> Any | None:
+def _build_llm(classes: dict[str, Any], *, max_tokens: int | None = None) -> Any | None:
     from app.orchestrator.llm_tier import describe_active_endpoint, endpoint_for_tier
 
     cfg = get_orchestration_config()
@@ -379,7 +381,7 @@ def _build_llm(classes: dict[str, Any]) -> Any | None:
         "model": model,
         "temperature": cfg.get("crewai_temperature", 0.2),
         "timeout": cfg.get("crewai_timeout", 120),
-        "max_tokens": cfg.get("crewai_max_tokens", 2000),
+        "max_tokens": max_tokens or cfg.get("crewai_max_tokens", 8192),
     }
     if cfg.get("crewai_use_responses_api"):
         kwargs["response_format"] = {"type": "json_object"}

@@ -19,6 +19,11 @@ if [[ ! -f Caddyfile ]]; then
   exit 1
 fi
 
+export APP_COMMIT_SHA="${APP_COMMIT_SHA:-$(git rev-parse HEAD)}"
+export APP_VERSION="${APP_VERSION:-$(git describe --tags --always --dirty)}"
+export APP_ENVIRONMENT="${APP_ENVIRONMENT:-production}"
+echo "==> Release: version=$APP_VERSION commit=$APP_COMMIT_SHA environment=$APP_ENVIRONMENT"
+
 # Порты HTTPS
 if command -v ufw >/dev/null 2>&1; then
   sudo ufw allow 80/tcp || true

@@ -251,6 +251,7 @@ def test_api_exploration_select_fallback(client, auth_headers, db_session, monke
 
 
 def test_telegram_scenario_callback_sets_selection_and_triggers_execution(db_session, monkeypatch):
+    monkeypatch.setenv("OWNER_CHAT_ID", "12345")
     repo = TaskRepository(db_session)
     task = repo.create_task(owner_text="Я бы хотел создать проект Tourism")
     repo.update_task(

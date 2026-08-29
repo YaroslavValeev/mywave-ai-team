@@ -83,3 +83,18 @@ def test_normalize_base_url_appends_v1(monkeypatch):
     assert captured["base_url"] == "http://127.0.0.1:11434/v1"
     assert captured["api_key"] in {"local", "ollama"}
     assert captured["model"].endswith("llama3.2") or "llama3.2" in captured["model"]
+
+
+def test_build_llm_accepts_task_specific_token_limit(monkeypatch):
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://127.0.0.1:11434")
+    monkeypatch.setenv("CREWAI_MODEL", "qwen2.5:3b")
+    captured = {}
+
+    class FakeLLM:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    from app.orchestrator import crewai_bridge as bridge
+
+    assert bridge._build_llm({"LLM": FakeLLM}, max_tokens=256) is not None
+    assert captured["max_tokens"] == 256

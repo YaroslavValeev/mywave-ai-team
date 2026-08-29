@@ -8,7 +8,11 @@ from app.config import get_routing
 from app.orchestrator.agent_clusters import agent_cluster_for_domain
 from app.orchestrator.exploration import detect_exploration_intent
 from app.orchestrator.revenue_intent import detect_revenue_intent
-from app.orchestrator.triage import REVENUE_OVERRIDE_DOMAIN, REVENUE_OVERRIDE_TASK_TYPE
+from app.orchestrator.triage import (
+    REVENUE_OVERRIDE_DOMAIN,
+    REVENUE_OVERRIDE_TASK_TYPE,
+    _explicit_project_triage,
+)
 from app.storage.repositories import TaskRepository
 
 logger = logging.getLogger(__name__)
@@ -22,6 +26,8 @@ def _routing_revenue_cfg() -> dict[str, Any]:
 
 
 def _revenue_locked(meta: dict[str, Any], triage_dict: dict[str, Any], owner_text: str) -> bool:
+    if _explicit_project_triage(owner_text, get_routing()):
+        return False
     if bool(triage_dict.get("revenue_intent_override")):
         return True
     if bool(meta.get("revenue_intent_override")):

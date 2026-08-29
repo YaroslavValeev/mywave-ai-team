@@ -167,6 +167,8 @@ def test_office_routes_render_shell_and_deeplink(db_session):
     assert 'task-attachment-input' in asset_resp.text
     assert 'mission-attachment-input' in asset_resp.text
     assert 'data-action="upload-attachments"' in asset_resp.text
+    assert "state.compose.pendingRender = true" in asset_resp.text
+    assert "active.id === state.compose.activeField" in asset_resp.text
     assert "Скачать док. созданный командой" in asset_resp.text
     assert "Финальный вердикт отдельно" in asset_resp.text
     assert "Короткий диалог команды" in asset_resp.text
@@ -211,3 +213,6 @@ def test_office_routes_render_shell_and_deeplink(db_session):
     assert ".upload-card" in css_resp.text
     assert "@media (max-width: 640px)" in css_resp.text
     assert "grid-template-columns: 1fr;" in css_resp.text
+    assert "@media (hover: hover) and (pointer: fine)" in css_resp.text
+    assert ":focus-visible" in css_resp.text
+    assert ":not(:disabled):active" in css_resp.text

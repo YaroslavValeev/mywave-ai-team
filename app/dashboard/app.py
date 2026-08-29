@@ -461,7 +461,9 @@ def _start_background_resume(task_id: int, *, source: str = "console_resume") ->
 @app.get("/health")
 async def health():
     """Без auth — для healthcheck."""
-    return {"status": "ok"}
+    from app.shared.release_info import get_release_info
+
+    return {"status": "ok", "release": get_release_info()}
 
 
 @app.get("/", response_class=HTMLResponse)

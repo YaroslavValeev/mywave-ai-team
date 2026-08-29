@@ -19,6 +19,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def telegram_polling_enabled() -> bool:
+    return os.getenv("TELEGRAM_POLLING_ENABLED", "true").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def run_dashboard_process():
     from app.dashboard.app import run_dashboard
     run_dashboard()
@@ -45,8 +54,14 @@ async def main():
     dashboard_proc.start()
     logger.info("Dashboard started on port 8080")
 
-    # Запуск бота
-    await run_bot()
+    if telegram_polling_enabled():
+        await run_bot()
+        return
+
+    logger.info("Telegram polling disabled; Dashboard-only mode is active")
+    while dashboard_proc.is_alive():
+        await asyncio.sleep(1)
+    raise RuntimeError(f"Dashboard process stopped with exit code {dashboard_proc.exitcode}")
 
 
 if __name__ == "__main__":
