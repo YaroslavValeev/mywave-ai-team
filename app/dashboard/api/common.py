@@ -81,6 +81,7 @@ CHAT_QUICK_PROMPTS = [
     "Что сейчас делает команда по этой миссии?",
     "Какие риски по задаче самые важные?",
     "Что мне нужно сделать следующим шагом?",
+    "В базу знаний: ",
 ]
 
 
@@ -233,11 +234,14 @@ STATUS_SCENES = {
     "IN_COURT": {"title": "Суд решений", "subtitle": "Формируется итоговая позиция и финальный отчёт.", "zone": "court", "animation": "judge"},
     "WAIT_OWNER": {"title": "Стол владельца", "subtitle": "Система ждёт управленческого решения по готовому результату.", "zone": "owner", "animation": "wait-owner"},
     "EXECUTION_READY": {
-        "title": "Запуск в Cursor",
-        "subtitle": "Подготовлены промпты и план — выполните работу в репозитории, затем при необходимости снова запустите pipeline.",
+        "title": "Готово к исполнению",
+        "subtitle": "Owner approve получен. Можно запустить разрешённое исполнение или использовать ручной EXECUTE-пакет.",
         "zone": "owner",
         "animation": "wait-owner",
     },
+    "EXECUTING": {"title": "Исполнение", "subtitle": "Команда применяет утверждённое изменение в отдельной git-ветке.", "zone": "worklane", "animation": "handoff"},
+    "VALIDATING": {"title": "Проверка результата", "subtitle": "QA проверяет тесты и evidence перед созданием PR.", "zone": "operations", "animation": "review"},
+    "EXECUTION_FAILED": {"title": "Ошибка исполнения", "subtitle": "Изменения остановлены. Нужна диагностика или новый утверждённый patch.", "zone": "operations", "animation": "error"},
     "APPROVED_WAIT_MERGE": {"title": "PR готов", "subtitle": "Одобрено. Остался ручной merge и подтверждение закрытия задачи.", "zone": "owner", "animation": "merge"},
     "NEED_INFO": {"title": "Нужно уточнение", "subtitle": "Владелец запросил дополнительные вводные.", "zone": "owner", "animation": "clarify"},
     "REWORK": {"title": "Доработка", "subtitle": "Миссия отправлена на повторный круг с новыми замечаниями.", "zone": "worklane", "animation": "rework"},
@@ -258,6 +262,13 @@ EVENT_LABELS = {
     "pipeline_background_completed": "Фоновый проход завершён",
     "pipeline_background_stopped": "AI-Team остановлен",
     "pipeline_background_failed": "Фоновый проход завершился с ошибкой",
+    "execution_started": "Исполнение запущено",
+    "execution_cancelled": "Исполнение остановлено",
+    "execution_failed": "Ошибка исполнения",
+    "validation_done": "Результат проверен",
+    "knowledge_draft_created": "Черновик знания создан",
+    "knowledge_published": "Знание опубликовано",
+    "knowledge_rejected": "Знание отклонено",
     "CHAT_OWNER_MESSAGE": "Сообщение владельца",
     "CHAT_TEAM_REPLY": "Ответ команды",
     "OWNER_APPROVED": "Владелец утвердил",
@@ -279,6 +290,13 @@ EVENT_SEVERITIES = {
     "pipeline_background_completed": "success",
     "pipeline_background_stopped": "warn",
     "pipeline_background_failed": "error",
+    "execution_started": "info",
+    "execution_cancelled": "warn",
+    "execution_failed": "error",
+    "validation_done": "success",
+    "knowledge_draft_created": "warn",
+    "knowledge_published": "success",
+    "knowledge_rejected": "warn",
     "CHAT_OWNER_MESSAGE": "info",
     "CHAT_TEAM_REPLY": "info",
     "OWNER_APPROVED": "success",
@@ -295,6 +313,10 @@ EVENT_STATUS_AFTER = {
     "pipeline_done": "IN_PIPELINE",
     "roundtable_done": "IN_ROUNDTABLE",
     "pipeline_background_stopped": "REWORK",
+    "execution_started": "EXECUTING",
+    "execution_cancelled": "EXECUTION_READY",
+    "execution_failed": "EXECUTION_FAILED",
+    "validation_done": "APPROVED_WAIT_MERGE",
     "OWNER_CLARIFY": "NEED_INFO",
     "OWNER_REWORK": "REWORK",
     "OWNER_MERGED": "DONE",
@@ -625,7 +647,10 @@ def _build_owner_actions(task, runner: dict) -> dict:
     summary = {
         "NEW": "Сейчас задача ещё не запускалась. Доступно только управление запуском.",
         "WAIT_OWNER": "Команда завершила работу. Сейчас владелец должен принять решение.",
-        "EXECUTION_READY": "План утверждён. EXECUTE-пакет готов: Cursor/ручная рассылка, без автоотправки из AI-TEAM.",
+        "EXECUTION_READY": "Owner approve получен. Если подготовлен безопасный execution_request, можно запустить исполнение.",
+        "EXECUTING": "Команда применяет утверждённый patch и готовит проверяемое изменение.",
+        "VALIDATING": "Изменение создано; QA проверяет тесты и evidence.",
+        "EXECUTION_FAILED": "Исполнение остановлено с ошибкой. Исходная ветка не должна быть merged.",
         "APPROVED_WAIT_MERGE": "Owner уже утвердил результат. Остался только ручной merge и его подтверждение.",
         "NEED_INFO": "Цикл остановлен до уточнения контекста. После новых вводных можно запустить AI-Team снова.",
         "REWORK": "Задача открыта на новый цикл доработки. Её можно запускать повторно.",
@@ -658,8 +683,14 @@ def _build_control_state(task, runner: dict, owner_actions: dict) -> dict:
         status_summary = "AI-Team уже закончил. Owner approve зафиксирован, но задача ещё не закрыта из-за ожидания merge."
         owner_waiting_for = "Сделай ручной merge и затем подтверди его в сцене."
     elif task.status == "EXECUTION_READY":
-        status_summary = "План утверждён. EXECUTE-пакет лежит в artifacts/execution — рассылка вручную или через Cursor."
-        owner_waiting_for = "Отправь сообщение по checklist, заполни send_log.md, затем --mark-done."
+        status_summary = "Owner approve зафиксирован. Разрешённая часть работы готова к отдельному запуску execution layer."
+        owner_waiting_for = "Запусти исполнение, если кнопка доступна; иначе открой EXECUTE-пакет и исправь конфигурацию."
+    elif task.status in {"EXECUTING", "VALIDATING"}:
+        status_summary = "Execution layer реально работает: применяет patch, запускает тесты и готовит PR."
+        owner_waiting_for = "Дождись результата или используй остановку на безопасной checkpoint-точке."
+    elif task.status == "EXECUTION_FAILED":
+        status_summary = "Execution layer завершился ошибкой; merge и deploy заблокированы."
+        owner_waiting_for = "Открой последнее событие ошибки, подготовь исправленный patch и повтори запуск."
     elif task.status == "REWORK":
         status_summary = "Задача находится в режиме доработки. Новый цикл ещё не завершён."
         owner_waiting_for = "После исправлений снова запусти AI-Team."

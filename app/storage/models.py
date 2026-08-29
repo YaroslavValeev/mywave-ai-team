@@ -18,6 +18,9 @@ class TaskStatus(str, Enum):
     IN_ROUNDTABLE = "IN_ROUNDTABLE"
     IN_COURT = "IN_COURT"
     EXECUTION_READY = "EXECUTION_READY"  # Plan approved OR exploration dry-run: артефакты для Cursor (без auto-send)
+    EXECUTING = "EXECUTING"
+    VALIDATING = "VALIDATING"
+    EXECUTION_FAILED = "EXECUTION_FAILED"
     WAIT_OWNER = "WAIT_OWNER"
     APPROVED_WAIT_MERGE = "APPROVED_WAIT_MERGE"  # v0.2: Owner approved, ждём ручной merge
     NEED_INFO = "NEED_INFO"

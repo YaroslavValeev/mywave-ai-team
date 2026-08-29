@@ -34,6 +34,9 @@ PHASE_LABELS = {
     "roundtable": "Совещание",
     "court": "Суд",
     "finalize": "Финализация",
+    "execution": "Исполнение",
+    "validation": "Проверка результата",
+    "pull_request": "Создание PR",
 }
 
 

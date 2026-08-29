@@ -220,9 +220,12 @@ def prepare_outreach_execution_pack(
 
 
 def resolve_status_after_approve(task: Any, *, has_pr: bool) -> str:
-    """Approve without PR: outreach → EXECUTION_READY; else DONE."""
+    """Approve without PR: an explicit execution request stays owner-gated."""
     if has_pr:
         return "APPROVED_WAIT_MERGE"
+    business_action = getattr(task, "business_action_json", None) or {}
+    if isinstance(business_action, dict) and isinstance(business_action.get("execution_request"), dict):
+        return "EXECUTION_READY"
     if task_wants_outreach_execute(task):
         return "EXECUTION_READY"
     return "DONE"

@@ -1,10 +1,15 @@
 # app/dashboard/api/tasks.py — /tasks*, /missions*, /artifacts* routes.
 
 import asyncio
+import re
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.exc import DBAPIError
+
+from app.execution import ExecutionRequestError, execution_capabilities, start_approved_execution
+from app.knowledge_intake import create_knowledge_draft
+from app.metrics import calculate_outcome_metrics
 
 from app.dashboard.api.common import (
     ATTACHMENT_DOCUMENT_ROLE,
@@ -288,6 +293,7 @@ async def api_get_task_scene(task_id: int):
                 }
             )
         current_actor = handoffs[-1]["persona"] if handoffs else _persona_for_step("COORDINATOR")
+        outcome_metrics = calculate_outcome_metrics(task, log_rows)
         return {
             "mission": _unified_mission_bundle(task.id),
             "task": {
@@ -343,6 +349,9 @@ async def api_get_task_scene(task_id: int):
             },
             "owner_actions": owner_actions,
             "control_state": control_state,
+            "execution": execution_capabilities(task, runner),
+            "outcome_metrics": outcome_metrics,
+            "knowledge": (task.business_action_json or {}).get("knowledge_intake", {}) if isinstance(task.business_action_json, dict) else {},
         }
 
 
@@ -539,6 +548,28 @@ async def api_stop_pipeline_background(task_id: int):
     return {"ok": True, "task_id": task_id, "runner": runner}
 
 
+@router.post("/tasks/{task_id}/execution/start")
+async def api_start_approved_execution(task_id: int):
+    """Запустить owner-approved patch -> tests -> PR без автоматического merge/deploy."""
+    try:
+        return start_approved_execution(task_id)
+    except ExecutionRequestError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/tasks/{task_id}/outcome-metrics")
+async def api_get_task_outcome_metrics(task_id: int):
+    """Измеримые KPI миссии, включая подтверждаемую экономию времени owner."""
+    Session = get_session_factory()
+    with Session() as session:
+        repo = TaskRepository(session)
+        task = repo.get_task(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        events = _query_audit_events(session, task_id=task_id, include_api_requests=False).all()
+        return {"task_id": task_id, **calculate_outcome_metrics(task, events)}
+
+
 @router.get("/tasks/{task_id}/runtime")
 async def api_get_task_runtime(task_id: int):
     """Текущее состояние фонового AI-Team job-а."""
@@ -636,7 +667,49 @@ async def api_chat_with_team(task_id: int, request: Request):
             task_id=task_id,
             payload={"speaker_code": "OWNER", "speaker_label": "Ты", "text": message},
         )
-        replies = _chat_reply_texts(task, message)
+        knowledge_match = re.match(r"^\s*в\s+базу\s+знаний\s*:?\s*(.*)$", message, flags=re.IGNORECASE | re.DOTALL)
+        if knowledge_match:
+            material = knowledge_match.group(1).strip()
+            if material:
+                try:
+                    draft = create_knowledge_draft(
+                        repo,
+                        task_id,
+                        material=material,
+                        title=f"Знание из миссии #{task_id}",
+                        source_locator=f"task:{task_id}:mission-chat",
+                        category=str(task.domain or "project").lower()[:64] or "project",
+                    )
+                    replies = [
+                        {
+                            "speaker_code": "COORDINATOR",
+                            "text": (
+                                "Создал черновик знания из твоего сообщения. "
+                                f"Нашёл утверждений: {len(draft.get('claims') or [])}. "
+                                "Проверь карточку «База знаний» и опубликуй только если это факт."
+                            ),
+                        },
+                        {
+                            "speaker_code": "SEC",
+                            "text": "До подтверждения владельца это не попадает в каноническую базу знаний.",
+                        },
+                    ]
+                except ValueError as exc:
+                    replies = [
+                        {
+                            "speaker_code": "COORDINATOR",
+                            "text": f"Не смог создать черновик знания: {exc}",
+                        }
+                    ]
+            else:
+                replies = [
+                    {
+                        "speaker_code": "COORDINATOR",
+                        "text": "Напиши так: «В базу знаний: конкретный факт или правило проекта».",
+                    }
+                ]
+        else:
+            replies = _chat_reply_texts(task, message)
         for reply in replies:
             speaker = _chat_speaker(reply["speaker_code"])
             log_audit(

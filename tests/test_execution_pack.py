@@ -81,8 +81,14 @@ def test_resolve_status_after_approve():
         business_action_json = {}
         handoffs = []
 
+    class CodeExecution:
+        task_type = "code_change"
+        business_action_json = {"execution_request": {"executor": "code_pr"}}
+        handoffs = []
+
     assert resolve_status_after_approve(Outreach(), has_pr=False) == "EXECUTION_READY"
     assert resolve_status_after_approve(Other(), has_pr=False) == "DONE"
+    assert resolve_status_after_approve(CodeExecution(), has_pr=False) == "EXECUTION_READY"
     assert resolve_status_after_approve(Outreach(), has_pr=True) == "APPROVED_WAIT_MERGE"
 
 

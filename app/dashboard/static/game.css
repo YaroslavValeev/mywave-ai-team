@@ -358,6 +358,88 @@ button[disabled] { opacity: 0.45; cursor: not-allowed; }
     gap: 0.75rem;
 }
 
+.outcome-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.execution-btn:not(:disabled) {
+    box-shadow: 0 0 0 1px rgba(84, 210, 180, 0.42), 0 12px 28px rgba(84, 210, 180, 0.16);
+}
+
+.knowledge-card {
+    margin-top: 1rem;
+}
+
+.knowledge-empty,
+.knowledge-summary,
+.knowledge-panel {
+    display: grid;
+    gap: 0.7rem;
+    padding: 0.95rem 1rem;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.knowledge-card.is-pending_owner_approval {
+    border-color: rgba(255, 209, 102, 0.32);
+}
+
+.knowledge-card.is-published {
+    border-color: rgba(84, 210, 180, 0.32);
+}
+
+.knowledge-card.is-rejected {
+    border-color: rgba(255, 122, 122, 0.3);
+}
+
+.knowledge-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.8rem;
+}
+
+.knowledge-claim {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.65rem;
+    align-items: start;
+    padding: 0.7rem;
+    border-radius: 12px;
+    background: rgba(17, 19, 34, 0.34);
+}
+
+.knowledge-claim span {
+    display: inline-grid;
+    place-items: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 999px;
+    background: rgba(124, 156, 255, 0.18);
+    color: var(--text);
+    font-weight: 800;
+    font-size: 0.8rem;
+}
+
+.knowledge-claim p {
+    margin: 0;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.knowledge-source {
+    padding: 0.7rem;
+    border-radius: 12px;
+    background: rgba(17, 19, 34, 0.34);
+}
+
+.knowledge-actions {
+    margin-top: 0.8rem;
+}
+
 .current-state-metric {
     padding: 0.85rem;
     border-radius: 16px;
@@ -1645,6 +1727,8 @@ a.small-btn,
 
     .metrics-row,
     .current-state-grid,
+    .outcome-metrics,
+    .knowledge-grid,
     .process-stats,
     .action-grid {
         grid-template-columns: 1fr;
