@@ -875,7 +875,16 @@ async def handle_owner_callback(cb: CallbackQuery):
             return
 
         owner_approval = code == "a"
-        log_decision(repo, task_id, decision=code, owner_approval=owner_approval)
+        if owner_approval:
+            from app.execution.approval import record_bound_approval
+            from app.execution.service import ExecutionRequestError
+            try:
+                record_bound_approval(repo, task)
+            except ExecutionRequestError as exc:
+                await cb.answer(str(exc)[:180], show_alert=True)
+                return
+        else:
+            log_decision(repo, task_id, decision=code, owner_approval=False)
         if code == "a":
             log_audit(repo, "OWNER_APPROVED", task_id=task_id, payload={"decision": "approve"})
         elif code == "r":
