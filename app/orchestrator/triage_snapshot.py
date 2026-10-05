@@ -60,6 +60,9 @@ def persist_triage_snapshot(repo: TaskRepository, task_id: int, triage_result: d
         "plan_or_execute": triage_result.get("plan_or_execute"),
         "execute_gate": triage_result.get("execute_gate"),
         "agent_cluster": triage_result.get("agent_cluster"),
+        "triage_source": triage_result.get("triage_source", "rules"),
+        "triage_validation_status": triage_result.get("triage_validation_status", "valid"),
+        "triage_validation_errors": list(triage_result.get("triage_validation_errors") or []),
     }
     repo.update_task(task_id, business_action_json=ba)
 
@@ -90,6 +93,9 @@ def resync_triage_dict_from_store(repo: TaskRepository, task_id: int, triage_res
         "execute_gate",
         "revenue_intent_override",
         "agent_cluster",
+        "triage_source",
+        "triage_validation_status",
+        "triage_validation_errors",
     ):
         if key in meta and meta[key] is not None:
             out[key] = meta[key]
@@ -136,6 +142,9 @@ def canonical_triage_for_court(task: Any, triage_result: dict[str, Any]) -> dict
         "execute_gate",
         "revenue_intent_override",
         "agent_cluster",
+        "triage_source",
+        "triage_validation_status",
+        "triage_validation_errors",
     ):
         if key in meta and meta[key] is not None:
             out[key] = meta[key]
