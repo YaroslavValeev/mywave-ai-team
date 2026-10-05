@@ -349,8 +349,20 @@ def _merge_payloads(fallback_payload: dict, crewai_payload: dict | None, next_ac
             continue
         merged[key] = candidate if candidate else fallback_value
     llm_provenance = crewai_payload.get("provenance")
-    if isinstance(llm_provenance, dict):
+    fallback_keys = {
+        key for key, fallback_value in fallback_payload.items()
+        if key != "provenance" and fallback_value and not crewai_payload.get(key)
+    }
+    if isinstance(llm_provenance, dict) and not fallback_keys:
         merged["provenance"] = llm_provenance
+    elif isinstance(llm_provenance, dict):
+        merged["provenance"] = {
+            **llm_provenance,
+            "generation_source": "mixed",
+            "fallback_used": True,
+            "validation_status": "mixed",
+            "fallback_fields": sorted(fallback_keys),
+        }
     else:
         merged["provenance"] = {
             "generation_source": "mixed",
