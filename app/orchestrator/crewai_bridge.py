@@ -269,12 +269,49 @@ def run_crewai_pipeline(task_id: int, steps: list[str], context: dict, control=N
             if crewai_strict_required():
                 raise _strict_unavailable("pipeline")
             return []
-        payload["next_action"] = payload.get("next_action") or next_action
+        payload_errors = _validate_pipeline_payload(payload, next_action)
+        if payload_errors:
+            _set_last_crewai_error(f"semantic payload validation failed for {step}: {'; '.join(payload_errors)}")
+            if crewai_strict_required():
+                raise _strict_unavailable("pipeline")
+            return []
+        payload["next_action"] = next_action
+        payload["provenance"] = {
+            "generation_source": "llm",
+            "model": _configured_model_label(),
+            "fallback_used": False,
+            "validation_status": "valid",
+        }
         outputs.append(payload)
         prior_summary = "; ".join(payload.get("summary", [])[:3]) or f"{step} completed"
         if control:
             control.check_cancelled()
     return outputs
+
+
+def _validate_pipeline_payload(payload: dict, expected_next_action: str) -> list[str]:
+    errors: list[str] = []
+    summary = payload.get("summary")
+    if not isinstance(summary, list) or not any(str(item).strip() for item in summary):
+        errors.append("summary must contain at least one non-empty item")
+    next_action = str(payload.get("next_action") or "").strip()
+    if next_action != expected_next_action:
+        errors.append(f"next_action must be {expected_next_action!r}, got {next_action or '<empty>'!r}")
+    for key in ("decisions", "assumptions", "risks"):
+        value = payload.get(key)
+        if not isinstance(value, list) or not any(str(item).strip() for item in value):
+            errors.append(f"{key} must contain at least one non-empty item")
+    return errors
+
+
+def _configured_model_label() -> str:
+    return (
+        os.getenv("LLM_LOCAL_MODEL")
+        or os.getenv("LLM_CLOUD_MODEL")
+        or os.getenv("CREWAI_MODEL")
+        or os.getenv("CREWAI_DEFAULT_MODEL")
+        or "unknown"
+    )
 
 
 def _run_json_task(
