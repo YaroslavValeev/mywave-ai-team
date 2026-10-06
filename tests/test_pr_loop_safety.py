@@ -19,7 +19,7 @@ def test_dirty_workspace_is_rejected_before_branch(tmp_path, monkeypatch):
     monkeypatch.setattr(pr_loop.api_client, "artifacts_list", lambda task_id: ([], None))
     calls = []
 
-    def fake_run(command, cwd, env=None):
+    def fake_run(command, cwd, env=None, **kwargs):
         calls.append(command)
         return 0, " M user-change.txt\n", ""
 
@@ -39,13 +39,17 @@ def test_failed_tests_block_commit_and_push(tmp_path, monkeypatch):
     calls = []
     status_calls = 0
 
-    def fake_run(command, cwd, env=None):
+    def fake_run(command, cwd, env=None, **kwargs):
         nonlocal status_calls
         calls.append(command)
         if command[:2] == ["git", "status"]:
             status_calls += 1
-            return (0, "" if status_calls == 1 else " M app/file.py\n", "")
+            return (0, "" if status_calls == 1 else " M app/file.py\0", "")
         if command[:3] == ["python", "-m", "pytest"]:
+            assert kwargs["isolated_env"] is True
+            assert env["ORCHESTRATION_ENGINE"] == "rule_based"
+            assert env["DATABASE_URL"] == "sqlite:///:memory:"
+            assert "GH_TOKEN" not in env
             return 1, "failed", "assertion"
         return 0, "", ""
 
@@ -65,7 +69,7 @@ def test_branch_creation_failure_is_fail_closed(tmp_path, monkeypatch):
     monkeypatch.setattr(pr_loop, "merge_gateway_secrets_into_env", lambda *args: {"GH_TOKEN": "test"})
     calls = []
 
-    def fake_run(command, cwd, env=None):
+    def fake_run(command, cwd, env=None, **kwargs):
         calls.append(command)
         if command[:2] == ["git", "status"]:
             return 0, "", ""
@@ -89,3 +93,77 @@ def test_executable_mode_requires_apply_callback(tmp_path):
 
     assert result["success"] is False
     assert "apply_callback" in result["error"]
+
+
+def test_validation_subprocess_cannot_inherit_or_reload_runtime_secrets(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    for key in ("GH_TOKEN", "GITHUB_TOKEN", "OPENAI_API_KEY", "TELEGRAM_BOT_TOKEN", "LLM_LOCAL_API_KEY"):
+        monkeypatch.setenv(key, "production-secret")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://production")
+    monkeypatch.setenv("ORCHESTRATION_ENGINE", "auto")
+    monkeypatch.setenv("PYTHONPATH", "/production/app")
+
+    def forbidden_gateway(*args):
+        raise AssertionError("Validation must not inject Gateway secrets")
+
+    def subprocess_run(command, **kwargs):
+        environment = kwargs["env"]
+        assert "production-secret" not in environment.values()
+        assert environment["ORCHESTRATION_ENGINE"] == "rule_based"
+        assert environment["DATABASE_URL"] == "sqlite:///:memory:"
+        assert str(tmp_path) in environment["PYTHONPATH"]
+        assert "/production/app" not in environment["PYTHONPATH"]
+        return SimpleNamespace(returncode=0, stdout="passed", stderr="")
+
+    monkeypatch.setattr(pr_loop, "merge_gateway_secrets_into_env", forbidden_gateway)
+    monkeypatch.setattr(pr_loop.subprocess, "run", subprocess_run)
+    result = pr_loop._run(
+        ["python", "-m", "pytest"], tmp_path,
+        pr_loop._validation_environment(tmp_path), isolated_env=True,
+    )
+    assert result == (0, "passed", "")
+
+
+def test_validation_generated_files_are_not_included_in_commit(tmp_path, monkeypatch):
+    import os
+    import subprocess
+    from pathlib import Path
+
+    def git(*args):
+        return subprocess.check_output(["git", *args], cwd=tmp_path, text=True)
+
+    git("init")
+    git("config", "user.name", "Execution test")
+    git("config", "user.email", "execution-test@example.invalid")
+    artifact = tmp_path / "tracked-verdict.md"
+    artifact.write_text("original evidence\n")
+    git("add", "tracked-verdict.md")
+    git("commit", "-m", "initial")
+
+    original_run = pr_loop._run
+    monkeypatch.setattr(pr_loop, "merge_gateway_secrets_into_env", lambda env=None: {**os.environ, **(env or {}), "GH_TOKEN": "test"})
+
+    def fake_run(command, cwd, env=None, **kwargs):
+        if command[:3] == ["python", "-m", "pytest"]:
+            assert not Path(env["ARTIFACTS_DIR"]).is_relative_to(tmp_path)
+            artifact.write_text("test-generated evidence\n")
+            (tmp_path / "unrelated-test-output.txt").write_text("generated\n")
+            return 0, "passed", ""
+        if command[:2] == ["git", "push"]:
+            return 0, "", ""
+        if command[:3] == ["gh", "pr", "create"]:
+            return 0, "https://github.com/example/repo/pull/1\n", ""
+        return original_run(command, cwd, env, **kwargs)
+
+    monkeypatch.setattr(pr_loop, "_run", fake_run)
+    result = asyncio.run(pr_loop.run_pr_loop(
+        38, str(tmp_path), mode="patch",
+        apply_callback=lambda workspace, _: (Path(workspace) / "approved file.md").write_text("approved\n"),
+        task_data_override={"summary": "approved patch"},
+        task_update_callback=lambda *args, **kwargs: None,
+    ))
+    assert result["success"] is True
+    committed = git("diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD").splitlines()
+    assert sorted(committed) == ["DEV_REPORT.md", "approved file.md"]
+    assert git("show", "HEAD:tracked-verdict.md") == "original evidence\n"
