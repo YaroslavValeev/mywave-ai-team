@@ -20,10 +20,14 @@ def task_wants_outreach_execute(task: Any) -> bool:
     """True when approve should prepare a manual EXECUTE pack (not mass-send)."""
     if task is None:
         return False
+    ba = getattr(task, "business_action_json", None) or {}
+    if isinstance(ba, dict):
+        request = ba.get("execution_request")
+        if isinstance(request, dict) and request.get("executor") == "code_pr":
+            return False
     tt = str(getattr(task, "task_type", None) or "").strip().lower()
     if tt in _OUTREACH_TASK_TYPES:
         return True
-    ba = getattr(task, "business_action_json", None) or {}
     if not isinstance(ba, dict):
         return False
     meta = ba.get("triage_meta") or {}
@@ -115,6 +119,8 @@ def prepare_outreach_execution_pack(
     task = repo.get_task(task_id)
     if not task:
         return {"ok": False, "reason": "task_not_found", "task_id": task_id}
+    if not task_wants_outreach_execute(task):
+        return {"ok": False, "reason": "not_outreach", "task_id": task_id}
 
     exe = _execution_dir(task_id)
     exe.mkdir(parents=True, exist_ok=True)

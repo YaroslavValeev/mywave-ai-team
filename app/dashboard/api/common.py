@@ -350,6 +350,13 @@ def _owner_status_summary(task, new_status: str, decision: str) -> str:
                 task.summary,
             )
         if new_status == "EXECUTION_READY":
+            payload = task.business_action_json or {}
+            request = payload.get("execution_request") if isinstance(payload, dict) else None
+            if isinstance(request, dict) and request.get("executor") == "code_pr":
+                return _merge_status_summary(
+                    "Owner утвердил patch. Можно отдельно запустить применение изменений, тесты и создание PR.",
+                    task.summary,
+                )
             return _merge_status_summary(
                 "Owner утвердил план. EXECUTE-пакет готов (message_to_send.txt). Рассылка вручную/Cursor; AI-TEAM не шлёт сам.",
                 task.summary,
