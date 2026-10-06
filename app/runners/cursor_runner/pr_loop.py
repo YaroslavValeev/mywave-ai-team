@@ -7,6 +7,7 @@ import asyncio
 import logging
 import os
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Callable, Literal, Optional
 
@@ -183,19 +184,29 @@ async def run_pr_loop(
     if cancel_check:
         cancel_check()
 
-    code, out, err_out = _run(["git", "status", "--porcelain"], workspace)
+    code, out, err_out = _run(["git", "status", "--porcelain", "-z"], workspace)
     if code != 0:
         return {"success": False, "error": f"git status after execution failed: {err_out}"}
-    changed = [line.split(maxsplit=1)[-1] for line in out.strip().splitlines() if line.strip()]
+    changed = []
+    records = iter(out.split("\0"))
+    for record in records:
+        if not record:
+            continue
+        changed.append(record[3:])
+        if "R" in record[:2] or "C" in record[:2]:
+            changed.append(next(records))
     if not changed:
         return {"success": False, "error": "Executor produced no workspace changes."}
 
-    code, pytest_out, pytest_err = _run(
-        ["python", "-m", "pytest", "tests/", "-q", "--tb=short"],
-        workspace,
-        env=_validation_environment(workspace),
-        isolated_env=True,
-    )
+    with tempfile.TemporaryDirectory(prefix="ai-team-validation-") as artifacts_dir:
+        validation_env = _validation_environment(workspace)
+        validation_env["ARTIFACTS_DIR"] = artifacts_dir
+        code, pytest_out, pytest_err = _run(
+            ["python", "-m", "pytest", "tests/", "-q", "--tb=short"],
+            workspace,
+            env=validation_env,
+            isolated_env=True,
+        )
     pytest_ok = code == 0
     if not pytest_ok:
         return {
@@ -212,7 +223,7 @@ async def run_pr_loop(
     report_path = workspace / "DEV_REPORT.md"
     report_path.write_text(report, encoding="utf-8")
 
-    code, _, err_out = _run(["git", "add", "-A"], workspace)
+    code, _, err_out = _run(["git", "add", "--", *changed, "DEV_REPORT.md"], workspace)
     if code != 0:
         return {"success": False, "error": f"git add failed: {err_out}"}
 
