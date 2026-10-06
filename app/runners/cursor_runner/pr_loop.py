@@ -20,10 +20,10 @@ MERGE_FORBIDDEN = True  # Никогда не мерджим из Runner
 RunnerMode = Literal["manual", "patch", "cursor_agent"]
 
 
-def _run(cmd: list[str], cwd: Path, env: Optional[dict] = None) -> tuple[int, str, str]:
+def _run(cmd: list[str], cwd: Path, env: Optional[dict] = None, *, isolated_env: bool = False) -> tuple[int, str, str]:
     """Выполнить команду. Env согласован с gateway (GH/OPENAI при отсутствии в окружении)."""
     try:
-        merged = merge_gateway_secrets_into_env(env)
+        merged = dict(env or {}) if isolated_env else merge_gateway_secrets_into_env(env)
         r = subprocess.run(
             cmd,
             cwd=cwd,
@@ -37,6 +37,25 @@ def _run(cmd: list[str], cwd: Path, env: Optional[dict] = None) -> tuple[int, st
         return -1, "", "Timeout"
     except FileNotFoundError:
         return 1, "", f"Command not found: {cmd[0]}"
+
+
+def _validation_environment(workspace: Path) -> dict[str, str]:
+    """Run checkout tests without production credentials, DB or live LLM settings."""
+    environment = {
+        key: os.environ[key]
+        for key in ("PATH", "SystemRoot", "WINDIR", "COMSPEC", "PATHEXT", "TMP", "TEMP", "LANG", "LC_ALL")
+        if key in os.environ
+    }
+    environment.update({
+        "DATABASE_URL": "sqlite:///:memory:",
+        "OWNER_API_KEY": "test_key_for_execution_validation",
+        "ORCHESTRATION_ENGINE": "rule_based",
+        "TELEGRAM_POLLING_ENABLED": "false",
+        "TELEGRAM_STAGE_NOTIFY": "false",
+        "TELEGRAM_PROACTIVE_NOTIFY_ENABLED": "false",
+        "PYTHONPATH": os.pathsep.join((str(workspace), str(workspace / "packages" / "shared-core"))),
+    })
+    return environment
 
 
 def _build_dev_report(
@@ -174,10 +193,8 @@ async def run_pr_loop(
     code, pytest_out, pytest_err = _run(
         ["python", "-m", "pytest", "tests/", "-q", "--tb=short"],
         workspace,
-        env={
-            "DATABASE_URL": "sqlite:///:memory:",
-            "OWNER_API_KEY": os.getenv("OWNER_API_KEY", "test"),
-        },
+        env=_validation_environment(workspace),
+        isolated_env=True,
     )
     pytest_ok = code == 0
     if not pytest_ok:
