@@ -1,0 +1,81 @@
+{
+  "coverage": "Isolated rehearsal topology, not deployment Compose; bot polling, host reboot, production and immutable release provenance NOT verified",
+  "images": {
+    "app": {
+      "id": "sha256:eaab2491a4f4470bf968686ee0b2aa800d95d0db5c15a4418972c27f52f67c30",
+      "created": "2026-08-29T05:12:08.103371478Z",
+      "architecture": "amd64"
+    },
+    "postgres": {
+      "id": "sha256:fceb6f86328c36f2438fae3b851b0cc57c4a7e69a58c866d9ce24281f2cf0c9c",
+      "created": "2026-02-26T19:30:38.62435082Z",
+      "architecture": "amd64"
+    }
+  },
+  "cycles": [
+    {
+      "cycle": 1,
+      "database": "fresh",
+      "seconds": 55.27,
+      "probe": {
+        "heads": [
+          "007"
+        ],
+        "health": {
+          "status": "ok",
+          "release": {
+            "version": "dev",
+            "commit_sha": "unknown",
+            "environment": "cold-start-rehearsal",
+            "build_timestamp": "2026-08-29T05:12:01Z",
+            "migration_version": "007"
+          }
+        }
+      }
+    },
+    {
+      "cycle": 2,
+      "database": "retained",
+      "seconds": 34.7,
+      "probe": {
+        "heads": [
+          "007"
+        ],
+        "health": {
+          "status": "ok",
+          "release": {
+            "version": "dev",
+            "commit_sha": "unknown",
+            "environment": "cold-start-rehearsal",
+            "build_timestamp": "2026-08-29T05:12:01Z",
+            "migration_version": "007"
+          }
+        }
+      }
+    },
+    {
+      "cycle": 3,
+      "database": "retained",
+      "seconds": 27.25,
+      "probe": {
+        "heads": [
+          "007"
+        ],
+        "health": {
+          "status": "ok",
+          "release": {
+            "version": "dev",
+            "commit_sha": "unknown",
+            "environment": "cold-start-rehearsal",
+            "build_timestamp": "2026-08-29T05:12:01Z",
+            "migration_version": "007"
+          }
+        }
+      }
+    }
+  ],
+  "project": "ai-team-cold-da1942cd67c442b396614ae6d5ee4907",
+  "negative_gate": "passed: intentionally failing migration prevents app running",
+  "result": "passed",
+  "cleanup": "passed"
+}
