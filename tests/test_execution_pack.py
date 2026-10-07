@@ -1,4 +1,7 @@
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 
 def test_task_wants_outreach_by_task_type():
@@ -119,3 +122,74 @@ def test_api_approve_creates_execution_pack(db_session, tmp_path, monkeypatch):
     assert out["status"] == "EXECUTION_READY"
     assert out.get("execution_pack", {}).get("ok") is True
     assert Path(out["execution_pack"]["pack_path"]).is_file()
+
+
+@pytest.mark.parametrize("execution_request", [{"executor": "code_pr"}, None])
+def test_non_outreach_pack_has_no_side_effects(tmp_path, monkeypatch, execution_request):
+    from app.orchestrator import execution_pack as ep
+
+    task = SimpleNamespace(
+        task_type="content_pipeline" if execution_request else "feature_delivery",
+        business_action_json={"execution_request": execution_request} if execution_request else {},
+        handoffs=[],
+    )
+    if execution_request:
+        task.business_action_json["triage_meta"] = {"agent_cluster": "MEDIA"}
+        task.handoffs = [SimpleNamespace(payload_json={"deliverable": {"kind": "message_draft"}})]
+    monkeypatch.setattr(ep, "ARTIFACTS_DIR", tmp_path)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Skipped pack must not read contacts or mutate task")
+
+    monkeypatch.setattr(ep, "_find_contacts_csv", forbidden)
+    repo = SimpleNamespace(get_task=lambda _: task, update_task=forbidden, add_audit_event=forbidden)
+    assert ep.prepare_outreach_execution_pack(repo, 38) == {
+        "ok": False, "reason": "not_outreach", "task_id": 38,
+    }
+    assert not list(tmp_path.iterdir())
+
+
+def test_code_approval_does_not_prepare_outreach_pack(db_session, tmp_path, monkeypatch):
+    import subprocess
+    from app.storage.repositories import TaskRepository
+    from app.dashboard.api import common as api_common
+    from app.orchestrator import execution_pack as ep
+
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    for command in (
+        ["git", "init"],
+        ["git", "config", "user.name", "Test"],
+        ["git", "config", "user.email", "test@example.invalid"],
+        ["git", "commit", "--allow-empty", "-m", "initial"],
+    ):
+        subprocess.run(command, cwd=workspace, check=True, capture_output=True)
+    artifacts = tmp_path / "artifacts"
+    artifacts.mkdir()
+    patch = artifacts / "approved.patch"
+    patch.write_text("approved patch bytes")
+    monkeypatch.setenv("ARTIFACTS_DIR", str(artifacts))
+    monkeypatch.setenv("EXECUTION_ALLOWED_ROOTS", str(workspace))
+    monkeypatch.setattr(ep, "ARTIFACTS_DIR", artifacts)
+    monkeypatch.setattr(api_common, "ARTIFACTS_DIR", artifacts)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Code approval must not inspect contact lists")
+
+    monkeypatch.setattr(ep, "_find_contacts_csv", forbidden)
+    repo = TaskRepository(db_session)
+    task = repo.create_task(owner_text="Review approved code patch")
+    repo.update_task(task.id, task_type="feature_delivery", status="WAIT_OWNER", business_action_json={
+        "execution_request": {
+            "executor": "code_pr", "mode": "patch",
+            "workspace_path": str(workspace), "patch_path": str(patch),
+        },
+    })
+    result = api_common.apply_owner_decision(repo, task.id, "approve", source="test")
+    assert result["status"] == "EXECUTION_READY"
+    assert "execution_pack" not in result
+    assert "execution_pack" not in repo.get_task(task.id).business_action_json
+    summary = repo.get_task(task.id).summary
+    assert "Owner утвердил patch" in summary
+    assert "message_to_send.txt" not in summary
+    assert not (artifacts / "tasks" / f"task_{task.id}" / "execution").exists()
