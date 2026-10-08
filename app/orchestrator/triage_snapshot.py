@@ -12,10 +12,21 @@ from app.orchestrator.triage import (
     REVENUE_OVERRIDE_DOMAIN,
     REVENUE_OVERRIDE_TASK_TYPE,
     _explicit_project_triage,
+    _explicit_task_triage,
 )
 from app.storage.repositories import TaskRepository
 
 logger = logging.getLogger(__name__)
+
+
+def _owner_route(out: dict[str, Any], raw: str) -> dict[str, Any] | None:
+    explicit = _explicit_task_triage(raw, get_routing())
+    if explicit is None:
+        return None
+    out.update(explicit)
+    out["agent_cluster"] = agent_cluster_for_domain(explicit["domain"])
+    out["exploration_mode"] = bool(out.get("exploration_mode")) or detect_exploration_intent(raw)
+    return out
 
 
 def _routing_revenue_cfg() -> dict[str, Any]:
@@ -77,6 +88,10 @@ def resync_triage_dict_from_store(repo: TaskRepository, task_id: int, triage_res
     meta = ba.get("triage_meta") if isinstance(ba.get("triage_meta"), dict) else {}
     raw = (task.owner_text or "").strip()
 
+    explicit = _owner_route(out, raw)
+    if explicit is not None:
+        return explicit
+
     if _revenue_locked(meta, out, raw):
         for key in ("criticality", "plan_or_execute", "execute_gate"):
             if meta.get(key) is not None:
@@ -119,6 +134,10 @@ def canonical_triage_for_court(task: Any, triage_result: dict[str, Any]) -> dict
     ba = task.business_action_json if isinstance(getattr(task, "business_action_json", None), dict) else {}
     meta = ba.get("triage_meta") if isinstance(ba.get("triage_meta"), dict) else {}
     raw = (getattr(task, "owner_text", None) or "").strip()
+
+    explicit = _owner_route(out, raw)
+    if explicit is not None:
+        return explicit
 
     if _revenue_locked(meta, out, raw):
         for key in ("criticality", "plan_or_execute", "execute_gate"):

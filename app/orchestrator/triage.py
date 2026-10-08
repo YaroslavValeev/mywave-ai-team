@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 
 from app.config import get_routing, get_policy, get_orchestration_config
 from app.orchestrator.crewai_bridge import crewai_strict_required, get_last_crewai_error, run_crewai_triage
@@ -201,6 +202,39 @@ def _marketing_triage_result(owner_text: str, routing: dict) -> dict:
     }
 
 
+def _explicit_task_triage(owner_text: str, routing: dict) -> dict | None:
+    """Validated owner route takes precedence over inference and old snapshots."""
+    text = (owner_text or "").lstrip()
+    if not re.match(r"#\s*TASK\s+Domain\s*:", text, re.IGNORECASE):
+        return None
+    match = re.match(
+        r"#\s*TASK\s+Domain\s*:\s*([A-Za-z_]+)\s*,\s*Type\s*:\s*([A-Za-z0-9_]+)\b",
+        text, re.IGNORECASE,
+    )
+    if not match:
+        raise ValueError("Malformed explicit #TASK route; specify Domain and Type.")
+    domain, task_type = match.group(1).upper(), match.group(2).lower()
+    # Preserve the existing structured API's generic product task alias.
+    if domain == "PRODUCT_DEV" and task_type == "general":
+        task_type = "feature_delivery"
+    config = (((routing.get("domains") or {}).get(domain) or {}).get("task_types") or {}).get(task_type)
+    if not config:
+        raise ValueError(f"Unknown explicit #TASK route: {domain}/{task_type}")
+    execution_types = {"feature_delivery", "software_bugfix", "deploy_prod", "revenue_execution", "publish_major"}
+    return {
+        "domain": domain,
+        "task_type": task_type,
+        "criticality": config.get("criticality", "MEDIUM"),
+        "plan_or_execute": "EXECUTE" if task_type in execution_types else "PLAN",
+        "execute_gate": config.get("execute_gate", "OWNER_APPROVAL_IF_PROD"),
+        "revenue_intent_override": False,
+        "marketing_plan_override": False,
+        "triage_source": "owner_explicit",
+        "triage_validation_status": "valid",
+        "triage_validation_errors": [],
+    }
+
+
 def _explicit_project_triage(owner_text: str, routing: dict) -> dict | None:
     """Return the canonical route when the owner names a known MyWave project."""
     text_lower = (owner_text or "").lower()
@@ -237,6 +271,11 @@ def run_triage(owner_text: str) -> dict:
     text_lower = (owner_text or "").lower()
     criticality_cfg = policy.get("criticality", {})
     execute_types = set(criticality_cfg.get("always_critical_if", []))
+
+    explicit = _explicit_task_triage(owner_text, routing)
+    if explicit:
+        explicit["exploration_mode"] = detect_exploration_intent(owner_text)
+        return _finalize_triage(explicit, log_tag="owner-explicit")
 
     # Explicit MyWave project names are a stronger signal than generic intent words.
     project_result = _explicit_project_triage(owner_text, routing)
