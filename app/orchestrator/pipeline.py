@@ -244,7 +244,7 @@ def _build_handoff_payload(
         f"Execute gate is {execute_gate}.",
     ]
     if plan_or_execute == "EXECUTE":
-        assumptions.append("Execution request is present in the owner brief and must stay gated.")
+        assumptions.append("Режим EXECUTE не подтверждает наличие готового execution_request. Для запуска нужен отдельный утверждённый исполнительный запрос.")
     if task_type == "marketing_plan":
         assumptions.append("Paid media budget is 0; only organic channels and partnerships.")
 

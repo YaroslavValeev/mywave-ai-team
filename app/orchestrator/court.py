@@ -20,18 +20,23 @@ def _execution_gap_analysis(owner_text: str | None) -> dict:
     """
     raw = (owner_text or "").strip()
     t = raw.lower()
-    needs = False
     hints: list[str] = []
     if any(x in t for x in ("openai", "опенаи", "google", "гугл")):
         hints.append("внешние сервисы/аккаунты")
-        if any(x in t for x in ("проект", "список", "все ", "всех", "локал", "local", "компьютер")):
-            needs = True
     if any(x in t for x in ("local", "локал", "компьютер", "на пк", "диске", "диск ", "папк", "каталог")):
         hints.append("локальный компьютер/диск")
-        if any(x in t for x in ("проект", "список", "все ", "всех")):
-            needs = True
-    if any(x in t for x in ("список", "перечисл", "инвентар")) and "проект" in t:
-        needs = True
+    # A packaging brief can mention computers/accounts without requesting a
+    # personal project catalogue. Do not invent that different request.
+    catalogue = bool(re.search(
+        r"(?:список|перечень|перечисл\w*|инвентар\w*)\s+(?:\w+\s+){0,3}(?:проекты|проектов)\b"
+        r"|(?:list|inventory)\s+(?:all\s+|my\s+)?projects\b",
+        t,
+    ))
+    external_context = any(x in t for x in (
+        "openai", "опенаи", "google", "гугл", "компьютер", "на пк", "local", "локал",
+    ))
+    needs = catalogue and external_context
+    if catalogue:
         hints.append("перечень/инвентарь проектов")
     preview = redact(raw)[:_OWNER_TEXT_VERDICT_PREVIEW_CHARS] if raw else ""
     return {
@@ -272,7 +277,11 @@ def run_court(
         "## Что произойдёт после решения владельца",
     ])
 
-    for step in _build_after_owner_decision_steps(owner_approval_needed):
+    for step in _build_after_owner_decision_steps(
+        owner_approval_needed,
+        product_delivery=triage_result.get("domain") == "PRODUCT_DEV"
+        and triage_result.get("task_type") in {"feature_delivery", "software_bugfix", "deploy_prod"},
+    ):
         report_lines.append(f"- {step}")
 
     report_lines.extend([
@@ -538,7 +547,11 @@ def _build_verdict_md(
         "## Что произойдёт после решения владельца",
     ])
 
-    for step in _build_after_owner_decision_steps(owner_approval_needed):
+    for step in _build_after_owner_decision_steps(
+        owner_approval_needed,
+        product_delivery=triage_result.get("domain") == "PRODUCT_DEV"
+        and triage_result.get("task_type") in {"feature_delivery", "software_bugfix", "deploy_prod"},
+    ):
         lines.append(f"- {step}")
 
     lines.extend([
@@ -901,10 +914,11 @@ def _build_owner_now_steps(owner_approval_needed: bool) -> list[str]:
     ]
 
 
-def _build_after_owner_decision_steps(owner_approval_needed: bool) -> list[str]:
+def _build_after_owner_decision_steps(owner_approval_needed: bool, *, product_delivery: bool = False) -> list[str]:
     if owner_approval_needed:
         return [
-            "После «Утвердить» задача либо перейдёт в ожидание merge, либо сразу завершится, если отдельный merge не нужен.",
+            ("После «Утвердить» план перейдёт в EXECUTION_READY. Реализация ещё не завершена: нужен исполнительный запрос и отдельное согласование patch; готовый PR ожидает merge."
+             if product_delivery else "После «Утвердить» задача либо перейдёт в ожидание merge, либо сразу завершится, если отдельный merge не нужен."),
             "После «На доработку» команда запустит новый цикл AI-Team и подготовит обновлённый результат.",
             "После «Нужно уточнение» текущий цикл остановится до появления новых вводных от владельца.",
         ]
