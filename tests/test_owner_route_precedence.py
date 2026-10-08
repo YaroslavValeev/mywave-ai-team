@@ -32,6 +32,11 @@ def test_explicit_route_beats_project_aliases():
     assert (result["domain"], result["task_type"]) == ("EVENTS", "event_runbook")
 
 
+def test_legacy_generic_product_route_remains_supported():
+    result = run_triage("#TASK Domain: PRODUCT_DEV, Type: general. Payload: {}")
+    assert (result["domain"], result["task_type"]) == ("PRODUCT_DEV", "feature_delivery")
+
+
 @pytest.mark.parametrize("header", [
     "#TASK Domain: UNKNOWN, Type: feature_delivery.",
     "#TASK Domain: PRODUCT_DEV, Type: unknown.",

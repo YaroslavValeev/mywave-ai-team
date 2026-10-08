@@ -214,6 +214,9 @@ def _explicit_task_triage(owner_text: str, routing: dict) -> dict | None:
     if not match:
         raise ValueError("Malformed explicit #TASK route; specify Domain and Type.")
     domain, task_type = match.group(1).upper(), match.group(2).lower()
+    # Preserve the existing structured API's generic product task alias.
+    if domain == "PRODUCT_DEV" and task_type == "general":
+        task_type = "feature_delivery"
     config = (((routing.get("domains") or {}).get(domain) or {}).get("task_types") or {}).get(task_type)
     if not config:
         raise ValueError(f"Unknown explicit #TASK route: {domain}/{task_type}")
