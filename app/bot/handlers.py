@@ -659,25 +659,29 @@ async def _run_orchestration(task_id: int, chat_id: int, bot: Bot):
             final_status = result["status"]
             summary = result["summary"]
             task = repo.get_task(task_id)
+            from app.orchestrator.execution_pack import task_requires_product_execution
+            product_delivery = bool(task and task_requires_product_execution(task))
             footer = _format_mission_gm_footer(task_id, task) if task else ""
-            delivery_note = format_owner_delivery_note(repo)
+            delivery_note = "" if product_delivery else format_owner_delivery_note(repo)
 
             if final_status == "EXECUTION_READY":
                 msg = f"{summary}\n\n{footer}".strip()
                 if delivery_note:
                     msg += delivery_note
-                growth = build_growth_insight(repo.get_all_tasks())
-                insight_line = format_growth_insight_telegram(growth)
+                insight_line = ""
+                if not product_delivery:
+                    growth = build_growth_insight(repo.get_all_tasks())
+                    insight_line = format_growth_insight_telegram(growth)
                 if insight_line:
                     msg += insight_line
                 await send_with_retry(bot, chat_id, msg, reply_markup=None)
                 return
 
             exec_pack = None
-            if task and isinstance(task.business_action_json, dict):
+            if task and not product_delivery and isinstance(task.business_action_json, dict):
                 exec_pack = task.business_action_json.get("execution_pack")
             real_exec_line = ""
-            if task and isinstance(task.business_action_json, dict):
+            if task and not product_delivery and isinstance(task.business_action_json, dict):
                 exr = task.business_action_json.get("execution_from_scenario")
                 if isinstance(exr, dict) and exr.get("project_structure"):
                     real_exec_line = "\n\nСистема подготовила исполнение. Можно запускать через Cursor."
@@ -697,14 +701,17 @@ async def _run_orchestration(task_id: int, chat_id: int, bot: Bot):
                     exec_pack_line = ""
                     next_action_line = ""
 
-            growth = build_growth_insight(repo.get_all_tasks())
-            insight_line = format_growth_insight_telegram(growth)
-            checklist_reminder = "\n\nНа сегодня:\n1) Выполнил шаг?\n2) Записал результат (даже если «ничего»)?"
+            insight_line = ""
+            checklist_reminder = ""
+            if not product_delivery:
+                growth = build_growth_insight(repo.get_all_tasks())
+                insight_line = format_growth_insight_telegram(growth)
+                checklist_reminder = "\n\nНа сегодня:\n1) Выполнил шаг?\n2) Записал результат (даже если «ничего»)?"
 
             if final_status == "WAIT_OWNER":
                 exploration_kb = None
                 exploration_pending = False
-                if task and isinstance(task.business_action_json, dict):
+                if task and not product_delivery and isinstance(task.business_action_json, dict):
                     ex = task.business_action_json.get("exploration")
                     sel = _read_exploration_selected_id(task) if task else ""
                     if isinstance(ex, dict) and ex.get("exploration_mode") and not sel:
@@ -718,8 +725,12 @@ async def _run_orchestration(task_id: int, chat_id: int, bot: Bot):
                         f"{summary}\n\n{footer}"
                     )
                 else:
+                    headline = (
+                        "материалы прохода готовы. Реализация ещё не подтверждена; требуется решение владельца."
+                        if product_delivery else "результат готов. Нужно ваше утверждение перед исполнением."
+                    )
                     msg = (
-                        f"✅ Миссия #{task_id}: результат готов. Нужно ваше утверждение перед исполнением.\n\n"
+                        f"✅ Миссия #{task_id}: {headline}\n\n"
                         f"{summary}\n\n{footer}"
                     )
                 if exec_pack_line:
@@ -951,8 +962,8 @@ async def handle_owner_callback(cb: CallbackQuery):
                         cb.message.chat.id,
                         (
                             f"✅ Миссия #{task_id} утверждена → EXECUTION_READY.\n"
-                            f"Пакет не записался автоматически — на RU: "
-                            f"python scripts/prepare_outreach_execute.py --task-id {task_id}"
+                            "Исполнение ещё не завершено. Проверьте execution_request в панели; "
+                            "если его нет, подготовьте patch и получите отдельное согласование перед запуском."
                         ),
                     )
             else:
