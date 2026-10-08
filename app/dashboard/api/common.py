@@ -357,6 +357,12 @@ def _owner_status_summary(task, new_status: str, decision: str) -> str:
                     "Owner утвердил patch. Можно отдельно запустить применение изменений, тесты и создание PR.",
                     task.summary,
                 )
+            from app.orchestrator.execution_pack import task_requires_product_execution
+            if task_requires_product_execution(task):
+                return _merge_status_summary(
+                    "План реализации утверждён. Результат ещё не выполнен: подготовьте execution_request и отдельно согласуйте patch.",
+                    task.summary,
+                )
             return _merge_status_summary(
                 "Owner утвердил план. EXECUTE-пакет готов (message_to_send.txt). Рассылка вручную/Cursor; AI-TEAM не шлёт сам.",
                 task.summary,

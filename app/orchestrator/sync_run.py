@@ -13,6 +13,7 @@ from app.business_execution.execution_runner import (
 from app.business_execution.execution_engine import ensure_action_instance_blob, ensure_execution_pack_for_task
 from app.governance.owner_flow import on_orchestration_awaiting_owner
 from app.orchestrator.court import run_court
+from app.orchestrator.execution_pack import task_requires_product_execution
 from app.orchestrator.exploration import build_default_scenarios, detect_exploration_intent
 from app.orchestrator.pipeline import run_pipeline
 from app.orchestrator.roundtable import run_roundtable
@@ -541,16 +542,18 @@ def run_sync_orchestration(
     summary = court_result.get("summary", "")[:limit]
     notify_stage_sync(task_id, "court", detail="вердикт и отчёт сформированы")
 
+    latest_task = repo.get_task(task_id)
+    product_delivery = bool(latest_task and task_requires_product_execution(latest_task))
     if control:
         control.set_phase(
             "execution_pack_generation",
-            message="Система формирует готовый execution pack для следующего бизнес-шага.",
+            message=("Материалы готовы; проверяю исполнительный контур продукта."
+                     if product_delivery else "Система формирует готовый execution pack для следующего бизнес-шага."),
             current_step="GM",
         )
         control.check_cancelled()
 
-    latest_task = repo.get_task(task_id)
-    if latest_task:
+    if latest_task and not product_delivery:
         project = repo.get_project(latest_task.project_id) if latest_task.project_id else None
         all_tasks = repo.get_all_tasks()
         pack = ensure_execution_pack_for_task(latest_task, project, all_tasks=all_tasks)
@@ -606,6 +609,8 @@ def run_sync_orchestration(
         needs_approval, owner_eng = apply_rules_to_execution(exec_ctx, bundle=owner_bundle)
         owner_exec_payload = explain_rule_effects(owner_eng)
 
+    # A reviewed product plan is not a validated implementation outcome.
+    needs_approval = needs_approval or product_delivery
     final_status = "WAIT_OWNER" if needs_approval else "DONE"
 
     if control:

@@ -16,9 +16,24 @@ _OUTREACH_TASK_TYPES = frozenset({"content_pipeline", "marketing_campaign", "mar
 _OUTREACH_CLUSTERS = frozenset({"MEDIA", "MEDIA_OPS"})
 
 
+def task_requires_product_execution(task: Any) -> bool:
+    """Product implementation approval is not evidence of completed delivery."""
+    from app.config import get_routing
+    from app.orchestrator.triage import _explicit_task_triage
+
+    explicit = _explicit_task_triage(getattr(task, "owner_text", "") or "", get_routing())
+    domain = explicit["domain"] if explicit else getattr(task, "domain", None)
+    task_type = explicit["task_type"] if explicit else getattr(task, "task_type", None)
+    return domain == "PRODUCT_DEV" and task_type in {
+        "feature_delivery", "software_bugfix", "deploy_prod",
+    }
+
+
 def task_wants_outreach_execute(task: Any) -> bool:
     """True when approve should prepare a manual EXECUTE pack (not mass-send)."""
     if task is None:
+        return False
+    if task_requires_product_execution(task):
         return False
     ba = getattr(task, "business_action_json", None) or {}
     if isinstance(ba, dict):
@@ -231,6 +246,8 @@ def resolve_status_after_approve(task: Any, *, has_pr: bool) -> str:
         return "APPROVED_WAIT_MERGE"
     business_action = getattr(task, "business_action_json", None) or {}
     if isinstance(business_action, dict) and isinstance(business_action.get("execution_request"), dict):
+        return "EXECUTION_READY"
+    if task_requires_product_execution(task):
         return "EXECUTION_READY"
     if task_wants_outreach_execute(task):
         return "EXECUTION_READY"
