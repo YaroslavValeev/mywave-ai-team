@@ -727,7 +727,12 @@ def apply_owner_decision(repo: TaskRepository, task_id: int, decision: str, sour
     if normalized == "approve":
         if not owner_actions["can_approve"]:
             raise HTTPException(status_code=409, detail=owner_actions["approve_reason"])
-        log_decision(repo, task_id, decision="a", owner_approval=True)
+        from app.execution.approval import record_bound_approval
+        from app.execution.service import ExecutionRequestError
+        try:
+            record_bound_approval(repo, task)
+        except ExecutionRequestError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
         execute_pack_info = None
         from app.orchestrator.execution_pack import (
             prepare_outreach_execution_pack,
