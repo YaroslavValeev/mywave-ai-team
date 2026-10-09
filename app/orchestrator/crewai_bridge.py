@@ -6,7 +6,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from app.config import get_orchestration_config
+from app.config import get_orchestration_config, get_routing
 
 logger = logging.getLogger(__name__)
 
@@ -179,11 +179,20 @@ def run_crewai_triage(text: str) -> dict:
             raise _strict_unavailable("triage")
         return {}
 
+    route_lines = []
+    for domain, cfg in (get_routing().get("domains", {}) or {}).items():
+        for task_type, task_cfg in (cfg.get("task_types", {}) or {}).items():
+            route_lines.append(
+                f"- domain={domain}; task_type={task_type}; execute_gate={task_cfg.get('execute_gate', '')}"
+            )
     description = (
         "Classify the owner task into JSON with keys "
         "`domain`, `task_type`, `criticality`, `plan_or_execute`, `execute_gate`.\n"
         "Allowed criticality: LOW, MEDIUM, HIGH, CRITICAL.\n"
         "Allowed plan_or_execute: PLAN or EXECUTE.\n"
+        "Choose domain, task_type and execute_gate only from this canonical routing allow-list:\n"
+        + "\n".join(route_lines)
+        + "\nNever invent identifiers or use owner/triage/AI-TEAM.\n"
         "Return JSON only, no markdown.\n\n"
         f"Owner task:\n{text or ''}"
     )
@@ -245,6 +254,7 @@ def run_crewai_pipeline(task_id: int, steps: list[str], context: dict, control=N
             "Produce JSON only with keys "
             "`summary`, `artifacts`, `decisions`, `assumptions`, `risks`, `open_questions`, `next_action`.\n"
             "All keys except `next_action` must contain arrays of short strings.\n"
+            "If there are no new risks, use the exact item `no_new_risks`; never invent a risk.\n"
             "Base your analysis on the owner instructions AND any attached files below.\n"
             f"Task id: {task_id}\n"
             f"Step: {step}\n"
@@ -269,12 +279,51 @@ def run_crewai_pipeline(task_id: int, steps: list[str], context: dict, control=N
             if crewai_strict_required():
                 raise _strict_unavailable("pipeline")
             return []
-        payload["next_action"] = payload.get("next_action") or next_action
+        payload_errors = _validate_pipeline_payload(payload, next_action)
+        if payload_errors:
+            _set_last_crewai_error(f"semantic payload validation failed for {step}: {'; '.join(payload_errors)}")
+            if crewai_strict_required():
+                raise _strict_unavailable("pipeline")
+            return []
+        payload["next_action"] = next_action
+        payload["provenance"] = {
+            "generation_source": "llm",
+            "model": _configured_model_label(),
+            "fallback_used": False,
+            "validation_status": "valid",
+        }
         outputs.append(payload)
         prior_summary = "; ".join(payload.get("summary", [])[:3]) or f"{step} completed"
         if control:
             control.check_cancelled()
     return outputs
+
+
+def _validate_pipeline_payload(payload: dict, expected_next_action: str) -> list[str]:
+    errors: list[str] = []
+    summary = payload.get("summary")
+    if not isinstance(summary, list) or not any(str(item).strip() for item in summary):
+        errors.append("summary must contain at least one non-empty item")
+    next_action = str(payload.get("next_action") or "").strip()
+    if next_action != expected_next_action:
+        errors.append(f"next_action must be {expected_next_action!r}, got {next_action or '<empty>'!r}")
+    for key in ("decisions", "assumptions", "risks"):
+        value = payload.get(key)
+        if not isinstance(value, list) or not any(str(item).strip() for item in value):
+            errors.append(f"{key} must contain at least one non-empty item")
+    risks = payload.get("risks") or []
+    if any(str(item).strip() == "no_new_risks" for item in risks):
+        errors = [error for error in errors if not error.startswith("risks ")]
+    return errors
+
+
+def _configured_model_label() -> str:
+    from app.orchestrator.llm_tier import endpoint_for_tier
+
+    endpoint = endpoint_for_tier()
+    tier = endpoint.get("tier") or "unknown"
+    model = endpoint.get("model") or "unknown"
+    return f"{tier}:{model}"
 
 
 def _run_json_task(

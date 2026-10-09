@@ -289,6 +289,12 @@ def _build_handoff_payload(
         "open_questions": open_questions,
         "next_action": next_action,
         "agent_cluster": agent_cluster or None,
+        "provenance": {
+            "generation_source": "deterministic",
+            "model": None,
+            "fallback_used": True,
+            "validation_status": "deterministic_baseline",
+        },
     }
 
     # Structured deliverable (handoff_v1) — owner-facing block for MEDIA content.
@@ -342,6 +348,28 @@ def _merge_payloads(fallback_payload: dict, crewai_payload: dict | None, next_ac
             merged[key] = fallback_value
             continue
         merged[key] = candidate if candidate else fallback_value
+    llm_provenance = crewai_payload.get("provenance")
+    fallback_keys = {
+        key for key, fallback_value in fallback_payload.items()
+        if key != "provenance" and fallback_value and not crewai_payload.get(key)
+    }
+    if isinstance(llm_provenance, dict) and not fallback_keys:
+        merged["provenance"] = llm_provenance
+    elif isinstance(llm_provenance, dict):
+        merged["provenance"] = {
+            **llm_provenance,
+            "generation_source": "mixed",
+            "fallback_used": True,
+            "validation_status": "mixed",
+            "fallback_fields": sorted(fallback_keys),
+        }
+    else:
+        merged["provenance"] = {
+            "generation_source": "mixed",
+            "model": None,
+            "fallback_used": True,
+            "validation_status": "mixed",
+        }
     return merged
 
 
