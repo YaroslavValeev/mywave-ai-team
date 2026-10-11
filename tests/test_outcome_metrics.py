@@ -36,7 +36,18 @@ def test_explicit_outcome_metrics_are_authoritative():
 
     result = calculate_outcome_metrics(task, [_event("OWNER_REWORK", owner_minutes=90)])
 
-    assert result == {
+    assert {
+        key: result[key]
+        for key in (
+            "owner_minutes",
+            "autonomous_actions",
+            "total_actions",
+            "rework_count",
+            "business_outcome",
+            "autonomous_completion_rate",
+            "owner_hours_saved",
+        )
+    } == {
         "owner_minutes": 18.0,
         "autonomous_actions": 7,
         "total_actions": 9,
@@ -79,12 +90,17 @@ def test_structured_actions_take_precedence_over_duplicate_audit_events():
                 {"autonomous": True, "estimated_manual_minutes": 30},
             ],
             "owner_minutes": 15,
-            "action_instance": {"status": "done", "result_summary": "Изменение внедрено"},
+            "action_instance": {
+                "status": "done",
+                "result_summary": "Изменение внедрено",
+            },
         },
         "rework_cycles": 0,
     }
 
-    result = compute_outcome_metrics(task, [_event("pipeline_done"), _event("pipeline_done")])
+    result = compute_outcome_metrics(
+        task, [_event("pipeline_done"), _event("pipeline_done")]
+    )
 
     assert result["total_actions"] == 3
     assert result["autonomous_actions"] == 2
@@ -106,7 +122,18 @@ def test_empty_and_malformed_values_are_safe_and_do_not_invent_savings():
 
     result = calculate_outcome_metrics(task, [None, {}, _event("chat_message")])
 
-    assert result == {
+    assert {
+        key: result[key]
+        for key in (
+            "owner_minutes",
+            "autonomous_actions",
+            "total_actions",
+            "rework_count",
+            "business_outcome",
+            "autonomous_completion_rate",
+            "owner_hours_saved",
+        )
+    } == {
         "owner_minutes": 0.0,
         "autonomous_actions": 0,
         "total_actions": 0,
@@ -115,3 +142,88 @@ def test_empty_and_malformed_values_are_safe_and_do_not_invent_savings():
         "autonomous_completion_rate": 0.0,
         "owner_hours_saved": 0.0,
     }
+    assert result["owner_minutes_status"] == "missing"
+    assert result["savings_status"] == "unmeasured"
+    assert result["verified_owner_hours_saved"] is None
+
+
+def _measured_task(status="DONE", **updates):
+    metrics = {
+        "owner_minutes": 30,
+        "estimated_manual_minutes": 180,
+        "owner_time_evidence_ref": "evidence:owner-timer",
+        "baseline_evidence_ref": "evidence:manual-baseline",
+        "business_outcome_verified": True,
+        "business_outcome_evidence_ref": "evidence:accepted-outcome",
+        **updates,
+    }
+    return _task(
+        status=status,
+        business_outcome="Результат принят",
+        business_action_json={"outcome_metrics": metrics},
+    )
+
+
+def test_verified_savings_requires_accepted_outcome_and_measurement_references():
+    result = calculate_outcome_metrics(_measured_task(owner_hours_saved=99))
+    assert result["savings_status"] == "verified"
+    assert result["business_outcome_verified"] is True
+    assert result["verified_owner_hours_saved"] == 2.5
+    # Preserve the old declared number; it cannot override the verified formula.
+    assert result["owner_hours_saved"] == 99
+
+
+def test_feedback_in_wait_owner_is_not_verified_outcome():
+    task = _measured_task(status="WAIT_OWNER")
+    task.business_outcome = "Подтверждено владельцем в Telegram"
+    result = calculate_outcome_metrics(task)
+    assert result["business_outcome_verified"] is False
+    assert result["savings_status"] == "awaiting_outcome"
+    assert result["verified_owner_hours_saved"] is None
+
+
+def test_done_alone_does_not_verify_outcome():
+    result = calculate_outcome_metrics(
+        _measured_task(business_outcome_evidence_ref=" ")
+    )
+    assert result["business_outcome_verified"] is False
+    assert result["verified_owner_hours_saved"] is None
+
+
+def test_declared_numbers_without_time_evidence_are_not_verified():
+    result = calculate_outcome_metrics(_measured_task(owner_time_evidence_ref=None))
+    assert result["owner_minutes_status"] == "recorded"
+    assert result["savings_status"] == "needs_evidence"
+    assert result["verified_owner_hours_saved"] is None
+
+
+def test_partial_owner_events_do_not_become_complete_measurement():
+    task = _measured_task(owner_minutes=None)
+    events = [_event("owner_approved", owner_minutes=3), _event("owner_rework")]
+    result = calculate_outcome_metrics(task, events)
+    assert result["owner_minutes"] == 3
+    assert result["owner_minutes_status"] == "partial"
+    assert result["savings_status"] == "unmeasured"
+
+
+def test_explicit_zero_is_known_and_time_overrun_is_visible():
+    assert (
+        calculate_outcome_metrics(_measured_task(owner_minutes=0))[
+            "verified_owner_hours_saved"
+        ]
+        == 3
+    )
+    result = calculate_outcome_metrics(_measured_task(owner_minutes=240))
+    assert result["verified_owner_hours_saved"] == -1
+
+
+def test_partial_baseline_actions_do_not_fabricate_complete_baseline():
+    task = _measured_task(estimated_manual_minutes=None)
+    task.business_action_json["execution_actions"] = [
+        {"agent": "dev", "estimated_manual_minutes": 30},
+        {"agent": "qa"},
+    ]
+    result = calculate_outcome_metrics(task)
+    assert result["baseline_status"] == "partial"
+    assert result["baseline_minutes"] is None
+    assert result["verified_owner_hours_saved"] is None

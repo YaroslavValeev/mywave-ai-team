@@ -1582,6 +1582,22 @@
     const toggleLabel = state.live.userPaused ? "Продолжить live" : "Остановить live";
     const returnLabel = state.view === "docs" ? "Вернуться к миссии" : "К началу миссии";
     const metrics = state.scene?.outcome_metrics || {};
+    let ownerTimeText = "Не измерено";
+    if (metrics.owner_minutes_status === "recorded") {
+      ownerTimeText = `${metrics.owner_minutes} мин (по записи)`;
+    } else if (metrics.owner_minutes_status === "partial") {
+      ownerTimeText = `${metrics.owner_minutes} мин (частично)`;
+    }
+    let savingsText = "Не измерено";
+    if (metrics.savings_status === "verified" && Number.isFinite(metrics.verified_owner_hours_saved)) {
+      savingsText = metrics.verified_owner_hours_saved < 0
+        ? `Сверх baseline: ${Math.abs(metrics.verified_owner_hours_saved)} ч`
+        : `${metrics.verified_owner_hours_saved} ч`;
+    } else if (metrics.savings_status === "awaiting_outcome") {
+      savingsText = "Результат не подтверждён";
+    } else if (metrics.savings_status === "needs_evidence") {
+      savingsText = "Нет evidence измерений";
+    }
     return `
       <section class="scene-card current-state-card" id="mission-top">
         <div class="scene-head">
@@ -1622,12 +1638,12 @@
         </div>
         <div class="current-state-note">${escapeHtml(truth.note)}</div>
         <div class="outcome-metrics" aria-label="KPI миссии">
-          <div class="current-state-metric"><div class="current-state-kicker">Время владельца</div><div class="current-state-value">${escapeHtml(metrics.owner_minutes ?? 0)} мин</div></div>
-          <div class="current-state-metric"><div class="current-state-kicker">Автономно</div><div class="current-state-value">${escapeHtml(metrics.autonomous_actions ?? 0)} / ${escapeHtml(metrics.total_actions ?? 0)}</div></div>
-          <div class="current-state-metric"><div class="current-state-kicker">Сэкономлено</div><div class="current-state-value">${escapeHtml(metrics.owner_hours_saved ?? 0)} ч</div></div>
-          <div class="current-state-metric"><div class="current-state-kicker">Rework</div><div class="current-state-value">${escapeHtml(metrics.rework_count ?? 0)}</div></div>
+          <div class="current-state-metric"><div class="current-state-kicker">Время владельца</div><div class="current-state-value">${escapeHtml(ownerTimeText)}</div></div>
+          <div class="current-state-metric"><div class="current-state-kicker">Автономно (журнал)</div><div class="current-state-value">${escapeHtml(metrics.autonomous_actions ?? 0)} / ${escapeHtml(metrics.total_actions ?? 0)}</div></div>
+          <div class="current-state-metric"><div class="current-state-kicker">Экономия времени</div><div class="current-state-value">${escapeHtml(savingsText)}</div></div>
+          <div class="current-state-metric"><div class="current-state-kicker">Возвраты владельца</div><div class="current-state-value">${escapeHtml(metrics.rework_count ?? 0)}</div></div>
         </div>
-        ${metrics.business_outcome ? `<div class="current-state-team">Бизнес-результат: ${escapeHtml(metrics.business_outcome)}</div>` : ""}
+        ${metrics.business_outcome ? `<div class="current-state-team">${metrics.business_outcome_verified ? "Подтверждённый бизнес-результат" : "Заявленный результат, не проверен"}: ${escapeHtml(metrics.business_outcome)}</div>` : ""}
         <div class="current-state-team">Сейчас система ждёт: ${escapeHtml(truth.ownerWaitingFor)}</div>
         ${truth.teamSummary ? `<div class="current-state-team">Командный итог: ${escapeHtml(truth.teamSummary)}</div>` : ""}
         <div class="owner-now-block">
