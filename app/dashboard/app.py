@@ -32,6 +32,7 @@ from app.shared.dashboard_session import (
     sign_owner_session,
 )
 from app.shared.redaction import redact, scrub_secrets
+from asyncio import to_thread
 from app.shared.system_health import collect_system_health
 from app.dashboard.api_router import router as api_router, apply_owner_decision, apply_merge_confirmation
 from app.dashboard.business_view import (
@@ -475,7 +476,7 @@ async def index(request: Request, x_api_key: str | None = Header(None, alias="X-
     return templates.TemplateResponse(
         request,
         "index.html",
-        {"api_key_query": build_api_key_query(request), "health": collect_system_health()},
+        {"api_key_query": build_api_key_query(request), "health": await to_thread(collect_system_health)},
     )
 
 
@@ -792,7 +793,7 @@ async def missions_console(request: Request):
             if item["needs_approval"]:
                 approvals.append(item)
         exploration_pending = [m for m in missions if m.get("exploration_waiting")]
-        health = collect_system_health()
+        health = await to_thread(collect_system_health)
         paused = [m for m in missions if m["workflow_status"] in {"paused", "failed"}]
         running = [m for m in missions if m["workflow_status"] == "running"]
     view_mode = (
