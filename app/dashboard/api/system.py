@@ -1,5 +1,7 @@
 # app/dashboard/api/system.py — /system/* routes.
 
+from asyncio import to_thread
+
 from fastapi import APIRouter
 
 from app.dashboard.api.common import (
@@ -18,7 +20,7 @@ router = APIRouter()
 @router.get("/system/health")
 async def api_system_health():
     """Сводный статус интеграций и runtime-конфигурации."""
-    return collect_system_health()
+    return await to_thread(collect_system_health)
 
 
 @router.get("/system/release")
