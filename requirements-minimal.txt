@@ -6,6 +6,7 @@ aiogram>=3.0
 fastapi>=0.139.2,<0.140
 uvicorn[standard]>=0.27,<1
 jinja2
+python-multipart
 sqlalchemy
 psycopg2-binary
 alembic
