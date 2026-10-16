@@ -28,7 +28,9 @@ def test_system_health_allows_readiness_callback_on_same_event_loop(monkeypatch)
 
     async def exercise():
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
             checking = asyncio.create_task(client.get("/system/health"))
             assert await asyncio.to_thread(collecting.wait, 3)
             assert (await client.get("/health")).status_code == 200
