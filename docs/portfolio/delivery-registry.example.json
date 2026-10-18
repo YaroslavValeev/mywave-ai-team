@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-10-18",
+  "projects": [
+    {
+      "id": "example-site",
+      "kind": "product",
+      "repository": "example-owner/example-site",
+      "main_sha": null,
+      "ci": {
+        "state": "unknown"
+      },
+      "deployment": {
+        "environment": "staging",
+        "state": "unknown",
+        "sha": null
+      },
+      "acceptance": {
+        "state": "not_verified",
+        "gates": []
+      },
+      "owns_domains": [
+        "commercial_booking"
+      ]
+    },
+    {
+      "id": "example-ops",
+      "kind": "product",
+      "repository": "example-owner/example-ops",
+      "main_sha": null,
+      "ci": {
+        "state": "unknown"
+      },
+      "deployment": {
+        "environment": "staging",
+        "state": "unknown",
+        "sha": null
+      },
+      "acceptance": {
+        "state": "not_verified",
+        "gates": []
+      },
+      "owns_domains": [
+        "club_operations"
+      ]
+    }
+  ]
+}
