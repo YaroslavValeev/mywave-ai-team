@@ -61,5 +61,5 @@ mismatches and missing owner gates. Recovery policy tests reject active/recent,
 wrong-identity or completed work. Integration tests execute the actual recovery
 worker against real SQLAlchemy models and verify both audit persistence and
 transaction rollback if the audit insert fails. A server preflight must still
-pass before use. Root credentials remain inside the running app, and are never
-printed or passed to the test container.
+pass before use. API credentials are used inside the running app. Configuration is compared
+locally without printing secrets; test containers receive only synthetic credentials.
