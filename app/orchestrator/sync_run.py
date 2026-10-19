@@ -287,6 +287,10 @@ def run_sync_orchestration(
     if not task:
         return None
 
+    from app.workspaces.access import ScopeDenied
+    if getattr(task, "workspace_id", None) is not None:
+        raise ScopeDenied("No approved scoped orchestration profile")
+
     from app.orchestrator.llm_tier import (
         describe_active_endpoint,
         resolve_llm_tier,

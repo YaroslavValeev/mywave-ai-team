@@ -73,6 +73,11 @@ def run_pipeline(task_id: int, triage_result: dict, repo, control=None) -> dict:
         pipeline_steps = ["PM", "ARCH"]
 
     task = repo.get_task(task_id)
+    if task is None:
+        raise ValueError("Task not found")
+    if getattr(task, "workspace_id", None) is not None:
+        from app.workspaces.access import ScopeDenied
+        raise ScopeDenied("No approved scoped orchestration profile")
     owner_text = redact((task.owner_text or "").strip()) if task else ""
     attachment_docs = _load_attachment_documents(task)
     attachment_names = [name for name, _ in attachment_docs]

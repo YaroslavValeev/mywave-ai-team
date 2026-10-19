@@ -1,0 +1,67 @@
+{
+  "build": {
+    "source_sha": "b2a11824342f7b7921bcb3d84dcdc8913fa8e86b",
+    "base_image": "sha256:f85bdfc8aa43952d074521e295c312da97bda74ebc77435d6a2feece34415dc1",
+    "image_id": "sha256:ddb4d20a8dc980f81abb4033f0eba75eb24073250583d2d94313e78cdd77d3f1",
+    "tag": "ai-team-workspace-integration:b2a11824342f",
+    "build_timestamp": "2026-10-19T19:43:52Z",
+    "source_archive_sha256": "f1c1543af667fe5477be65b61b6f8426f34e2a081624b7e593e8f14225e8d929",
+    "production_changed": false,
+    "qualification": "/opt/mywave/ai-team-runtime/workspace-qa-20261019/ai-team-workspace-qa-7a9331a7ba29411d989650bc5c322f37/qualification.json",
+    "production_image_unchanged": true
+  },
+  "qualification": {
+    "source_files_sha256": {},
+    "image_id": "sha256:ddb4d20a8dc980f81abb4033f0eba75eb24073250583d2d94313e78cdd77d3f1",
+    "production_changed": false,
+    "tested_image_source": true,
+    "source_sha": "b2a11824342f7b7921bcb3d84dcdc8913fa8e86b",
+    "workspace_exit": 0,
+    "workspace_tests": {
+      "tests": 132,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "regression_exit": 0,
+    "regression_tests": {
+      "tests": 378,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    "restore": {
+      "result": "passed",
+      "tables_compared": 17,
+      "migration": "009",
+      "backup_sha256": "267089c634773ca9bdc90a7910a770e8e5a66755b612a08583dd2d78e002a2a6"
+    },
+    "result": "passed",
+    "cleanup": "passed"
+  },
+  "entrypoint_smoke": {
+    "source_sha": "b2a11824342f7b7921bcb3d84dcdc8913fa8e86b",
+    "image_id": "sha256:ddb4d20a8dc980f81abb4033f0eba75eb24073250583d2d94313e78cdd77d3f1",
+    "captured_at": "2026-10-19T19:46:17.230603+00:00",
+    "production_changed": false,
+    "result": "passed",
+    "health": {
+      "status": "ok",
+      "release": {
+        "version": "2026-10-19-b2a11824342f",
+        "commit_sha": "b2a11824342f7b7921bcb3d84dcdc8913fa8e86b",
+        "environment": "candidate",
+        "build_timestamp": "2026-10-19T19:43:52Z",
+        "migration_version": "009"
+      }
+    },
+    "scoped_create_read": true,
+    "legacy_runtime_denied": true,
+    "unregistered_executor_denied": true,
+    "revocation_denied": true,
+    "denial_audited": true,
+    "polling_disabled": true,
+    "production_image_unchanged": true,
+    "cleanup": "passed"
+  }
+}

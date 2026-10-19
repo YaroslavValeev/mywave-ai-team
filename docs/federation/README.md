@@ -39,3 +39,8 @@ S1a добавляет модели, migration 008 и internal review utility, �
 Внутренний следующий компонент описан в [Scoped access](07-scoped-access.md).
 Он не завершает S1b: существующие API/runner/file handlers ещё требуют адаптации
 перед включением intake Федерации.
+
+Это граница PR №81. Текущая интеграция описана в
+[Access integration](08-access-integration.md): подключены legacy guards,
+scoped HTTP/UI/files и независимый audit отказов. Неподготовленные scoped
+execution profiles явно заблокированы; production включается отдельно.

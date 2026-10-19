@@ -134,6 +134,9 @@ def prepare_outreach_execution_pack(
     task = repo.get_task(task_id)
     if not task:
         return {"ok": False, "reason": "task_not_found", "task_id": task_id}
+    if getattr(task, "workspace_id", None) is not None:
+        from app.workspaces.access import ScopeDenied
+        raise ScopeDenied("No approved scoped execution pack profile")
     if not task_wants_outreach_execute(task):
         return {"ok": False, "reason": "not_outreach", "task_id": task_id}
 

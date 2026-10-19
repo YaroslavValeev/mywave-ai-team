@@ -9,7 +9,7 @@ from datetime import datetime
 import hashlib
 import json
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from app.storage.models import (
     AuditEvent,
@@ -155,6 +155,10 @@ class ScopedRepository:
         query = select(MemoryEntry).where(
             MemoryEntry.workspace_id == self.scope.workspace_id,
             MemoryEntry.project_id == self.scope.project_id,
+            or_(
+                MemoryEntry.task_id.is_(None),
+                MemoryEntry.task_id.in_(self._tasks().with_only_columns(Task.id)),
+            ),
         )
         return [
             MemoryView(

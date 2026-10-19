@@ -810,7 +810,8 @@ def _load_full_report_text(task) -> str:
                 p = cand
         if p.is_file():
             try:
-                body = p.read_text(encoding="utf-8", errors="replace").strip()
+                from app.workspaces.files import read_legacy_text
+                body = read_legacy_text(p).strip()
                 if body:
                     chunks.append(body)
             except OSError:

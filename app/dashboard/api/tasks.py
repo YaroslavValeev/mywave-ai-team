@@ -119,6 +119,8 @@ async def api_list_tasks():
 async def api_create_task(request: Request):
     """Создать задачу. Body: {owner_text} или {domain, task_type, payload, criticality}."""
     body = await request.json() or {}
+    if any(key in body for key in ("workspace_id", "principal_id", "scope")):
+        raise HTTPException(status_code=400, detail="Use the scoped task API")
     owner_text = body.get("owner_text")
     if not owner_text:
         domain = body.get("domain", "PRODUCT_DEV")
@@ -448,6 +450,8 @@ async def api_get_task_document(task_id: int, document_key: str):
 async def api_update_task(task_id: int, request: Request):
     """Обновить задачу. Body: {status, pr_url, commit_sha, ci_url, summary, ...}."""
     body = await request.json() or {}
+    if any(key in body for key in ("workspace_id", "principal_id", "scope", "project_id")):
+        raise HTTPException(status_code=400, detail="Legacy scope reassignment denied")
     Session = get_session_factory()
     with Session() as session:
         repo = TaskRepository(session)
@@ -499,7 +503,8 @@ async def api_get_artifact(artifact_id: int, task_id: int):
         path = Path(handoff.md_path)
         if not path.exists():
             raise HTTPException(status_code=404, detail="Artifact file not found")
-        content = path.read_text(encoding="utf-8")
+        from app.workspaces.files import read_legacy_text
+        content = read_legacy_text(path)
         return {"content": redact(content)}
 
 
