@@ -29,6 +29,12 @@ Session для пользовательских запросов. Обход fil
 не предусмотрен. Shared owner memory остаётся owner-only, не служит импортом
 данных Федерации; scoped orchestration не запускается через legacy pipeline.
 
+Дополнительно запрещены from_statement/textual SQL и произвольные literal SQL
+фрагменты внутри ORM statement: они способны обойти with_loader_criteria.
+Этот путь воспроизведён до запрета и закреплён отрицательными тестами; безопасный
+COUNT(*) остаётся поддержан. Это не заменяет DB privileges/RLS против прямого
+административного подключения вне LegacySession.
+
 ## Аутентификация и поддержанные операции
 
 По умолчанию WORKSPACE_ACCESS_ENABLED=false: новые маршруты возвращают 404.

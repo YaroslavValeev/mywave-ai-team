@@ -114,6 +114,12 @@ def test_legacy_write_and_bulk_bypasses_block(configured, engine):
         with pytest.raises(ScopeDenied):
             legacy.execute(text("SELECT * FROM tasks"))
         with pytest.raises(ScopeDenied):
+            legacy.scalars(
+                select(Task).from_statement(text("SELECT * FROM tasks"))
+            ).all()
+        with pytest.raises(ScopeDenied):
+            legacy.scalars(select(Task).where(text("1=1 OR 1=1"))).all()
+        with pytest.raises(ScopeDenied):
             legacy.bulk_update_mappings(Task, [{"id": tid, "owner_text": "wrong"}])
         with pytest.raises(ScopeDenied):
             legacy.execute(update(Task).where(Task.id == lid).values(workspace_id=wid))

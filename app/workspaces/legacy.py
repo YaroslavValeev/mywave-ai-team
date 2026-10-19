@@ -2,6 +2,8 @@
 
 from sqlalchemy import and_, event, false, or_, select
 from sqlalchemy.orm import Session, with_loader_criteria
+from sqlalchemy.sql import visitors
+from sqlalchemy.sql.elements import ColumnClause, TextClause
 
 from app.storage.models import (
     Approval,
@@ -59,6 +61,12 @@ def _tasks():
 def _filter(execute_state):
     if not execute_state.is_orm_statement:
         raise ScopeDenied("Legacy SQL requires mapped entities")
+    if execute_state.is_from_statement or any(
+        isinstance(node, TextClause)
+        or (isinstance(node, ColumnClause) and node.is_literal and node.name != "*")
+        for node in visitors.iterate(execute_state.statement)
+    ):
+        raise ScopeDenied("Legacy textual SQL denied")
     if execute_state.is_insert:
         raise ScopeDenied("Legacy bulk inserts are not supported")
     if (execute_state.is_update or execute_state.is_delete) and isinstance(
