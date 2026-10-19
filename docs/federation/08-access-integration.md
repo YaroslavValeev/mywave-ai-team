@@ -90,6 +90,23 @@ network, отдельная база ai_team_workspace_qa_*, tmpfs, синтет
 Deprecation warnings SQLAlchemy JSON operator и тестовых библиотек сохраняются;
 dependency image не обновляется в рамках этой интеграции.
 
+Финальный код: `b2a11824342f7b7921bcb3d84dcdc8913fa8e86b`.
+Построен image `ai-team-workspace-integration:b2a11824342f`, immutable ID
+`sha256:ddb4d20a8dc980f81abb4033f0eba75eb24073250583d2d94313e78cdd77d3f1`.
+Тесты выполнены на коде внутри образа, без source mount: 131 passed / 1 skipped
+для SQLite+PostgreSQL и 377 passed / 1 Cursor CLI skipped для legacy regression.
+JUnit XML и private build/log evidence сохранены на сервере. Восстановлен dump
+009 и сравнены все строки 17 таблиц. Тестовый fresh-PG процесс прошёл реальную
+цепочку `alembic upgrade head → python -m app.main → HTTP health → scoped create/read
+→ legacy/runtime deny → grant revoke → deny/audit`; polling выключен.
+Molt readiness, реальная Telegram переписка и внешний LLM этим smoke не
+проверялись. Production image до/после совпал, QA cleanup passed.
+
+Sanitized evidence: [integration-b2a1182-20261019.json](evidence/integration-b2a1182-20261019.json).
+Дополнительные evidence/doc commits не изменяют code SHA протестированного image.
+Ранний preparatory image 8ffe4f5 заменён этим кандидатом после выявления
+textual ORM обхода; на сервере для него записан SUPERSEDED.json: do_not_deploy.
+
 ## Выпуск и безопасный откат
 
 Нужен новый image/exact source SHA и release helper, поддерживающий 009.
