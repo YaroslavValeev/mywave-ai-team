@@ -67,6 +67,24 @@ class WorkspaceMembership(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class ProjectAccessGrant(Base):
+    """Product-level access; organizational membership alone is insufficient."""
+
+    __tablename__ = "project_access_grants"
+    __table_args__ = (
+        UniqueConstraint("project_id", "principal_id", name="uq_project_principal"),
+        CheckConstraint("role IN ('reader', 'writer', 'owner')", name="ck_project_access_role"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="RESTRICT"), index=True)
+    principal_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    role: Mapped[str] = mapped_column(String(32), nullable=False)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class Project(Base):
     __tablename__ = "projects"
 

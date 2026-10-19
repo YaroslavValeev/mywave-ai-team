@@ -35,3 +35,7 @@ migration 007, health/Molt ok, task 38 DONE и task 39 WAIT_OWNER.
 Последующий этап S1a описан отдельно в [Workspace schema](06-workspace-schema.md).
 S1a добавляет модели, migration 008 и internal review utility, но не
 включает новые права, API или scoped intake в production.
+
+Внутренний следующий компонент описан в [Scoped access](07-scoped-access.md).
+Он не завершает S1b: существующие API/runner/file handlers ещё требуют адаптации
+перед включением intake Федерации.
