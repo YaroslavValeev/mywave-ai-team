@@ -40,8 +40,11 @@ if os.getenv("WORKSPACE_TEST_DATABASE_URL"):
 
 
 @pytest.fixture(params=URLS, ids=lambda url: make_url(url).get_backend_name())
-def engine(request):
-    engine = create_engine(request.param)
+def engine(request, tmp_path):
+    url = request.param
+    if make_url(url).get_backend_name() == "sqlite":
+        url = "sqlite:///" + (tmp_path / "workspace-qa.sqlite").as_posix()
+    engine = create_engine(url)
     if engine.dialect.name == "sqlite":
 
         @event.listens_for(engine, "connect")

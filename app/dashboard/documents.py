@@ -200,6 +200,8 @@ def preview_document_bytes(name: str, content: bytes, limit: int = 320) -> str:
 
 
 def extract_document_text(file_path: Path) -> str:
+    from app.workspaces.files import legacy_path
+    file_path = legacy_path(file_path)
     suffix = file_path.suffix.lower()
     if suffix == ".docx":
         return _extract_docx_text(file_path)

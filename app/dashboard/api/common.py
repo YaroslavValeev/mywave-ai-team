@@ -145,14 +145,16 @@ def _build_business_cache_payload(tasks: list[object]) -> tuple[dict[str, object
 
 
 def _get_cached_business_payload(repo: TaskRepository) -> tuple[dict[str, object], dict[str, object], dict[str, object]]:
-    if _cache_is_fresh():
+    tasks = repo.get_all_tasks()
+    visibility = tuple(sorted(task.id for task in tasks))
+    if _cache_is_fresh() and _BUSINESS_CACHE.get("legacy_visibility") == visibility:
         metrics_cached = _BUSINESS_CACHE.get("metrics_payload")
         growth_cached = _BUSINESS_CACHE.get("growth_payload")
         health_cached = _BUSINESS_CACHE.get("data_health_payload")
         if isinstance(metrics_cached, dict) and isinstance(growth_cached, dict) and isinstance(health_cached, dict):
             return metrics_cached, growth_cached, health_cached
 
-    tasks = repo.get_all_tasks()
+    _BUSINESS_CACHE["legacy_visibility"] = visibility
     metrics_payload, growth_payload, data_health_payload = _build_business_cache_payload(tasks)
     _BUSINESS_CACHE["metrics_payload"] = metrics_payload
     _BUSINESS_CACHE["growth_payload"] = growth_payload

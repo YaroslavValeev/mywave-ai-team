@@ -84,8 +84,9 @@ backup и restore на копии, проверка migration 008 и read/write 
 ## Rollback
 
 Обычный rollback приложения сохраняет additive schema 008 и классификацию.
-До активации scoped features старый app может игнорировать новые nullable поля,
-но это проверяется на копии перед release. Downgrade разрешён только на пустом
+Только пока отсутствуют classified данные, старый app может игнорировать новые
+nullable поля. После intake требуется rollback с сохранением access guards,
+см. текущий контракт 08-access-integration.md. Downgrade разрешён только на пустом
 workspace контуре: он сохраняет старые rows и удаляет новые поля/таблицы.
 Если есть workspace или classified records, downgrade останавливается до
 любого изменения. Нужен отдельный план сохранения/восстановления данных;

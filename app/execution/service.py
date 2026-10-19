@@ -41,6 +41,9 @@ def _allowed_roots() -> tuple[Path, ...]:
 
 
 def _validated_request(task: Any) -> dict[str, str]:
+    from app.workspaces.access import ScopeDenied
+    if getattr(task, "workspace_id", None) is not None:
+        raise ExecutionRequestError("No approved scoped executor profile")
     payload = task.business_action_json if isinstance(task.business_action_json, dict) else {}
     request = payload.get("execution_request")
     if not isinstance(request, dict):
@@ -65,6 +68,11 @@ def _validated_request(task: Any) -> dict[str, str]:
         raise ExecutionRequestError("Execution artifact должен быть файлом .patch или .diff.")
     if not patch_path.is_file() or not _is_relative_to(patch_path, artifacts_root):
         raise ExecutionRequestError("Patch отсутствует или находится вне ARTIFACTS_DIR.")
+    from app.workspaces.files import legacy_path
+    try:
+        legacy_path(patch_path)
+    except ScopeDenied as error:
+        raise ExecutionRequestError("Scoped execution artifact denied") from error
 
     return {"workspace_path": str(workspace), "patch_path": str(patch_path)}
 

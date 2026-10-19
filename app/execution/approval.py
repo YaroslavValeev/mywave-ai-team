@@ -23,7 +23,8 @@ def _snapshot(request):
             )
             return result.stdout.strip()
 
-        patch = Path(request["patch_path"]).read_bytes()
+        from app.workspaces.files import legacy_path
+        patch = legacy_path(request["patch_path"]).read_bytes()
         snapshot = {
             **request,
             "repository_path": str(Path(git("rev-parse", "--show-toplevel")).resolve()),

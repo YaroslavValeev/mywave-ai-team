@@ -1,6 +1,8 @@
 # S1b.1: scoped repository и отдельные права проекта
 
 Это внутренний компонент, не завершённая изоляция существующего приложения.
+Это описание этапа S1b.1; последующая интеграция и актуальные ограничения
+перечислены в 08-access-integration.md.
 Зависит от S1a / PR №80. Migration 009 добавляет ProjectAccessGrant с role,
 expiry/revocation и уникальной парой project/principal. Никаких автоматических
 grants, membership seeds или новых HTTP endpoints нет.

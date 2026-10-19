@@ -7,7 +7,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -16,6 +16,7 @@ from app.business_execution.execution_engine import apply_action_feedback, ensur
 from app.business_execution.owner_checklist import owner_protocol_for_dashboard
 from app.business_execution.revenue import create_deal, create_lead, ensure_revenue_fields, task_revenue_summary
 from app.dashboard.documents import build_task_documents, latest_verdict_handoff, list_regular_handoffs, read_task_document
+from app.workspaces.files import read_legacy_text
 from app.storage.repositories import get_session_factory, TaskRepository
 from app.shared.auth import (
     assert_dashboard_task_write,
@@ -119,6 +120,18 @@ def _markdown_execution_from_scenario(task_id: int, exr: dict) -> str:
 
 app = FastAPI(title="MyWave AI-TEAM Dashboard", version="0.2.0")
 app.include_router(api_router)
+from app.workspaces.web import router as workspace_router
+from app.workspaces.access import ScopeDenied
+app.include_router(workspace_router)
+
+
+@app.exception_handler(ScopeDenied)
+async def scoped_access_denied(request: Request, error):
+    from app.workspaces.web import _denied
+    try:
+        _denied()
+    except HTTPException:
+        return JSONResponse(status_code=403, content={"detail": "Scoped access denied"})
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -660,7 +673,7 @@ async def artifact_detail(
                 "title": f"Artifact #{artifact_id}",
                 "subtitle": handoff.step_name,
                 "path": handoff.md_path,
-                "content": redact(path.read_text(encoding="utf-8")),
+                "content": redact(read_legacy_text(path)),
                 "api_key_query": access_query,
                 "office_url": f"/office/tasks/{task_id}{access_query}",
             },
@@ -729,7 +742,8 @@ async def task_document_download(
         path = Path(document["path"])
         if not path.exists():
             raise HTTPException(status_code=404, detail="Document file not found")
-        return FileResponse(path, filename=path.name, media_type=_document_media_type(path))
+        from app.workspaces.files import legacy_path
+        return Response(legacy_path(path).read_bytes(), headers={"Content-Disposition": "attachment; filename*=UTF-8''" + quote(path.name, safe=""), "X-Content-Type-Options": "nosniff"}, media_type=_document_media_type(path))
 
 
 @app.post("/tasks/{task_id}/approve")
@@ -1275,7 +1289,7 @@ async def audit_api_middleware(request: Request, call_next):
     start = time.perf_counter()
     response = await call_next(request)
     path = request.url.path
-    if path.startswith("/api/"):
+    if path.startswith("/api/") and not path.startswith("/api/workspaces/"):
         latency_ms = int((time.perf_counter() - start) * 1000)
         task_id = None
         parts = path.strip("/").split("/")
@@ -1311,6 +1325,19 @@ async def force_close_connection(_request: Request, call_next):
     """Через Docker Desktop/NAT иногда рвётся keep-alive — клиент видит пустой ответ."""
     response = await call_next(_request)
     response.headers["Connection"] = "close"
+    return response
+
+
+@app.middleware("http")
+async def legacy_task_boundary(request: Request, call_next):
+    from app.workspaces.web import legacy_task_guard
+    denied = await to_thread(legacy_task_guard, request)
+    if denied:
+        return denied
+    response = await call_next(request)
+    if request.url.path.startswith("/api/workspaces/"):
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Vary"] = "X-API-Key, Cookie"
     return response
 
 

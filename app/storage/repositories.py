@@ -26,6 +26,7 @@ from .models import (
     TaskStatus,
 )
 from .sot_compat import ensure_task_project_linked
+from app.workspaces.legacy import LegacySession
 
 _engine = None
 _session_factory = None
@@ -61,7 +62,7 @@ def get_session_factory():
     global _session_factory
     if _session_factory is None:
         _session_factory = sessionmaker(
-            get_engine(), autocommit=False, autoflush=False, class_=Session
+            get_engine(), autocommit=False, autoflush=False, class_=LegacySession
         )
     return _session_factory
 
