@@ -379,7 +379,7 @@ def test_full_existing_postgres_chain_upgrade(engine, monkeypatch):
                 "INSERT INTO tasks (owner_text,status) VALUES ('legacy chain','WAIT_OWNER')"
             )
         )
-    command.upgrade(config, "head")
+    command.upgrade(config, "008")
     with engine.connect() as connection:
         assert (
             connection.execute(
