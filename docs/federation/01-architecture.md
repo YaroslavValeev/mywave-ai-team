@@ -8,6 +8,8 @@
 | app/orchestrator/agent_clusters.py | domain → STRATEGY/MEDIA/EVENTS/KNOWLEDGE | реестра новых профильных агентов |
 | app/storage/models.py | Project, Task, Run, Decision, Approval, AuditEvent, ExecutionEvent, MemoryEntry | обязательного workspace, истории supersedes и мандата |
 | app/gateway/registry.py, router.py | capabilities по scope/action | изоляции данных между Федерацией и коммерческими продуктами |
+| app/execution/approval.py | consent для конкретного repository/revision/patch | официального мандата или авторизации любых внешних действий |
+| app/knowledge_intake/models.py, workflow.py | draft-first lifecycle, источники, distinction assumption/fact candidate, OwnerApproval | scoped retrieval Федерации или внедрённого нового Knowledge агента |
 | docs/architecture/DOMAIN_MODEL.md | целевая общая модель | доказательства реализации перечисленных там всех полей |
 
 Workspace — отдельная ось, не замена domain, project_id или gateway scope.
