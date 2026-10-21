@@ -29,6 +29,13 @@ A local release lock is created; it coordinates this helper, not arbitrary
 external writers or other servers. Docker inspection does not prove cross-host
 Telegram polling exclusivity.
 
+The live Molt HTTP container inherits the same token through its env file.
+It is not classified as a poller only when its exact reviewed image
+`690836b01c6fbce306d2ada4cbce4bbd3bcd63c4971007d27b48896fc9f92467`,
+HTTP-only uvicorn command, absent entrypoint, disabled/unset polling flag and
+sole /data volume all match. An unknown image/command, code mount or enabled
+polling loses that exemption and blocks release. Molt is not stopped or changed.
+
 Execution requires `--execute --owner-approved-sha` with the exact target source.
 Keep the maintenance window free of new owner/bot tasks and administrator writes.
 The helper stops the old app, rechecks DB idleness, archives frozen artifacts,

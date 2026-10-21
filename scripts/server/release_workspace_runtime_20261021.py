@@ -249,6 +249,32 @@ def check_idle(state):
     require(state["active"] == 0, "An active mission or persisted run blocks release")
 
 
+def reviewed_http_molt(container):
+    # Molt inherits .env but this reviewed image runs only the HTTP transport.
+    return (
+        container.get("Name") == "/ai-team-molt-1"
+        and container.get("Image")
+        == "sha256:690836b01c6fbce306d2ada4cbce4bbd3bcd63c4971007d27b48896fc9f92467"
+        and container["Config"].get("Entrypoint") is None
+        and container["Config"].get("Cmd")
+        == [
+            "python",
+            "-m",
+            "uvicorn",
+            "molt_http_service.app:app",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "8765",
+        ]
+        and environment(container).get("TELEGRAM_POLLING_ENABLED", "false").lower()
+        in {"false", "0", "no", "off"}
+        and len(container.get("Mounts", [])) == 1
+        and container["Mounts"][0].get("Type") == "volume"
+        and container["Mounts"][0].get("Destination") == "/data"
+    )
+
+
 def check_pollers(current):
     token = environment(current).get("TELEGRAM_BOT_TOKEN")
     require(bool(token), "Production Telegram configuration is missing")
@@ -260,9 +286,11 @@ def check_pollers(current):
             env.get(key) == token
             for key in ("TELEGRAM_BOT_TOKEN", "BOT_TOKEN", "TG_BOT_TOKEN")
         ):
-            matches.append(container["Name"])
+            if not reviewed_http_molt(container):
+                matches.append(container["Name"])
     require(
-        matches == ["/" + APP], "Another running container has the same Telegram token"
+        matches == ["/" + APP],
+        "An unreviewed running container has the same Telegram token",
     )
 
 

@@ -165,5 +165,56 @@ def test_missing_same_token_singleton_is_rejected(monkeypatch):
             ).encode()
         ),
     )
-    with pytest.raises(RuntimeError, match="Another running container"):
+    with pytest.raises(RuntimeError, match="unreviewed running container"):
         release.check_pollers({"Config": {"Env": ["TELEGRAM_BOT_TOKEN=synthetic"]}})
+
+
+def molt():
+    return {
+        "Name": "/ai-team-molt-1",
+        "Image": "sha256:690836b01c6fbce306d2ada4cbce4bbd3bcd63c4971007d27b48896fc9f92467",
+        "Config": {
+            "Env": ["TELEGRAM_BOT_TOKEN=synthetic"],
+            "Entrypoint": None,
+            "Cmd": [
+                "python",
+                "-m",
+                "uvicorn",
+                "molt_http_service.app:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8765",
+            ],
+        },
+        "Mounts": [{"Type": "volume", "Destination": "/data"}],
+    }
+
+
+def test_reviewed_http_molt_is_not_treated_as_a_telegram_poller(monkeypatch):
+    app = {
+        "Name": "/ai-team-app-1",
+        "Config": {"Env": ["TELEGRAM_BOT_TOKEN=synthetic"]},
+    }
+    monkeypatch.setattr(
+        release,
+        "command",
+        lambda args: (
+            b"app molt" if args[1] == "ps" else json.dumps([molt(), app]).encode()
+        ),
+    )
+    release.check_pollers(app)
+
+
+@pytest.mark.parametrize("change", ["image", "command", "polling", "mount"])
+def test_molt_exemption_does_not_allow_an_unknown_or_changed_runtime(change):
+    candidate = molt()
+    if change == "image":
+        candidate["Image"] = "changed"
+    elif change == "command":
+        candidate["Config"]["Cmd"] = ["python", "poller.py"]
+    elif change == "polling":
+        candidate["Config"]["Env"].append("TELEGRAM_POLLING_ENABLED=true")
+    else:
+        candidate["Mounts"].append({"Type": "bind", "Destination": "/app"})
+    assert not release.reviewed_http_molt(candidate)
