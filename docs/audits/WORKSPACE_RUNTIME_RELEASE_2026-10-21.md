@@ -75,3 +75,22 @@ The existing GitHub workflow targets main; stacked PRs do not imply GitHub CI.
 
 The next owner command is default preflight only. A deployment command must
 identify this exact helper revision and its SHA256 after preflight succeeds.
+
+## Completed qualification
+
+- Local isolated tests: 34 passed.
+- Disposable candidate Docker container: the same 34 passed; network disabled,
+  read-only root and qualification mount, 384 MiB memory cap, no production env.
+- Server default preflight: passed, app_changed=false, active_missions=0,
+  backup_restore=passed, migration_rehearsal=passed, target_migration=009,
+  workspace_api_enabled=false. No rollout was executed.
+- Qualified helper revision: `5dedabba4d17`.
+- Server staging: `/opt/mywave/ai-team-runtime/workspace-release-5dedabba4d17`.
+- Helper SHA256: `2eecbc646303badb2e611a3630276c2fec14ab7c8ae0461630d5789efdc41462`.
+- The earlier staging directory `workspace-release-3f4fdf2` is marked superseded;
+  it blocked on inherited Molt credentials and never changed the app.
+
+The preflight prerequisite above is now satisfied. The owner can invoke the
+qualified helper with the exact source approval to open the maintenance window.
+Production success remains unproven until that command returns the verified
+release outcome and an independent runtime check confirms it.
