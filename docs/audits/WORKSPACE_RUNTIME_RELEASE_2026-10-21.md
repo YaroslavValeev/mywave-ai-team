@@ -107,3 +107,19 @@ Two independent SSH probes timed out during banner exchange. Their internal
 mission/polling assertions did not run; they are not recorded as passed.
 An owner-session internal check and human Telegram response remain to verify.
 No memberships, grants, scoped intake or business agents were activated.
+
+## Post-release acceptance completed
+
+The owner-session check returned POST_RELEASE_VERIFICATION_PASSED: exact
+source b2a11824342f7b7921bcb3d84dcdc8913fa8e86b, production, migration 009;
+database/auth/gateway/telegram/orchestration/runner/molt checks all ok;
+task 38 DONE and task 39 WAIT_OWNER; workspace API still disabled.
+The subsequent owner screenshot shows /start sent on 21 October at 23:56
+and the MyWave_AI_Team bot returning its help response. This confirms a real
+Telegram round trip after deployment. It does not prove a business mission,
+voice recognition or scoped Telegram routing. Scoped executors remain blocked.
+The older task-39 action/revenue acknowledgement visible above the response
+does not change its verified WAIT_OWNER status or establish Club Box delivery.
+
+The technical rollout acceptance is complete. Workspace creation, explicit
+principal/grant configuration and activation remain a separate owner gate.
