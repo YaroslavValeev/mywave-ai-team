@@ -94,3 +94,16 @@ The preflight prerequisite above is now satisfied. The owner can invoke the
 qualified helper with the exact source approval to open the maintenance window.
 Production success remains unproven until that command returns the verified
 release outcome and an independent runtime check confirms it.
+
+## Owner-operated cutover result
+
+The owner ran the checksum-verified helper with the exact source approval.
+It returned `WORKSPACE_RUNTIME_RELEASE_PASSED`, exact target image/source,
+migration 009, workspace_api_enabled=false and legacy_data_preserved=true.
+Cutover evidence: `/opt/mywave/ai-team-runtime/backups/workspace-cutover-20261021T204209579784Z`.
+An independent public `/health` request subsequently confirmed status=ok,
+source b2a11824342f7b7921bcb3d84dcdc8913fa8e86b, migration 009 and production.
+Two independent SSH probes timed out during banner exchange. Their internal
+mission/polling assertions did not run; they are not recorded as passed.
+An owner-session internal check and human Telegram response remain to verify.
+No memberships, grants, scoped intake or business agents were activated.
