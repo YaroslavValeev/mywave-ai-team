@@ -106,9 +106,24 @@ An independent public health request after activation returned ok, source
 b2a11824342f7b7921bcb3d84dcdc8913fa8e86b and migration 009. This public health
 request does not establish public scoped authentication or browser usability.
 
-Additional independent execution of the installed root-local status.py client
-could not be completed after activation: repeated SSH banner timeouts occurred
-before remote command execution. Do not claim that specific client check passed.
-Its exact server command (from /opt/mywave/ai-team) is:
-`python3 /opt/mywave/ai-team-runtime/private/club-box/status.py`.
-PR remains draft pending that independent check; no extra app restart is needed.
+## Owner-run client confirmation (2026-10-22)
+
+The owner supplied the result of executing the installed status.py client in
+an SSH session on the production server, from /opt/mywave/ai-team:
+
+```json
+{
+  "access_verified": true,
+  "workspace_id": 1,
+  "project_id": 2,
+  "task_count": 0
+}
+```
+
+This closes the outstanding independent installed-client check. It is owner-run
+evidence supplied in the conversation, not another remote probe by this agent.
+Zero tasks means no tasks are currently returned in the scoped Club Box project;
+it does not establish completion of Club Box or relocate legacy mission 39.
+The earlier SSH timeouts remain historical and do not invalidate this later check.
+No app restart, key rotation, grants update or database migration is needed.
+PR can leave draft for review; merge and further deployment remain separate gates.
