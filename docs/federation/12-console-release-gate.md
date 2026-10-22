@@ -109,3 +109,7 @@ After approval, the exact installed operation is
 Run it from /opt/mywave/ai-team with the approved plan and final preparation path;
 preflight rechecks all live conditions before applying the configuration.
 Do not execute with an earlier plan or silently bypass a failed preflight.
+
+A final read-only nginx inspection succeeded: no X-API-Key, Authorization, Cookie
+or Set-Cookie header variables were found in its log_format definitions. This
+check did not print configuration contents or credentials and changed no service.

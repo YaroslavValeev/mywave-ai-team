@@ -20,5 +20,6 @@
   "cleanup": "passed",
   "production_changed": false,
   "owner_gate": "awaiting_explicit_approval",
-  "deployment_verified": false
+  "deployment_verified": false,
+  "nginx_sensitive_header_log_fields": false
 }
