@@ -91,3 +91,17 @@ Dedicated=200; absent/wrong/shared=403; cross-scope denied; revocation checked;
 same-image disable rehearsed; observer secret absent; cleanup passed.
 Production was unchanged during qualification. Black checks passed for all four
 Python files. Canonical plan hash is identical on Windows and Linux.
+
+## Production activation (2026-10-22)
+
+The qualified v3 helper returned OWNER_API_ACTIVATED over SSH using the exact
+plan hash. The image remained ddb4d20a8dc980f81abb4033f0eba75eb24073250583d2d94313e78cdd77d3f1.
+Dedicated=200; absent/wrong/shared=403. Its acceptance also checked full health,
+release identity, cross-scope denial, mission 38 DONE, mission 39 WAIT_OWNER,
+other-container credential absence and polling-instance ownership.
+The shared owner key is not bound. Private credentials and the previous profile
+are retained only on the server; the common .env was not edited.
+
+An independent public health request after activation returned ok, source
+b2a11824342f7b7921bcb3d84dcdc8913fa8e86b and migration 009. This public health
+request does not establish public scoped authentication or browser usability.
