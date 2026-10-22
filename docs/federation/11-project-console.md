@@ -98,7 +98,8 @@ healthy. Label-verified cleanup passed. This proves the candidate, not deploymen
 Reproduce on the server from /opt/mywave/ai-team after fetching the feature branch:
 
 ```bash
-python3 /path/to/verified/qualify_project_console.py --source-sha 898386aa1c1b766a3db088235163cf128dfa17ef --execute
+cd /opt/mywave/ai-team
+python3 /opt/mywave/ai-team-runtime/qualify-project-console-898386aa1c1b.py --source-sha 898386aa1c1b766a3db088235163cf128dfa17ef --execute
 ```
 
 Read the script from this exact Git commit (scripts/qa/qualify_project_console.py)
@@ -106,3 +107,10 @@ to a private runtime file before execution; never checkout into the dirty produc
 worktree. The script's preview is available by omitting --execute.
 The running production remains b2a11824342f7b7921bcb3d84dcdc8913fa8e86b / 009.
 Deployment of the console still requires TLS/proxy acceptance and Owner Gate.
+
+The two Docker skips are SQLite variants of PostgreSQL-only legacy-migration and
+advisory-lock tests; their PostgreSQL variants ran in the same matrix. The three
+POSIX-only permission tests skipped on Windows also ran in Linux Docker.
+An additional read-only TLS/proxy inspection attempt stopped at SSH banner
+timeout before execution. Proxy transport acceptance remains an open release
+gate; do not infer it from health or from local browser tests.
