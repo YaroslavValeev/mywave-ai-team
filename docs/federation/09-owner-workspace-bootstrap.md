@@ -21,6 +21,10 @@ mandate or permission to run external actions. Application image is unchanged.
 The logical principal is a new internal identifier, not an inferred Telegram
 user ID or proof of an official role. A future, separately approved authentication
 binding must connect a real owner credential to it before scoped HTTP access.
+Use a separate owner credential and an app-only secret source at that gate:
+the existing general owner credential is also used by internal integrations.
+Do not implicitly bind this principal to shared OWNER_API_KEY or put its new
+secret into a common env file inherited by Molt/other services.
 Project writer permits the registered internal read/write operations; it does
 not register any executor, permit merge/deploy or create an official mandate.
 
