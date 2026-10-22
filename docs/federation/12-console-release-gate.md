@@ -18,7 +18,7 @@ host-proxy path and rejects forged forwarded-protocol headers from another peer.
 ## Operations pipeline
 
 1. qualify_console_proxy.py --execute: synthetic data only, temporary internal
-   Docker network, loopback ephemeral port, real app.main, positive proxy and
+   Docker network, host-to-bridge requests without published ports, real app.main, positive proxy and
    negative untrusted-peer tests. Label-owned cleanup; no production restart.
 2. project_console_release.py --public-base-url URL: preview current release plan.
 3. Add --prepare: save current candidate profile and dedicated credential in a
@@ -56,3 +56,9 @@ Existing UI acceptance: Windows 117 isolated + 46 legacy checks; Docker 202 pass
 were DeprecationWarning, SADeprecationWarning, StarletteDeprecationWarning and
 PytestConfigWarning; they are recorded as existing qualification limitations.
 New operations tests and live transport/backup results will be recorded here.
+
+The first transport rehearsal stopped because this Docker engine does not expose
+a published-port binding on an internal network. Label-owned cleanup completed;
+production was unchanged. The revised rehearsal reaches the private bridge IP
+directly from the host, preserving the same trusted gateway source address and
+the internal network without publishing ports. The failed run is not acceptance.

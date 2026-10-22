@@ -88,8 +88,6 @@ subprocess.run(['python','-m','app.main'],check=True)
                 label,
                 "--network",
                 network,
-                "--publish",
-                "127.0.0.1::8080",
                 "--read-only",
                 "--tmpfs",
                 "/tmp:rw,size=128m",
@@ -136,7 +134,8 @@ subprocess.run(['python','-m','app.main'],check=True)
                 seed,
             ]
         )
-        port = ops.inspect(app)["NetworkSettings"]["Ports"]["8080/tcp"][0]["HostPort"]
+        address = ops.inspect(app)["NetworkSettings"]["Networks"][network]["IPAddress"]
+        client = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
         def call(path, method="GET", cookie=None, forwarded=True, key=None):
             headers = {"Host": app}
@@ -147,10 +146,10 @@ subprocess.run(['python','-m','app.main'],check=True)
             if key:
                 headers["X-API-Key"] = key
             req = urllib.request.Request(
-                "http://127.0.0.1:" + port + path, headers=headers, method=method
+                "http://" + address + ":8080" + path, headers=headers, method=method
             )
             try:
-                with urllib.request.urlopen(req, timeout=5) as response:
+                with client.open(req, timeout=5) as response:
                     return response.status, response.headers, response.read()
             except urllib.error.HTTPError as error:
                 return error.code, error.headers, b""
