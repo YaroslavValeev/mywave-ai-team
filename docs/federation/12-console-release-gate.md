@@ -69,3 +69,43 @@ request. Public acceptance verifies Secure, HttpOnly and SameSite attributes.
 The Owner Gate additionally binds a digest of the effective environment; raw
 resolved environment values are never logged or published. Any changed operation
 code invalidates earlier preparation/approval hashes, requiring a fresh plan.
+
+## Final verified preparation, 2026-10-23
+
+Operations source: d5c546d1751b0880604f6afbc6f9cfa7d9ea1a5b.
+Operation file SHA256: 7c9a7a129ac2dbb297e766b9a9d6766589320eb834d2b153b3489bbe29154164.
+Local operations tests: 12 passed. Docker operations tests: 12 passed.
+Real app.main transport rehearsal passed on an internal Docker network without
+published ports: trusted host gateway produced a Secure/HttpOnly/SameSite cookie;
+an untrusted peer forging HTTPS and non-loopback plain HTTP both received 400;
+the shared owner key received 403. Production container unchanged, cleanup passed.
+Proxy evidence: /opt/mywave/ai-team-runtime/console-proxy-qa-1wcg6935/qualification.json.
+
+Final preparation: /opt/mywave/ai-team-runtime/console-release-qh0e_g4b.
+Its fresh custom dump restored successfully in an isolated PostgreSQL; migration
+009 and fingerprints of projects, tasks, memory, workspaces, memberships and grants
+matched. Credential/config backups stay root-only on the VPS. Backup proof expires
+24 hours after preparation; changed data/configuration requires fresh preparation.
+The operation file, effective environment and current Compose files are bound to
+the plan. Application data, dedicated key and schema remain unchanged.
+
+Final plan SHA256:
+cf43e4da9b4a99e75d9438945c9e62fa5543b8f30c9a7e1cbe83f6bdd24712ce.
+Earlier plan 65fb11ffcfe8a1e00f11ee4300449121104484c73af30f62b12af6607bdbc8ba
+was superseded by the redirect/environment protection and has no Owner approval.
+No execution/merge/deploy was performed during preparation.
+
+The proposed release uses qualified application source 898386aa1c1b766a3db088235163cf128dfa17ef,
+image d5e33200cb8e5f66ea8ad93ed9d415d35f5c7f269dc08d6a3825bb0426dbe6e3,
+production version 2026-10-23-898386aa1c1b, actual image build 2026-10-22T13:57:14Z,
+and FORWARDED_ALLOW_IPS=127.0.0.1,::1,172.18.0.1.
+Destination: https://agm.mywavewake.ru. Only app is recreated; this briefly
+interrupts API and Telegram polling. No test mission is created in production.
+The previous 009 image/configuration is retained for automatic recovery.
+
+Owner Gate is the sole remaining authorization step for this prepared cutover.
+After approval, the exact installed operation is
+/opt/mywave/ai-team-runtime/console-release-ops-d5c546d1751b/scripts/server/project_console_release.py.
+Run it from /opt/mywave/ai-team with the approved plan and final preparation path;
+preflight rechecks all live conditions before applying the configuration.
+Do not execute with an earlier plan or silently bypass a failed preflight.
