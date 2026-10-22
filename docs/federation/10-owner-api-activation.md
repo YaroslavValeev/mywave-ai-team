@@ -105,3 +105,10 @@ are retained only on the server; the common .env was not edited.
 An independent public health request after activation returned ok, source
 b2a11824342f7b7921bcb3d84dcdc8913fa8e86b and migration 009. This public health
 request does not establish public scoped authentication or browser usability.
+
+Additional independent execution of the installed root-local status.py client
+could not be completed after activation: repeated SSH banner timeouts occurred
+before remote command execution. Do not claim that specific client check passed.
+Its exact server command (from /opt/mywave/ai-team) is:
+`python3 /opt/mywave/ai-team-runtime/private/club-box/status.py`.
+PR remains draft pending that independent check; no extra app restart is needed.
