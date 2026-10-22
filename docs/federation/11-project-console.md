@@ -61,3 +61,24 @@ image, verify proxy TLS handling and no credential header injection, check DB 00
 backup/restore and current grants, then obtain the release's Owner Gate approval.
 No Compose change or migration is part of this application PR. Recovery is the
 previous qualified 009 image/configuration, retaining data and dedicated key.
+
+## Completed local acceptance
+
+- Isolated regression: 117 passed, 5 condition-dependent skips (Windows/POSIX,
+  optional PostgreSQL and concurrency conditions). No Docker result is implied.
+- Legacy API authentication, dashboard sessions/signed links, owner console,
+  WAIT_OWNER and routing regression: 46 passed.
+- Python formatting and JavaScript syntax checks passed.
+- Installed browser QA used a real local Uvicorn app and disposable SQLite DB;
+  screenshots were inspected at desktop and narrow width. Logout cleared access.
+
+The reproducible scripts/qa/qualify_project_console.py has a default preview;
+--execute requires a full committed source SHA already fetched into the server
+repository. It builds from Git archive onto the pinned base image, runs the suite
+on temporary PostgreSQL (plus SQLite), then starts a real isolated Uvicorn process
+for cookie/login/task creation/revocation/logout checks. All credentials are
+synthetic. Production containers are inspected in memory, never dumped into logs;
+production is neither restarted nor remounted. Temporary QA resources are removed
+only after verifying their unique ownership labels. Candidate image and evidence
+are retained for review. The repository tests/isolated/project_console_live_smoke.py
+is an executable QA companion, not a deployed service or automatically collected test.
