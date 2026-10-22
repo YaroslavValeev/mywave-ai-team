@@ -39,11 +39,9 @@ def _denied(scope=None):
     raise HTTPException(status_code=403, detail="Scoped access denied")
 
 
-def _principal(request):
+def _bindings():
     if os.getenv("WORKSPACE_ACCESS_ENABLED", "false").lower() != "true":
         raise HTTPException(status_code=404, detail="Not found")
-    provided = request.headers.get("x-api-key", "")
-    owner = os.getenv("WORKSPACE_OWNER_PRINCIPAL_ID", "").strip()
     try:
         bindings = json.loads(os.getenv("WORKSPACE_PRINCIPAL_BINDINGS_JSON", "[]"))
         if not isinstance(bindings, list):
@@ -68,6 +66,15 @@ def _principal(request):
         raise HTTPException(
             status_code=503, detail="Scoped authentication unavailable"
         ) from None
+    return tokens
+
+
+def _principal(request):
+    from app.workspaces.browser_session import COOKIE, resolve
+
+    tokens = _bindings()
+    provided = request.headers.get("x-api-key", "")
+    owner = os.getenv("WORKSPACE_OWNER_PRINCIPAL_ID", "").strip()
     if (
         owner
         and provided
@@ -77,6 +84,16 @@ def _principal(request):
     for principal, token in tokens:
         if provided and hmac.compare_digest(provided.encode(), token.encode()):
             return principal
+    browser_principal = (
+        resolve(request.cookies.get(COOKIE), tokens) if not provided else None
+    )
+    if browser_principal:
+        if (
+            request.method not in {"GET", "HEAD"}
+            and request.headers.get("x-workspace-request") != "1"
+        ):
+            _denied()
+        return browser_principal
     if not provided and owner and request_has_owner_session(request):
         if (
             request.method not in {"GET", "HEAD"}

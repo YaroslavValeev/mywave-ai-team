@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Проекты · MyWave</title>
+  <link rel="stylesheet" href="/api/workspaces/console.css">
+  <script src="/api/workspaces/console.js" defer></script>
+</head>
+<body>
+<main>
+  <header><p class="eyebrow">MYWAVE · AI TEAM</p><h1>Ваши проекты</h1><p>Выберите проект, чтобы посмотреть задачи или поставить новую.</p></header>
+  <p id="message" role="status" aria-live="polite"></p>
+  <section id="login-panel" aria-labelledby="login-title">
+    <h2 id="login-title">Вход владельца</h2>
+    <p>Используйте отдельный ключ доступа к проектам. Сессия действует 15 минут.</p>
+    <form id="login-form">
+      <label for="key">Ключ доступа</label>
+      <input id="key" type="password" autocomplete="off" required maxlength="512" spellcheck="false">
+      <button type="submit">Войти</button>
+    </form>
+    <p class="muted">Ключ не сохраняется в браузерном хранилище и не добавляется в адрес страницы.</p>
+  </section>
+  <section id="project-panel" hidden aria-labelledby="project-title">
+    <div class="toolbar"><h2 id="project-title">Рабочее пространство</h2><button id="logout" type="button" class="secondary">Выйти</button></div>
+    <label for="project">Проект</label>
+    <select id="project"></select>
+    <button id="refresh" type="button" class="secondary">Обновить</button>
+    <h2>Задачи</h2><p id="empty" hidden>Задач пока нет. Создайте первую задачу для этого проекта.</p>
+    <ul id="tasks"></ul>
+    <p id="read-only" hidden>У вас доступ только для просмотра. Создание задач недоступно.</p>
+    <form id="task-form">
+      <label for="task-text">Новая задача</label>
+      <textarea id="task-text" rows="5" maxlength="20000" required placeholder="Что нужно сделать и какой результат вы ожидаете?"></textarea>
+      <button id="create" type="submit">Создать задачу</button>
+      <p class="muted">Создание сохраняет задачу в выбранном проекте. Исполнение автоматически не запускается.</p>
+    </form>
+  </section>
+</main>
+</body>
+</html>
