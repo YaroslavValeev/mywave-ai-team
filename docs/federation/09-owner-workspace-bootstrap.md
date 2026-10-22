@@ -86,8 +86,31 @@ Private backup/logs must remain on the server; publish sanitized summary only.
   `2ebf4fd9d0be88b5fa63cc98fadde8ea776b9b173b202a857ec2f3b7d030acb9`.
 - Full private proof: `qualification.json` in that directory.
 
-The next owner step is checksum/image/backup-age verification followed by
-the exact approved-plan execution. Do not enable WORKSPACE_ACCESS_ENABLED yet.
+The checksum/image/backup-age checks and approved-plan production execution
+were subsequently completed under the owner's authorization to proceed with
+the proposed first-workspace policy. Do not enable WORKSPACE_ACCESS_ENABLED yet.
+
+### Applied production result
+
+- Workspace MYWAVE: ID 1; project Club Box: ID 2.
+- Principal owner:yaroslav: workspace owner membership, project writer grant.
+- One approval audit; authentication binding remains absent; API remains off.
+- Independent standard/LegacySession checks: owner repository can read the empty
+  scope; an ungranted principal is denied; legacy project lookup hides ID 2.
+- Tasks 38 DONE and 39 WAIT_OWNER; task 39 workspace_id remains NULL.
+- Scoped HTTP returns 404 with the feature disabled, as intended.
+- Production health remains ok, exact source b2a1182 / migration 009.
+- Private apply and verification evidence: production-result.json and
+  production-verification.json in the staging directory above.
+- Post-bootstrap backup: post-bootstrap-009.dump in the same directory, SHA256
+  `e4c219df18fc78188bc95f50648c7cc251ffeee9e4af851f4a31675d647bb558`.
+  Its isolated restore verified 009, both roles, the approval audit and missions
+  38/39. Temporary restore container cleanup passed.
+
+The original rollout helper was qualified for an empty-workspace cutover only.
+After bootstrap its empty-scope assertion deliberately no longer holds. Do not
+use that helper as a general health check or retry the initial rollout. Continue
+using normal health checks and retain the deployed isolation guards.
 
 ## Recovery and next gate
 
