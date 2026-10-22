@@ -82,3 +82,27 @@ production is neither restarted nor remounted. Temporary QA resources are remove
 only after verifying their unique ownership labels. Candidate image and evidence
 are retained for review. The repository tests/isolated/project_console_live_smoke.py
 is an executable QA companion, not a deployed service or automatically collected test.
+
+## Docker qualification completed (2026-10-22)
+
+Source: 898386aa1c1b766a3db088235163cf128dfa17ef.
+Candidate image: sha256:d5e33200cb8e5f66ea8ad93ed9d415d35f5c7f269dc08d6a3825bb0426dbe6e3.
+Server evidence: /opt/mywave/ai-team-runtime/project-console-qa-898386aa1c1b-mrgcnwe1/qualification.json.
+
+Docker SQLite + disposable PostgreSQL regression: **202 passed, 2 skipped,
+16 warnings in 53.82s**. Real isolated Uvicorn HTTP smoke passed: cookie login,
+NEW task creation, foreign-scope denial, live grant revocation and logout.
+Synthetic credentials only. Production container ID/image remained unchanged and
+healthy. Label-verified cleanup passed. This proves the candidate, not deployment.
+
+Reproduce on the server from /opt/mywave/ai-team after fetching the feature branch:
+
+```bash
+python3 /path/to/verified/qualify_project_console.py --source-sha 898386aa1c1b766a3db088235163cf128dfa17ef --execute
+```
+
+Read the script from this exact Git commit (scripts/qa/qualify_project_console.py)
+to a private runtime file before execution; never checkout into the dirty production
+worktree. The script's preview is available by omitting --execute.
+The running production remains b2a11824342f7b7921bcb3d84dcdc8913fa8e86b / 009.
+Deployment of the console still requires TLS/proxy acceptance and Owner Gate.

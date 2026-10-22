@@ -1,0 +1,18 @@
+{
+  "source_sha": "898386aa1c1b766a3db088235163cf128dfa17ef",
+  "image_id": "sha256:d5e33200cb8e5f66ea8ad93ed9d415d35f5c7f269dc08d6a3825bb0426dbe6e3",
+  "production_changed": false,
+  "synthetic_credentials_only": true,
+  "local_isolated": {"passed": 117, "skipped": 5},
+  "local_legacy_regression": {"passed": 46},
+  "docker_tests": {"passed": 202, "skipped": 2, "warnings": 16},
+  "real_uvicorn_http": "passed",
+  "task_created_NEW": true,
+  "cross_scope_denied": true,
+  "live_revocation": "passed",
+  "cookie_logout": "passed",
+  "browser_qa": ["login", "empty_project", "create_task", "literal_html_text", "project_switch", "reload", "logout", "narrow_viewport_no_horizontal_overflow"],
+  "production_container_unchanged": true,
+  "cleanup": "passed",
+  "deployment_verified": false
+}
