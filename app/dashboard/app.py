@@ -123,6 +123,8 @@ app.include_router(api_router)
 from app.workspaces.web import router as workspace_router
 from app.workspaces.access import ScopeDenied
 app.include_router(workspace_router)
+from app.workspaces.console import router as workspace_console_router
+app.include_router(workspace_console_router)
 
 
 @app.exception_handler(ScopeDenied)
