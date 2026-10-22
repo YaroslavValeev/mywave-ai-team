@@ -103,8 +103,8 @@ Destination: https://agm.mywavewake.ru. Only app is recreated; this briefly
 interrupts API and Telegram polling. No test mission is created in production.
 The previous 009 image/configuration is retained for automatic recovery.
 
-Owner Gate is the sole remaining authorization step for this prepared cutover.
-After approval, the exact installed operation is
+The owner subsequently approved the exact source, image and destination.
+The installed operation used for the approved cutover is
 /opt/mywave/ai-team-runtime/console-release-ops-d5c546d1751b/scripts/server/project_console_release.py.
 Run it from /opt/mywave/ai-team with the approved plan and final preparation path;
 preflight rechecks all live conditions before applying the configuration.
@@ -113,3 +113,34 @@ Do not execute with an earlier plan or silently bypass a failed preflight.
 A final read-only nginx inspection succeeded: no X-API-Key, Authorization, Cookie
 or Set-Cookie header variables were found in its log_format definitions. This
 check did not print configuration contents or credentials and changed no service.
+
+
+## Approved production release, 2026-10-23
+
+The approved plan above executed successfully and returned
+PROJECT_CONSOLE_RELEASE_PASSED. The operation verified the restored backup,
+recreated only app, verified its exact image/source and migration 009, checked
+scoped authorization, and exercised public HTTPS login, project discovery,
+task reads and logout with a Secure/HttpOnly/SameSite session. No production
+mission was created by acceptance, and no database migration was run.
+Private execution evidence remains under the preparation directory as
+outcome.json; secret/configuration backups and private logs are not in Git.
+
+An independent request from Windows confirmed the public release source
+898386aa1c1b766a3db088235163cf128dfa17ef, version
+2026-10-23-898386aa1c1b, actual image build 2026-10-22T13:57:14Z and migration
+009. The public console returned HTTP 200, a login form, a Content Security
+Policy and Cache-Control: no-store, private.
+
+The source PRs remain open: deployment approval did not authorize merging.
+This release supplies scoped project/task viewing and task creation. It does
+not prove scoped executor completion, delivery of the portable Club Box,
+Windows second-computer acceptance, or owner time saved. Task 39 remains a
+separate business mission; a working console does not complete that mission.
+
+
+Additional post-release SSH connections timed out during banner exchange on four
+bounded attempts. They did not execute the separate verification script and are
+not claimed as independent server acceptance. The successful release operation
+itself completed its health, authorization, mission and public-session checks;
+independent Windows HTTPS checks passed afterward. No second cutover was run.

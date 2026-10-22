@@ -18,8 +18,17 @@
   "schema": "009",
   "core_table_fingerprints": "matched",
   "cleanup": "passed",
-  "production_changed": false,
-  "owner_gate": "awaiting_explicit_approval",
-  "deployment_verified": false,
-  "nginx_sensitive_header_log_fields": false
+  "production_changed": true,
+  "owner_gate": "approved_exact_source_image_and_destination",
+  "deployment_verified": true,
+  "nginx_sensitive_header_log_fields": false,
+  "release_result": "PROJECT_CONSOLE_RELEASE_PASSED",
+  "secure_public_session": "passed",
+  "migration_changed": false,
+  "public_console_http_status": 200,
+  "public_console_cache_control": "no-store, private",
+  "public_console_csp": true,
+  "independent_public_verification": "passed",
+  "additional_post_release_ssh_verification": "unavailable_banner_exchange_timeout",
+  "authorization_and_legacy_mission_verification": "passed_inside_release_operation"
 }
