@@ -62,3 +62,10 @@ a published-port binding on an internal network. Label-owned cleanup completed;
 production was unchanged. The revised rehearsal reaches the private bridge IP
 directly from the host, preserving the same trusted gateway source address and
 the internal network without publishing ports. The failed run is not acceptance.
+
+The final release client rejects every HTTP redirect before forwarding keys or
+cookies. A live loopback HTTP test proves that a redirect target receives no
+request. Public acceptance verifies Secure, HttpOnly and SameSite attributes.
+The Owner Gate additionally binds a digest of the effective environment; raw
+resolved environment values are never logged or published. Any changed operation
+code invalidates earlier preparation/approval hashes, requiring a fresh plan.

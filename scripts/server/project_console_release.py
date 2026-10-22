@@ -5,6 +5,7 @@ import copy
 from datetime import datetime, timezone
 import hashlib
 import http.cookiejar
+from http.cookies import SimpleCookie
 import importlib.util
 import ipaddress
 import json
@@ -50,6 +51,13 @@ def digest(value):
 
 def plan_hash(plan):
     return digest(json.dumps(plan, sort_keys=True, separators=(",", ":")).encode())
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Never forward a credential or scoped cookie to a redirect destination."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 
 def load_ops():
@@ -148,7 +156,8 @@ def nginx_gate(ops, base_url):
 
 
 def public_health(base_url, source):
-    with urllib.request.urlopen(base_url + "/health", timeout=20) as response:
+    client = urllib.request.build_opener(NoRedirect())
+    with client.open(base_url + "/health", timeout=20) as response:
         health = json.load(response)
     require(
         health["status"] == "ok"
@@ -238,6 +247,9 @@ def preflight(activation, ops, base_url):
         "candidate_image": IMAGE,
         "previous_image": activation.IMAGE,
         "operations_sha256": digest(Path(__file__).read_bytes()),
+        "environment_sha256": digest(
+            json.dumps(configured, sort_keys=True, separators=(",", ":")).encode()
+        ),
         "proxy_qualification_sha256": digest(proxy_proof),
         "profile_sha256": digest(profile),
         "compose_sha256": [digest(p.read_bytes()) for p in ops.COMPOSE],
@@ -424,7 +436,9 @@ def wait_ready(ops, image, source):
 
 def verify_public(activation, base_url):
     jar = http.cookiejar.CookieJar()
-    client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+    client = urllib.request.build_opener(
+        NoRedirect(), urllib.request.HTTPCookieProcessor(jar)
+    )
 
     def request(path, method="GET", headers=None):
         req = urllib.request.Request(
@@ -436,8 +450,16 @@ def verify_public(activation, base_url):
     status, headers, _ = request(
         "/session", "POST", {"X-API-Key": activation.read_secret()}
     )
+    cookies = SimpleCookie()
+    cookies.load(headers.get("Set-Cookie", ""))
+    cookie = cookies.get("mywave_project_session")
     require(
-        status == 200 and any(cookie.secure for cookie in jar),
+        status == 200
+        and cookie
+        and cookie["secure"]
+        and cookie["httponly"]
+        and cookie["samesite"] == "strict"
+        and any(item.secure for item in jar),
         "Secure browser session failed",
     )
     projects = json.loads(request("/projects")[2])

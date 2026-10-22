@@ -135,3 +135,41 @@ def test_proxy_preflight_rejects_fixed_keys_and_unrelated_hosts():
     )
     with pytest.raises(RuntimeError, match="upstream"):
         release.nginx_gate(ops, "https://owner.example")
+
+
+def test_redirect_does_not_forward_the_credential():
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    import threading
+    import urllib.error
+    import urllib.request
+
+    visits = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            visits.append(self.path)
+            self.send_response(302)
+            self.send_header("Location", "/must-not-receive-key")
+            self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(
+        target=lambda: server.serve_forever(poll_interval=0.05), daemon=True
+    )
+    thread.start()
+    try:
+        client = urllib.request.build_opener(release.NoRedirect())
+        request = urllib.request.Request(
+            "http://127.0.0.1:" + str(server.server_port) + "/redirect",
+            headers={"X-API-Key": "synthetic-test-only"},
+        )
+        with pytest.raises(urllib.error.HTTPError) as error:
+            client.open(request, timeout=5)
+        assert error.value.code == 302 and visits == ["/redirect"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
