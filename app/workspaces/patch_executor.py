@@ -500,7 +500,10 @@ def start(repo, task_id, sha):
             Task.status == "EXECUTION_READY",
             Task.version == task.version,
         )
-        .values(status="EXECUTING")
+        .values(
+            status="EXECUTING",
+            summary="Исполнение поставлено в очередь отдельного worker проекта.",
+        )
     )
     require(changed.rowcount == 1, "Execution was already claimed")
     repo.session.add(
@@ -713,6 +716,33 @@ def run_job(scope, task_id, run_id, sha):
     def phase(name, action):
         nonlocal active_phase
         active_phase = name
+        # Publish progress in a short transaction, then reacquire authority before
+        # the effect. Readers must not see an old phase throughout a long test run.
+        with Session(get_engine()) as progress:
+            repo = ScopedRepository(progress, scope)
+            task = task_row(repo, task_id, write=True)
+            require(task.status == "EXECUTING", "Execution no longer authorized")
+            approved(repo, task, sha)
+            run = progress.scalar(
+                select(Run)
+                .where(
+                    Run.task_id == task_id,
+                    Run.run_id == run_id,
+                    Run.is_active.is_(True),
+                )
+                .with_for_update()
+            )
+            require(run is not None, "Execution claim is no longer active")
+            run.phase = name
+            task.summary = {
+                "preflight": "Проверяются условия запуска.",
+                "access": "Проверяется доступ к репозиторию проекта.",
+                "validation": "Выполняются тесты в изолированной среде.",
+                "commit": "Проверенный patch сохраняется в отдельную ветку.",
+                "publish": "Создаются удалённая ветка и PR.",
+            }[name]
+            event(repo, task_id, "scoped_phase_started", run_id=run_id, phase=name)
+            progress.commit()
         with Session(get_engine()) as session:
             repo = ScopedRepository(session, scope)
             task = task_row(repo, task_id, write=True)

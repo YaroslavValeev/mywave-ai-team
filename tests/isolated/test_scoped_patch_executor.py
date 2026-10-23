@@ -256,9 +256,18 @@ def test_actual_git_worker_reaches_pr_without_legacy_access_or_merge(
 
     monkeypatch.setattr(executor, "command", command)
     validated = []
-    monkeypatch.setattr(
-        executor, "sandbox", lambda root, value, patch: validated.append(patch)
-    )
+
+    def sandbox(root, value, patch):
+        from sqlalchemy.orm import Session
+
+        with Session(session.bind) as observer:
+            task = observer.get(Task, data[3])
+            run = observer.scalar(select(Run).where(Run.task_id == task.id))
+            assert run.phase == "validation" and run.is_active
+            assert "тесты" in task.summary
+        validated.append(patch)
+
+    monkeypatch.setattr(executor, "sandbox", sandbox)
     with client() as http:
         response = http.post(
             api_path(data) + "/start", headers=SCOPED, json={"proposal_sha256": sha}

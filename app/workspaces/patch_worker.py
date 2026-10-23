@@ -85,14 +85,19 @@ def run_once():
         else:
             return {"processed": False}
     run_job(scope, task_id, run_id, sha)
-    return {"processed": True, "task_id": task_id, "run_id": run_id}
+    with Session(get_engine()) as session:
+        state = session.scalar(select(Run.state).where(Run.run_id == run_id))
+    return {"processed": True, "task_id": task_id, "run_id": run_id, "state": state}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--once", action="store_true", required=True)
     parser.parse_args()
-    print(json.dumps(run_once()))
+    result = run_once()
+    print(json.dumps(result))
+    if result.get("state") == "failed":
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
