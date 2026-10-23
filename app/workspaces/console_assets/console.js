@@ -4,7 +4,7 @@ let projects = [], selected = null, busy = false, generation = 0;
 let executionTask = null, executionState = null;
 const statusLabels = {NEW:"Новая задача",REWORK:"На доработке",WAIT_OWNER:"Ожидает утверждения",EXECUTION_READY:"Готова к запуску",EXECUTING:"Выполняется",EXECUTION_FAILED:"Ошибка исполнения",APPROVED_WAIT_MERGE:"PR готов к проверке",DONE:"Завершена"};
 const phaseLabels = {queued:"В очереди",claimed:"Принята к исполнению",preflight:"Проверка условий",access:"Проверка доступа к репозиторию",validation:"Проверка тестами",commit:"Сохранение изменений",publish:"Создание PR"};
-function closeExecution() { executionTask = null; executionState = null; el("execution-panel").hidden = true; el("patch-text").value = ""; el("proposal-patch").textContent = ""; el("proposal-plan").textContent = ""; el("approval-check").checked = false; }
+function closeExecution() { executionTask = null; executionState = null; el("execution-panel").hidden = true; el("patch-text").value = ""; el("proposal-patch").textContent = ""; el("proposal-plan").textContent = ""; el("approval-check").checked = false; el("execution-profile").replaceChildren(); el("execution-summary").textContent = ""; el("execution-title").textContent = "Исполнение задачи"; el("execution-pr").removeAttribute("href"); el("execution-pr").hidden = true; }
 function message(text, error = false) { el("message").textContent = text; el("message").dataset.error = String(error); }
 function clearTasks() { el("tasks").replaceChildren(); el("empty").hidden = true; closeExecution(); }
 function loggedOut() {
