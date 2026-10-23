@@ -170,11 +170,82 @@ def artifact(task_id: int, artifact_id: int, repo=Depends(scoped_repo)):
     )
 
 
-@router.post("/{workspace_id}/projects/{project_id}/tasks/{task_id}/execution/start")
-def execution(task_id: int, repo=Depends(scoped_repo)):
+class PatchInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    profile_id: str = Field(min_length=1, max_length=64)
+    patch_text: str = Field(min_length=1, max_length=200000)
+
+
+class ProposalInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    proposal_sha256: str = Field(pattern="^[0-9a-f]{64}$")
+
+
+class PatchDecision(ProposalInput):
+    decision: str = Field(pattern="^(approve|rework)$")
+
+
+def _patch_call(fn, *args):
+    from app.workspaces.patch_executor import ExecutionConflict
+
+    try:
+        return fn(*args)
+    except ExecutionConflict as error:
+        raise HTTPException(status_code=409, detail=str(error)) from None
+
+
+@router.get("/{workspace_id}/projects/{project_id}/execution/profiles")
+def execution_profiles(repo=Depends(scoped_repo)):
+    from app.workspaces import patch_executor as executor
+
+    if os.getenv("WORKSPACE_PATCH_EXECUTION_ENABLED", "false") != "true":
+        return {"enabled": False, "profiles": []}
+    values = _patch_call(executor.profiles, repo.scope)
+    return {
+        "enabled": True,
+        "profiles": [
+            {"id": p["id"], "repository": p["repository"]} for p in values.values()
+        ],
+    }
+
+
+@router.get("/{workspace_id}/projects/{project_id}/tasks/{task_id}/execution")
+def execution_state(task_id: int, repo=Depends(scoped_repo)):
+    from app.workspaces.patch_executor import snapshot
+
+    return _patch_call(snapshot, repo, task_id)
+
+
+@router.post("/{workspace_id}/projects/{project_id}/tasks/{task_id}/execution/prepare")
+def execution_prepare(task_id: int, body: PatchInput, repo=Depends(scoped_repo)):
+    from app.workspaces.patch_executor import prepare
+
+    return _patch_call(prepare, repo, task_id, body.profile_id, body.patch_text)
+
+
+@router.post("/{workspace_id}/projects/{project_id}/tasks/{task_id}/execution/decision")
+def execution_decision(task_id: int, body: PatchDecision, repo=Depends(scoped_repo)):
+    from app.workspaces.patch_executor import decide
+
+    return _patch_call(decide, repo, task_id, body.proposal_sha256, body.decision)
+
+
+@router.post(
+    "/{workspace_id}/projects/{project_id}/tasks/{task_id}/execution/start",
+    status_code=202,
+)
+def execution(
+    task_id: int,
+    body: ProposalInput | None = None,
+    repo=Depends(scoped_repo),
+):
+    from app.workspaces.patch_executor import start
+
     repo.task(task_id)
-    # Scope-bound external executor profiles and mandates have not been registered.
-    raise HTTPException(status_code=409, detail="No approved scoped executor profile")
+    if body is None:
+        raise HTTPException(status_code=409, detail="No prepared scoped patch")
+    run_id = _patch_call(start, repo, task_id, body.proposal_sha256)
+    return {"task_id": task_id, "run_id": run_id, "status": "EXECUTING"}
 
 
 @router.get(
