@@ -28,6 +28,28 @@
     <button id="refresh" type="button" class="secondary">Обновить</button>
     <h2>Задачи</h2><p id="empty" hidden>Задач пока нет. Создайте первую задачу для этого проекта.</p>
     <ul id="tasks"></ul>
+    <section id="execution-panel" hidden aria-labelledby="execution-title">
+      <div class="toolbar"><h2 id="execution-title">Исполнение задачи</h2><button id="execution-close" type="button" class="secondary">Закрыть</button></div>
+      <p id="execution-summary"></p>
+      <p id="execution-unavailable" class="muted" hidden>Для проекта ещё не подключён отдельный исполнитель. Задача сохранена; запуск недоступен.</p>
+      <form id="patch-form" hidden>
+        <label for="execution-profile">Репозиторий проекта</label><select id="execution-profile"></select>
+        <label for="patch-text">Подготовленный patch</label>
+        <textarea id="patch-text" rows="8" maxlength="200000" required spellcheck="false" placeholder="Вставьте diff для проверки. Не добавляйте ключи и пароли."></textarea>
+        <button id="patch-prepare" type="submit">Подготовить к утверждению</button>
+      </form>
+      <div id="proposal-panel" hidden>
+        <h3>Patch и параметры запуска</h3><pre id="proposal-plan"></pre>
+        <details><summary>Посмотреть patch</summary><pre id="proposal-patch"></pre></details>
+        <label id="approval-label" hidden><input id="approval-check" type="checkbox"> Я проверил patch, репозиторий и исходный commit.</label>
+        <button id="patch-approve" type="button" hidden>Утвердить patch</button>
+        <button id="patch-rework" type="button" class="secondary" hidden>Вернуть на доработку</button>
+        <button id="patch-start" type="button" hidden>Запустить тесты и создать PR</button>
+      </div>
+      <a id="execution-pr" hidden target="_blank" rel="noopener noreferrer">Открыть Pull Request</a>
+      <button id="execution-refresh" type="button" class="secondary">Обновить исполнение</button>
+      <p class="muted">Тесты выполняются отдельно, без сети и ключей. Создание PR не означает завершение бизнес-задачи. Merge и deploy требуют отдельного решения владельца.</p>
+    </section>
     <p id="read-only" hidden>У вас доступ только для просмотра. Создание задач недоступно.</p>
     <form id="task-form">
       <label for="task-text">Новая задача</label>

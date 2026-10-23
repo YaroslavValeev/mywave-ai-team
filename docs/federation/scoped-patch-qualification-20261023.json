@@ -1,0 +1,67 @@
+{
+  "source_sha": "0acaeca4ade8fb40c346d8ede0fdf3099fdbc376",
+  "candidate_image": "sha256:c85318b51071c0f42f53d6a9d8e4a9a9fd5a03f104856a2dc64a056465cb2f0c",
+  "validation_image": "sha256:76bd59b7e397ad3eb0e8a3d55a7ae01105b12775726b1010800ab24b2dea79a7",
+  "docker_tests": "252 passed, 2 skipped, 16 warnings in 55.87s",
+  "http_smoke": {
+    "real_uvicorn_http": "passed",
+    "task_created_NEW": true,
+    "cross_scope_denied": true,
+    "live_revocation": "passed",
+    "cookie_logout": "passed"
+  },
+  "host_smoke": {
+    "verified_at": "2026-10-23T00:47:33.870985+00:00",
+    "real_docker_validation": "passed",
+    "positive_tests": 3,
+    "failing_tests_block_commit_and_publication": true,
+    "real_git_commit": "passed",
+    "github_permission_push_and_pr": "simulated_no_network",
+    "cleanup": "passed",
+    "production_changed": false,
+    "business_outcome_verified": false
+  },
+  "qualification_directory": "/opt/mywave/ai-team-runtime/project-console-qa-0acaeca4ade8-f30tpsae",
+  "host_evidence_directory": "/opt/mywave/ai-team-runtime/scoped-worker-qa-0acaeca4ade8-9wr03bgr",
+  "production_changed": false,
+  "production_verification": {
+    "verified_at": "2026-10-23T06:46:03.596655+00:00",
+    "release": {
+      "version": "2026-10-23-898386aa1c1b",
+      "commit_sha": "898386aa1c1b766a3db088235163cf128dfa17ef",
+      "environment": "production",
+      "build_timestamp": "2026-10-22T13:57:14Z",
+      "migration_version": "009"
+    },
+    "health": "ok",
+    "checks": {
+      "database": "ok",
+      "auth": "ok",
+      "gateway": "ok",
+      "telegram": "ok",
+      "orchestration": "ok",
+      "runner": "ok",
+      "molt": "ok"
+    },
+    "tasks": [
+      {
+        "id": 38,
+        "status": "DONE"
+      },
+      {
+        "id": 39,
+        "status": "WAIT_OWNER"
+      }
+    ],
+    "scoped_access": {
+      "access_verified": true,
+      "workspace_id": 1,
+      "project_id": 2,
+      "task_count": 0
+    },
+    "membership_and_project_role": "owner:writer",
+    "scoped_execution_enabled": false,
+    "project_execution_token_present": false,
+    "single_polling_check": "passed"
+  }
+}
