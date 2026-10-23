@@ -185,6 +185,11 @@ class PatchDecision(ProposalInput):
     decision: str = Field(pattern="^(approve|rework)$")
 
 
+class PatchStart(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    proposal_sha256: str | None = Field(default=None, pattern="^[0-9a-f]{64}$")
+
+
 def _patch_call(fn, *args):
     from app.workspaces.patch_executor import ExecutionConflict
 
@@ -236,13 +241,13 @@ def execution_decision(task_id: int, body: PatchDecision, repo=Depends(scoped_re
 )
 def execution(
     task_id: int,
-    body: ProposalInput | None = None,
+    body: PatchStart | None = None,
     repo=Depends(scoped_repo),
 ):
     from app.workspaces.patch_executor import start
 
     repo.task(task_id)
-    if body is None:
+    if body is None or body.proposal_sha256 is None:
         raise HTTPException(status_code=409, detail="No prepared scoped patch")
     run_id = _patch_call(start, repo, task_id, body.proposal_sha256)
     return {"task_id": task_id, "run_id": run_id, "status": "EXECUTING"}

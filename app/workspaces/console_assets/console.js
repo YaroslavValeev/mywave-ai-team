@@ -2,6 +2,8 @@
 const el = id => document.getElementById(id);
 let projects = [], selected = null, busy = false, generation = 0;
 let executionTask = null, executionState = null;
+const statusLabels = {NEW:"Новая задача",REWORK:"На доработке",WAIT_OWNER:"Ожидает утверждения",EXECUTION_READY:"Готова к запуску",EXECUTING:"Выполняется",EXECUTION_FAILED:"Ошибка исполнения",APPROVED_WAIT_MERGE:"PR готов к проверке",DONE:"Завершена"};
+const phaseLabels = {queued:"В очереди",claimed:"Принята к исполнению",preflight:"Проверка условий",access:"Проверка доступа к репозиторию",validation:"Проверка тестами",commit:"Сохранение изменений",publish:"Создание PR"};
 function closeExecution() { executionTask = null; executionState = null; el("execution-panel").hidden = true; el("patch-text").value = ""; el("proposal-patch").textContent = ""; el("proposal-plan").textContent = ""; el("approval-check").checked = false; }
 function message(text, error = false) { el("message").textContent = text; el("message").dataset.error = String(error); }
 function clearTasks() { el("tasks").replaceChildren(); el("empty").hidden = true; closeExecution(); }
@@ -29,7 +31,7 @@ async function loadTasks() {
   const version = ++generation, project = selected;
   const tasks = await api(`/${project.workspace_id}/projects/${project.project_id}/tasks`);
   if (version !== generation) return;
-  for (const task of tasks) { const li = document.createElement("li"), title = document.createElement("strong"), text = document.createElement("span"), button = document.createElement("button"); title.textContent = `#${task.id} · ${task.status}`; text.textContent = task.owner_text; button.type = "button"; button.className = "secondary"; button.textContent = "Исполнение"; button.addEventListener("click", () => action(() => openExecution(task.id))); li.append(title, text, button); el("tasks").append(li); }
+  for (const task of tasks) { const li = document.createElement("li"), title = document.createElement("strong"), text = document.createElement("span"), button = document.createElement("button"); title.textContent = `#${task.id} · ${statusLabels[task.status] || task.status}`; text.textContent = task.owner_text; button.type = "button"; button.className = "secondary"; button.textContent = "Исполнение"; button.addEventListener("click", () => action(() => openExecution(task.id))); li.append(title, text, button); el("tasks").append(li); }
   el("empty").hidden = tasks.length !== 0;
 }
 async function loadProjects() {
@@ -52,15 +54,15 @@ async function openExecution(taskId) {
   if (version !== generation || selected !== project) return;
   closeExecution(); executionTask = taskId; executionState = state;
   el("execution-title").textContent = `Исполнение задачи #${taskId}`;
-  const run = state.run ? ` · ${state.run.state} / ${state.run.phase}` : "";
-  el("execution-summary").textContent = `${state.status}${run}. ${state.summary || ""}`;
+  const run = state.run ? ` · ${phaseLabels[state.run.phase] || state.run.phase}` : "";
+  el("execution-summary").textContent = `${statusLabels[state.status] || state.status}${run}. ${state.summary || ""}`;
   el("execution-unavailable").hidden = profiles.enabled && profiles.profiles.length > 0;
   el("execution-profile").replaceChildren();
   profiles.profiles.forEach(profile => { const option = document.createElement("option"); option.value = profile.id; option.textContent = profile.repository; el("execution-profile").append(option); });
   el("patch-form").hidden = !project.can_create || !profiles.enabled || !profiles.profiles.length || !["NEW", "REWORK", "EXECUTION_FAILED"].includes(state.status);
   const proposal = state.proposal;
   el("proposal-panel").hidden = !proposal;
-  if (proposal) { const plan = proposal.plan; el("proposal-plan").textContent = `Репозиторий: ${plan.repository}\nИсходный commit: ${plan.base_sha}\nPatch SHA256: ${plan.patch_sha256}\nУтверждение: ${proposal.proposal_sha256}\nПроверка: ${plan.validation}`; el("proposal-patch").textContent = proposal.patch_text; }
+  if (proposal) { const plan = proposal.plan; el("proposal-plan").textContent = `Репозиторий: ${plan.repository}\nИсходный commit: ${plan.base_sha}\nPatch SHA256: ${plan.patch_sha256}\nУтверждение: ${proposal.proposal_sha256}\nПроверка: Python/pytest в изолированной среде, без сети и ключей`; el("proposal-patch").textContent = proposal.patch_text; }
   const canApprove = profiles.enabled && state.can_approve && state.status === "WAIT_OWNER";
   el("approval-label").hidden = !canApprove; el("patch-approve").hidden = !canApprove; el("patch-rework").hidden = !canApprove;
   el("patch-start").hidden = !profiles.enabled || !project.can_create || state.status !== "EXECUTION_READY";

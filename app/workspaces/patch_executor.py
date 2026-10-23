@@ -384,7 +384,7 @@ def prepare(repo, task_id, profile_id, patch_text):
         )
     )
     task.status = "WAIT_OWNER"
-    task.summary = "Scoped patch prepared; tests, commit and PR have not run."
+    task.summary = "Patch подготовлен. Тесты и создание PR ещё не запускались."
     event(repo, task_id, "scoped_patch_prepared", proposal_sha256=payload["sha256"])
     repo.session.commit()
     return {"status": task.status, "plan": plan, "proposal_sha256": payload["sha256"]}
@@ -856,7 +856,9 @@ def run_job(scope, task_id, run_id, sha):
                     url,
                     commit_sha,
                 )
-                task.summary = "Scoped patch tested and PR created; merge and business validation are pending."
+                task.summary = (
+                    "Тесты пройдены, PR создан. Ожидается проверка и merge владельца."
+                )
                 run = repo.session.scalar(select(Run).where(Run.run_id == run_id))
                 run.state, run.is_active, run.result_status = (
                     "completed",
@@ -891,7 +893,7 @@ def run_job(scope, task_id, run_id, sha):
                 )
                 if task is not None and task.status == "EXECUTING":
                     task.status = "EXECUTION_FAILED"
-                    task.summary = "Scoped execution failed; working changes preserved for owner review."
+                    task.summary = "Исполнение остановлено. Проверьте результат и рабочую копию перед повторным запуском."
                 run.state, run.is_active = "failed", False
                 run.phase = active_phase
                 run.last_error = (
