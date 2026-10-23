@@ -134,3 +134,28 @@ Before production activation: review this code and CI, qualify the chosen worker
 topology/image, provision the dedicated project credential and clone, rehearse
 recovery, and approve the concrete source/image/configuration release. A portable
 Club Box and second-computer Windows acceptance remain separate work.
+
+## Qualification recorded 2026-10-23
+
+Executable source: `0acaeca4ade8fb40c346d8ede0fdf3099fdbc376`.
+See `scoped-patch-qualification-20261023.json` for immutable images and evidence paths.
+
+- Final isolated Docker qualification: **252 passed, 2 skipped** against SQLite
+  and disposable PostgreSQL 15; real Uvicorn HTTP isolation/revocation/logout passed.
+- Dedicated worker tests: **25 passed**; real Docker/Git host smoke passed,
+  including failed validation blocking commit and publication. GitHub permission,
+  push and PR calls were simulated; actual scoped external delivery is unverified.
+- Desktop review verified prepare, owner approval, separate queue action,
+  persistence after login, and clearing scoped patch/profile/result data on logout.
+- Production remains source `898386aa1c1b766a3db088235163cf128dfa17ef`,
+  migration `009`, health `ok`; task 38 `DONE`, task 39 `WAIT_OWNER`.
+  The single-poller check and dedicated scoped access check passed.
+- Production scoped execution remains disabled. No dedicated execution credential
+  exists, and current workspace/project roles are `owner`/`writer`; approval
+  requires `owner` in both. Do not silently elevate that grant or reuse a key.
+
+The PR is a reviewable code candidate, not activation or business acceptance.
+The stacked PR has no reported GitHub checks; isolated qualification does not
+substitute for repository CI. Worker infrastructure, credential provisioning,
+permission policy, live GitHub acceptance and an exact release Owner Gate remain
+separate steps. No portable Windows Club Box or owner time savings are claimed.
