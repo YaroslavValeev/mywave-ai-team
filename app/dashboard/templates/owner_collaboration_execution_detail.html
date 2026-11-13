@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Execution {{ execution.execution_id }}</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        pre { background: #2a2a40; padding: 0.75rem; overflow-x: auto; font-size: 0.85rem; }
+        .nav { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/owner/collaboration/executions">← Executions</a>
+    </nav>
+    <h1>{{ execution.execution_id }}</h1>
+    <p>Status: <strong>{{ execution.execution_status }}</strong> · Type: {{ execution.execution_type }}</p>
+    <p>Subject: {{ execution.subject_type }} / {{ execution.subject_key }}</p>
+    <p>Reason: {{ execution.execution_reason }}</p>
+    {% if outcome and outcome.get('has_outcome') %}
+    <section style="margin:1rem 0;padding:0.75rem;background:#252540;border-radius:6px;">
+        <h2 style="margin-top:0;font-size:1rem;">Outcome (11.5)</h2>
+        <p><strong>{{ outcome.outcome_status }}</strong> · эффективность: <strong>{{ outcome.effectiveness_label }}</strong>
+        {% if outcome.followup_needed %} · <span style="color:#ffb74d;">нужен follow-up</span>{% endif %}</p>
+        <p style="color:#aaa;">{{ outcome.outcome_reason or '—' }}</p>
+        {% if outcome.baseline_signal_state %}<p class="muted" style="color:#888;font-size:0.85rem;">Baseline: {{ outcome.baseline_signal_state[:300] }}</p>{% endif %}
+        {% if outcome.post_execution_signal_state %}<p class="muted" style="color:#888;font-size:0.85rem;">После: {{ outcome.post_execution_signal_state[:300] }}</p>{% endif %}
+        <p style="color:#666;font-size:0.8rem;">POST /api/owner/collaboration/outcomes/execution/{{ execution.execution_id }}/evaluate — пересчёт</p>
+    </section>
+    {% endif %}
+    {% if execution.safe_action_key %}<p>Safe action: <code>{{ execution.safe_action_key }}</code></p>{% endif %}
+    {% if execution.last_action_result %}<p>Last action result: {{ execution.last_action_result }}</p>{% endif %}
+    {% if suggestion_snapshot_json %}
+    <h2>Suggestion snapshot</h2>
+    <pre>{{ suggestion_snapshot_json }}</pre>
+    {% endif %}
+    <p style="color:#666;">POST /api/owner/collaboration/executions/{{ execution.execution_id }}/trigger · /close</p>
+</body>
+</html>

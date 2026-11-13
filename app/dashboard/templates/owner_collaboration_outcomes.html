@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Collaboration outcomes — Owner</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.25rem; border-bottom: 1px solid #333; padding-bottom: 0.25rem; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+        th, td { padding: 0.35rem 0.6rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        .muted { color: #888; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner/collaboration">Collaboration</a>
+        <a href="/owner/collaboration/executions">Executions</a>
+        <a href="/owner/collaboration/outcomes">Outcomes</a>
+    </nav>
+    <h1>Collaboration outcomes (Phase 11.5)</h1>
+    <p class="muted">Окно: {{ window_days }} дн. · Explainable сравнение сигналов до/после закрытия execution. POST …/evaluate для пересчёта.</p>
+
+    {% if summary %}
+    <section>
+        <h2>Эффективность (сводка)</h2>
+        <p>
+            effective: <strong>{{ summary.effective_executions_count }}</strong> ·
+            ineffective: <strong>{{ summary.ineffective_executions_count }}</strong> ·
+            partial: <strong>{{ summary.partially_effective_count }}</strong> ·
+            no_signal: <strong>{{ summary.not_enough_signal_count }}</strong> ·
+            follow-up: <strong>{{ summary.followup_needed_count }}</strong>
+        </p>
+        <p class="muted">{{ summary.evidence_source }}</p>
+    </section>
+    {% endif %}
+
+    {% if hotspots and hotspots.get('items') %}
+    <section>
+        <h2>Hotspots (слабые паттерны)</h2>
+        <table>
+            <thead><tr><th>Type</th><th>Subject</th><th>Count</th><th>Примеры причин</th></tr></thead>
+            <tbody>
+            {% for h in hotspots.get('items', []) %}
+            <tr>
+                <td>{{ h.execution_type }}</td>
+                <td>{{ h.subject_type }} / {{ h.subject_key }}</td>
+                <td>{{ h.count }}</td>
+                <td>{% for r in h.get('sample_reasons', []) %}<span class="muted">{{ r }}</span>{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+
+    {% if followup and followup.get('items') %}
+    <section>
+        <h2>Нужен follow-up</h2>
+        <ul>
+            {% for o in followup.get('items', []) %}
+            <li><a href="/owner/collaboration/execution/{{ o.execution_id }}">{{ o.execution_id }}</a> — {{ o.outcome_status }} / {{ o.effectiveness_label }} — {{ (o.outcome_reason or '')[:100] }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    <section>
+        <h2>Все outcomes в окне ({{ outcomes.count }})</h2>
+        {% if outcomes.get('items') %}
+        <table>
+            <thead><tr><th>Execution</th><th>Статус</th><th>Эффективность</th><th>Follow-up</th><th>Почему</th></tr></thead>
+            <tbody>
+            {% for o in outcomes.get('items', []) %}
+            <tr>
+                <td><a href="/owner/collaboration/execution/{{ o.execution_id }}">{{ o.execution_id }}</a></td>
+                <td>{{ o.outcome_status }}</td>
+                <td>{{ o.effectiveness_label }}</td>
+                <td>{% if o.followup_needed %}да{% else %}нет{% endif %}</td>
+                <td class="muted">{{ (o.outcome_reason or '')[:140] }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="muted">Пока нет записей — закройте execution и выполните evaluate (API или позже авто-обзор).</p>
+        {% endif %}
+    </section>
+</body>
+</html>

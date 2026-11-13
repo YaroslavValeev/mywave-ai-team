@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проект {{ project_key }} — Owner Dashboard</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 0.25rem; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        .block { margin-bottom: 1rem; }
+        .empty { color: #666; font-style: italic; }
+        .status-healthy { color: #81c784; }
+        .status-attention { color: #ffb74d; }
+        .status-critical { color: #e57373; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner Dashboard</a>
+        <a href="/owner/portfolio">Портфель</a>
+        <a href="/owner/projects">Проекты</a>
+        <a href="/tasks">Задачи</a>
+    </nav>
+
+    <h1>Проект: {{ overview.project_label or project_key }}</h1>
+
+    <section class="block">
+        <h2>Health</h2>
+        <p>
+            <span class="status-{{ health.status }}">{{ health.status }}</span>
+            {{ health.reason }}
+        </p>
+        <p>Active: <strong>{{ overview.active_count }}</strong> · Pending: <strong>{{ overview.pending_count }}</strong> · Artifacts: <strong>{{ overview.recent_artifacts_count }}</strong></p>
+    </section>
+
+    {% if overview.domain_profile and overview.domain_profile.dominant_domain %}
+    <section class="block">
+        <h2>Domain (expertise)</h2>
+        <p>Доминирующий: <code>{{ overview.domain_profile.dominant_domain }}</code>
+        {% if overview.domain_profile.secondary_domains %} · Secondary: {{ overview.domain_profile.secondary_domains|join(', ') }}{% endif %}
+        </p>
+        {% if overview.domain_profile.mismatch_signals %}
+        <p style="color:#ffb74d;">Сигналы: {% for s in overview.domain_profile.mismatch_signals %}{{ s.reason }}{% if not loop.last %} | {% endif %}{% endfor %}</p>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if project_explanation and project_explanation.get('rationales') %}
+    <section class="block">
+        <h2>Почему система так считает</h2>
+        {% for r in project_explanation.get('rationales', [])[:3] %}
+        <p><strong>{{ r.headline }}</strong></p>
+        {% if r.get('evidence_items') %}<ul>{% for e in r.get('evidence_items', []) %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if project_suggestions and project_suggestions.get('items') %}
+    <section class="block">
+        <h2>Рекомендуемые действия</h2>
+        {% for s in project_suggestions.get('items', [])[:3] %}
+        <p><strong>{{ s.headline }}</strong></p>
+        <p>→ {{ s.recommended_next_step }}{% if s.safe_action_available %} · safe: {{ s.safe_action_available }}{% endif %}{% if s.execution_id %} · execution: <a href="/owner/collaboration/execution/{{ s.execution_id }}">{{ s.execution_id }}</a>{% endif %}</p>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if project_intervention and (project_intervention.do_now or project_intervention.do_next) %}
+    <section class="block">
+        <h2>Recommended intervention (11.7) <a href="/owner/interventions" style="font-weight:normal;font-size:0.85rem;">→</a></h2>
+        {% if project_intervention.do_now %}
+        <p><strong>Сейчас:</strong> {{ project_intervention.do_now.reason[:100] }}{% if project_intervention.do_now.safe_action_key %} · <a href="/owner/decision-support">safe: {{ project_intervention.do_now.safe_action_key }}</a>{% endif %}</p>
+        {% endif %}
+        {% if project_intervention.do_next %}
+        <p><strong>Далее:</strong> {{ project_intervention.do_next.reason[:100] }}{% if project_intervention.do_next.safe_action_key %} · <a href="/owner/decision-support">safe: {{ project_intervention.do_next.safe_action_key }}</a>{% endif %}</p>
+        {% endif %}
+        {% if project_intervention.defer %}
+        <p class="empty">Отложить: {{ project_intervention.defer|length }} — см. <a href="/owner/interventions">/owner/interventions</a></p>
+        {% endif %}
+        {% if project_intervention.evidence_summary %}
+        <p class="muted" style="font-size:0.85rem;">Evidence: {% for e in project_intervention.evidence_summary[:3] %}{{ e }}{% if not loop.last %} · {% endif %}{% endfor %}</p>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if project_collab_executions and project_collab_executions.get('items') %}
+    <section class="block">
+        <h2>Collaboration executions <a href="/owner/collaboration/executions" style="font-weight:normal;font-size:0.85rem;">→</a></h2>
+        <ul>{% for e in project_collab_executions.get('items', []) %}<li><a href="/owner/collaboration/execution/{{ e.execution_id }}">{{ e.execution_id }}</a> — {{ e.execution_status }} — {{ (e.execution_reason or '')[:45] }}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+
+    {% if project_collab_outcomes and project_collab_outcomes.get('items') %}
+    <section class="block">
+        <h2>Collaboration outcomes (закрытые) <a href="/owner/collaboration/outcomes" style="font-weight:normal;font-size:0.85rem;">→</a></h2>
+        <ul>{% for o in project_collab_outcomes.get('items', []) %}<li><a href="/owner/collaboration/execution/{{ o.execution_id }}">{{ o.execution_id }}</a> — {{ o.outcome_status }} / {{ o.effectiveness_label }}{% if o.followup_needed %} · follow-up{% endif %}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+
+    {% if collaboration and collaboration.get('handoff_signals') %}
+    <section class="block">
+        <h2>Collaboration</h2>
+        <p>Handoff signals: {% for s in collaboration.get('handoff_signals', []) %}{{ s.handoff_type }} → {{ s.target_role }}{% if s.handoff_reason %} ({{ s.handoff_reason }}){% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</p>
+        <p>Pending: {{ collaboration.get('pending_count', 0) or 0 }} · Кто нужен: {% for s in collaboration.get('handoff_signals', []) %}{{ s.recommended_next_role }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+    </section>
+    {% endif %}
+
+    {% if lifecycle %}
+    <section class="block">
+        <h2>Domain lifecycle ({{ lifecycle.window_days }} дн.)</h2>
+        <p>Состояние: <strong>{{ lifecycle.lifecycle_state }}</strong> · Текущий домен: <code>{{ lifecycle.current_dominant_domain or '—' }}</code>{% if lifecycle.previous_dominant_domain %} · был: <code>{{ lifecycle.previous_dominant_domain }}</code>{% endif %}</p>
+        <p>{{ lifecycle.reason }}</p>
+        {% if lifecycle.domain_drift_signal %}<p style="color:#ffb74d;">Дрифт: доминанта сменилась за период.</p>{% endif %}
+        {% if lifecycle.domain_instability_signal %}<p style="color:#ffb74d;">Нестабильный доменный профиль.</p>{% endif %}
+        {% if evolution_refinement and evolution_refinement.headline %}
+        <p><strong>Вывод (11.9):</strong> {{ evolution_refinement.headline }}{% if evolution_refinement.intervention_needed %} · {{ evolution_refinement.suggested_action }}{% endif %}</p>
+        {% endif %}
+    </section>
+    {% elif evolution_refinement and evolution_refinement.headline %}
+    <section class="block">
+        <h2>Domain evolution (11.9)</h2>
+        <p><strong>Вывод:</strong> {{ evolution_refinement.headline }}{% if evolution_refinement.intervention_needed %} · {{ evolution_refinement.suggested_action }}{% endif %}</p>
+    </section>
+    {% endif %}
+
+    <section class="block">
+        <h2>Active tasks ({{ tasks.count }})</h2>
+        {% if tasks.get('items') %}
+        <table>
+            <thead><tr><th>ID</th><th>Status</th><th>Кратко</th><th>Updated</th><th></th></tr></thead>
+            <tbody>
+                {% for t in tasks.get('items', []) %}
+                <tr>
+                    <td>{{ t.id }}</td>
+                    <td>{{ t.status }}</td>
+                    <td>{{ t.owner_text or '—' }}</td>
+                    <td>{{ t.updated_at[:19] if t.updated_at else '—' }}</td>
+                    <td><a href="/tasks/{{ t.id }}">Детали</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет активных задач в проекте</p>
+        {% endif %}
+    </section>
+
+    <section class="block">
+        <h2>Pending approvals ({{ approvals.count }})</h2>
+        {% if approvals.get('items') %}
+        <table>
+            <thead><tr><th>ID</th><th>Status</th><th>Кратко</th><th></th></tr></thead>
+            <tbody>
+                {% for t in approvals.get('items', []) %}
+                <tr>
+                    <td>{{ t.id }}</td>
+                    <td>{{ t.status }}</td>
+                    <td>{{ t.owner_text or '—' }}</td>
+                    <td><a href="/tasks/{{ t.id }}">Детали</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет ожидающих решений</p>
+        {% endif %}
+    </section>
+
+    <section class="block">
+        <h2>Recent artifacts ({{ artifacts.count }})</h2>
+        {% if artifacts.get('items') %}
+        <table>
+            <thead><tr><th>Task</th><th>Summary</th><th>Report</th><th>Updated</th><th></th></tr></thead>
+            <tbody>
+                {% for r in artifacts.get('items', []) %}
+                <tr>
+                    <td><a href="/tasks/{{ r.task_id }}">#{{ r.task_id }}</a></td>
+                    <td>{{ r.summary or '—' }}</td>
+                    <td>{{ r.report_path or '—' }}</td>
+                    <td>{{ r.updated_at[:19] if r.updated_at else '—' }}</td>
+                    <td><a href="/tasks/{{ r.task_id }}">Детали</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет артефактов</p>
+        {% endif %}
+    </section>
+
+    <section class="block">
+        <h2>Risks ({{ risks.count }})</h2>
+        {% if risks.items %}
+        <ul>
+            {% for r in risks.items %}
+            <li><strong>{{ r.risk_type }}</strong>: {{ r.reason }} — {{ r.suggested_action }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty">Нет рисков по проекту</p>
+        {% endif %}
+    </section>
+
+    <section class="block">
+        <h2>Decision queue ({{ decision_queue.count }})</h2>
+        {% if decision_queue.get('items') %}
+        <table>
+            <thead><tr><th>Task</th><th>Причина</th><th>Приоритет</th><th>Действие</th></tr></thead>
+            <tbody>
+                {% for q in decision_queue.get('items', []) %}
+                <tr>
+                    <td>{% if q.task_id %}<a href="/tasks/{{ q.task_id }}">#{{ q.task_id }}</a>{% else %}—{% endif %}</td>
+                    <td>{{ q.reason }}</td>
+                    <td>{{ q.priority }}</td>
+                    <td>{{ q.suggested_next_action }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Очередь решений пуста</p>
+        {% endif %}
+    </section>
+
+    <p style="color:#666; font-size:0.85rem;"><a href="/owner/projects">← К списку проектов</a></p>
+</body>
+</html>

@@ -151,3 +151,44 @@ def notify_stage_sync(task_id: int, stage: str, detail: str = "") -> None:
             task.add_done_callback(_log_stage_task_result)
     except Exception as exc:
         logger.warning("notify_stage_sync failed task_id=%s stage=%s: %s", task_id, stage, exc)
+
+# --- productization (nested Phase 9.1+) ---
+
+def _format_owner_notification(notification_type: str, payload: dict[str, Any]) -> str:
+    """Phase 9.1: format notification by type (single send path)."""
+    from app.presenters.notification_presenters import (
+        format_daily_summary_notification,
+        format_approval_alert,
+        format_completion_alert,
+        format_degraded_alert,
+        format_recovered_alert,
+        format_stuck_task_alert,
+        format_weekly_digest_notification,
+        format_strategic_weekly_digest_notification,
+        format_monthly_digest_notification,
+        format_portfolio_weekly_digest_notification,
+    )
+    formatters = {
+        "daily_summary": format_daily_summary_notification,
+        "approval_requested": format_approval_alert,
+        "task_completed": format_completion_alert,
+        "artifact_ready": format_completion_alert,
+        "degraded_mode": format_degraded_alert,
+        "recovered_mode": format_recovered_alert,
+        "stuck_task": format_stuck_task_alert,
+        "weekly_digest": format_weekly_digest_notification,
+        "strategic_weekly_digest": format_strategic_weekly_digest_notification,
+        "monthly_digest": format_monthly_digest_notification,
+        "portfolio_weekly_digest": format_portfolio_weekly_digest_notification,
+    }
+    fn = formatters.get(notification_type)
+    if not fn:
+        return str(payload)
+    return fn(payload)
+
+
+async def send_owner_notification(notification_type: str, payload: dict[str, Any]) -> bool:
+    """Phase 9.1: send owner notification (format + send). Returns True on success."""
+    text = _format_owner_notification(notification_type, payload)
+    return await send_owner_message(text)
+

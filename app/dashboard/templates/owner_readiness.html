@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Readiness — MyWave AI-TEAM</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.5rem; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        .status-cue { display: inline-block; padding: 0.35rem 0.9rem; border-radius: 4px; font-weight: bold; }
+        .status-ok { background: #1b5e20; color: #c8e6c9; }
+        .status-degraded { background: #e65100; color: #ffe0b2; }
+        .status-not-ready { background: #b71c1c; color: #ffcdd2; }
+        .block { margin-bottom: 1rem; }
+        ul { padding-left: 1.25rem; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner Dashboard</a>
+        <a href="/owner/readiness">Readiness</a>
+        <a href="/actions">Actions</a>
+    </nav>
+    <h1>Production Readiness</h1>
+
+    <section class="block">
+        {% if readiness.ready %}
+        <p><span class="status-cue status-ok">Готово</span> Система готова к эксплуатации.</p>
+        {% elif readiness.level == 'degraded' %}
+        <p><span class="status-cue status-degraded">Degraded</span> Требуется внимание.</p>
+        {% else %}
+        <p><span class="status-cue status-not-ready">Not ready</span> Критичные проверки не пройдены.</p>
+        {% endif %}
+        <p style="white-space: pre-line;">{{ owner_text }}</p>
+    </section>
+
+    {% if readiness.failed_checks %}
+    <section class="block">
+        <h2>Failed checks</h2>
+        <ul>
+            {% for c in readiness.failed_checks %}
+            <li><strong>{{ c.check_name }}</strong>: {{ c.reason[:100] }}{% if c.reason|length > 100 %}...{% endif %}</li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    {% if readiness.counts %}
+    <p style="color:#888; font-size:0.85rem;">Проверок: {{ readiness.counts.passed }}/{{ readiness.counts.total }} пройдено.</p>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Cross-layer effectiveness — Owner</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.25rem; border-bottom: 1px solid #333; padding-bottom: 0.25rem; }
+        table { border-collapse: collapse; font-size: 0.88rem; }
+        th, td { padding: 0.35rem 0.6rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .nav { margin-bottom: 1rem; }
+        .muted { color: #888; font-size: 0.85rem; }
+        .conflict { color: #ffb74d; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/owner">Owner</a>
+        <a href="/owner/portfolio">Портфель</a>
+        <a href="/owner/tuning/outcomes">Tuning outcomes</a>
+        <a href="/owner/collaboration/outcomes">Collab outcomes</a>
+        <a href="/owner/effectiveness">Cross-layer</a>
+    </nav>
+    <h1>Cross-layer effectiveness (Phase 11.6)</h1>
+    <p class="muted">Окно: {{ synthesis.window_days }} дн. · Объединение tuning + collaboration outcomes. Explainable.</p>
+
+    {% if synthesis.alignment_items %}
+    <section>
+        <h2>Рассогласования (alignment)</h2>
+        <table>
+            <thead><tr><th>Конфликт</th><th>Причина</th><th>Ссылки</th></tr></thead>
+            <tbody>
+            {% for a in synthesis.alignment_items %}
+            <tr class="conflict">
+                <td>{{ a.headline }}</td>
+                <td>{{ a.reason }}</td>
+                <td>{% for r in a.get('evidence_refs', []) %}{% if r.id_type == 'tuning_candidate_id' %}<a href="/api/owner/tuning/{{ r.id_value }}">{{ r.id_value }}</a>{% elif r.id_type == 'execution_id' %}<a href="/owner/collaboration/execution/{{ r.id_value }}">{{ r.id_value }}</a>{% else %}{{ r.id_value }}{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% else %}
+    <section>
+        <h2>Рассогласования</h2>
+        <p class="muted">Конфликтов между слоями нет.</p>
+    </section>
+    {% endif %}
+
+    <section>
+        <h2>Срезы по слоям</h2>
+        <table>
+            <thead><tr><th>Слой</th><th>effective</th><th>ineffective</th><th>follow-up</th><th>всего</th></tr></thead>
+            <tbody>
+            {% for s in synthesis.slices %}
+            <tr>
+                <td>{{ s.layer }}</td>
+                <td>{{ s.effective_count }}</td>
+                <td>{{ s.ineffective_count }}</td>
+                <td>{{ s.followup_count }}</td>
+                <td>{{ s.total_in_window }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <p class="muted">Telegram: /effectiveness_synthesis [дней] · API: GET /api/owner/effectiveness/synthesis</p>
+</body>
+</html>

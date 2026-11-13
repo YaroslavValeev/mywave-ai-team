@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refinement Proposals</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.5rem; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        .status-proposed { color: #ffb74d; }
+        .status-accepted { color: #81c784; }
+        .status-rejected { color: #e57373; }
+        .status-applied { color: #4fc3f7; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner Dashboard</a>
+        <a href="/owner/refinement">Refinement</a>
+        <a href="/owner/refinement/proposals">Proposals</a>
+        <a href="/owner/refinement/proposals?status=proposed">Pending review</a>
+    </nav>
+    <h1>Refinement Proposals</h1>
+    {% if filter_status %}<p>Фильтр: <strong>{{ filter_status }}</strong></p>{% endif %}
+    <p>Всего: <strong>{{ count }}</strong></p>
+    {% if proposals %}
+    <table>
+        <thead><tr><th>ID</th><th>Type</th><th>Target</th><th>Reason</th><th>Severity</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for p in proposals %}
+        <tr>
+            <td><a href="/owner/refinement/proposal/{{ p.proposal_id }}">{{ p.proposal_id[:24] }}</a></td>
+            <td>{{ p.proposal_type }}</td>
+            <td>{{ p.target_layer }} / {{ p.target_key }}</td>
+            <td>{{ p.reason }}</td>
+            <td>{{ p.severity }}</td>
+            <td class="status-{{ p.status }}">{{ p.status }}</td>
+            <td><a href="/owner/refinement/proposal/{{ p.proposal_id }}">Open</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">Нет proposals. Сгенерируйте из backlog: POST /api/owner/refinement/proposals/generate</p>
+    {% endif %}
+</body>
+</html>

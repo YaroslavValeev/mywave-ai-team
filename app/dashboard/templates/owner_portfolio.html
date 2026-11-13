@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Портфель — Owner Dashboard</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 0.25rem; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        .block { margin-bottom: 1rem; }
+        .empty { color: #666; font-style: italic; }
+        .status-critical { color: #e57373; }
+        .status-attention { color: #ffb74d; }
+        .status-healthy { color: #81c784; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner Dashboard</a>
+        <a href="/owner/portfolio">Портфель</a>
+        <a href="/owner/projects">Проекты</a>
+        <a href="/owner/collaboration">Collaboration</a>
+        <a href="/owner/collaboration/executions">Collab executions</a>
+        <a href="/owner/collaboration/outcomes">Collab outcomes</a>
+        <a href="/owner/interventions">Interventions</a>
+        <a href="/tasks">Задачи</a>
+    </nav>
+
+    <h1>Портфель (cross-project)</h1>
+
+    {% if portfolio_collab_executions and portfolio_collab_executions.get('items') %}
+    <section class="block">
+        <h2>Pending collaboration actions (11.4) <a href="/owner/collaboration/executions" style="font-weight:normal;font-size:0.9rem;">→</a></h2>
+        <ul>{% for e in portfolio_collab_executions.get('items', [])[:8] %}<li><a href="/owner/collaboration/execution/{{ e.execution_id }}">{{ e.execution_id }}</a> — {{ e.execution_status }} — {{ (e.execution_reason or '')[:40] }}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+
+    {% if portfolio_collab_outcome_summary %}
+    <section class="block">
+        <h2>Collaboration effectiveness (11.5) <a href="/owner/collaboration/outcomes" style="font-weight:normal;font-size:0.9rem;">→</a></h2>
+        <p>effective: <strong>{{ portfolio_collab_outcome_summary.effective_executions_count }}</strong> ·
+           ineffective: <strong>{{ portfolio_collab_outcome_summary.ineffective_executions_count }}</strong> ·
+           follow-up: <strong>{{ portfolio_collab_outcome_summary.followup_needed_count }}</strong></p>
+    </section>
+    {% endif %}
+
+    {% if portfolio_cross_layer_synthesis %}
+    <section class="block">
+        <h2>Cross-layer synthesis (11.6) <a href="/owner/effectiveness" style="font-weight:normal;font-size:0.9rem;">→</a></h2>
+        <p>{% for s in portfolio_cross_layer_synthesis.slices %}{{ s.layer }}: eff={{ s.effective_count }}/ineff={{ s.ineffective_count }}{% if not loop.last %} · {% endif %}{% endfor %}{% if portfolio_cross_layer_synthesis.alignment_items %} · <span style="color:#ffb74d;">{{ portfolio_cross_layer_synthesis.alignment_items|length }} конфликт(ов)</span>{% endif %}</p>
+    </section>
+    {% endif %}
+
+    {% if portfolio_intervention_plans and (portfolio_intervention_plans.do_now or portfolio_intervention_plans.do_next) %}
+    <section class="block">
+        <h2>Recommended intervention (11.7) <a href="/owner/interventions" style="font-weight:normal;font-size:0.9rem;">→</a></h2>
+        {% if portfolio_intervention_plans.do_now %}
+        <p><strong>1. Сейчас:</strong> {{ portfolio_intervention_plans.do_now.reason[:80] }}{% if portfolio_intervention_plans.do_now.safe_action_key %} · <a href="/owner/decision-support">/do {{ portfolio_intervention_plans.do_now.safe_action_key }}</a>{% endif %}</p>
+        {% endif %}
+        {% if portfolio_intervention_plans.do_next %}
+        <p><strong>2. Далее:</strong> {{ portfolio_intervention_plans.do_next.reason[:80] }}{% if portfolio_intervention_plans.do_next.safe_action_key %} · <a href="/owner/decision-support">/do {{ portfolio_intervention_plans.do_next.safe_action_key }}</a>{% endif %}</p>
+        {% endif %}
+        {% if portfolio_intervention_plans.defer %}
+        <p><strong>3. Отложить ({{ portfolio_intervention_plans.defer|length }}):</strong> <span class="empty">см. <a href="/owner/interventions">/owner/interventions</a></span></p>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if portfolio_cross_layer_bundle and portfolio_cross_layer_bundle.do_now %}
+    <section class="block">
+        <h2>Cross-layer conflict bundle <a href="/owner/effectiveness" style="font-weight:normal;font-size:0.9rem;">→</a></h2>
+        <p><span style="color:#ffb74d;">{{ portfolio_cross_layer_bundle.headline }}</span> — {{ portfolio_cross_layer_bundle.do_now.reason[:70] }}</p>
+    </section>
+    {% endif %}
+
+    <!-- 1. Portfolio health overview -->
+    <section class="block">
+        <h2>Portfolio health overview</h2>
+        <p>
+            Проектов: <strong>{{ overview.projects_count }}</strong>
+            (critical: <span class="status-critical">{{ overview.critical_count }}</span>,
+            attention: <span class="status-attention">{{ overview.attention_needed_count }}</span>,
+            healthy: <span class="status-healthy">{{ overview.healthy_count }}</span>)
+        </p>
+        <p>
+            Total active: <strong>{{ overview.total_active }}</strong> ·
+            Total pending: <strong>{{ overview.total_pending }}</strong> ·
+            Rework total: <strong>{{ overview.rework_total }}</strong> ·
+            Long-running: <strong>{{ overview.long_running_total }}</strong>
+        </p>
+        <p>Система: <strong>{{ overview.system_state }}</strong></p>
+    </section>
+
+    <!-- 2. Top problem projects -->
+    <section class="block">
+        <h2>Top problem projects</h2>
+        {% if top_problem.get('items') %}
+        <table>
+            <thead><tr><th>Проект</th><th>Status</th><th>Причина</th><th>Pending</th><th>Rework</th><th>LR</th><th></th></tr></thead>
+            <tbody>
+                {% for p in top_problem.get('items', []) %}
+                <tr>
+                    <td>{{ p.project_label }}</td>
+                    <td class="status-{{ p.status }}">{{ p.status }}</td>
+                    <td>{{ p.reason }}</td>
+                    <td>{{ p.pending_count }}</td>
+                    <td>{{ p.rework_signals }}</td>
+                    <td>{{ p.long_running }}</td>
+                    <td><a href="/owner/project/{{ p.project_key }}">Открыть</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет проблемных проектов</p>
+        {% endif %}
+    </section>
+
+    <!-- 3. Approvals backlog by project -->
+    <section class="block">
+        <h2>Approvals backlog by project</h2>
+        {% if backlog.get('items') %}
+        <table>
+            <thead><tr><th>Проект</th><th>Pending</th><th></th></tr></thead>
+            <tbody>
+                {% for p in backlog.get('items', []) %}
+                <tr>
+                    <td>{{ p.project_label }}</td>
+                    <td>{{ p.pending_count }}</td>
+                    <td><a href="/owner/project/{{ p.project_key }}">Открыть</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет backlog по проектам</p>
+        {% endif %}
+    </section>
+
+    <!-- 4. Rework hotspots -->
+    <section class="block">
+        <h2>Rework hotspots</h2>
+        {% if rework.get('items') %}
+        <table>
+            <thead><tr><th>Проект</th><th>Rework signals</th><th>Причина</th><th></th></tr></thead>
+            <tbody>
+                {% for p in rework.get('items', []) %}
+                <tr>
+                    <td>{{ p.project_label }}</td>
+                    <td>{{ p.rework_signals }}</td>
+                    <td>{{ p.reason }}</td>
+                    <td><a href="/owner/project/{{ p.project_key }}">Открыть</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет rework hotspots</p>
+        {% endif %}
+    </section>
+
+    <!-- 5. Degraded hotspots -->
+    <section class="block">
+        <h2>Degraded hotspots</h2>
+        {% if degraded.system_degraded and degraded.get('items') %}
+        <p>Система degraded. Затронутые проекты (с активными задачами):</p>
+        <table>
+            <thead><tr><th>Проект</th><th>Active</th><th>Причина</th><th></th></tr></thead>
+            <tbody>
+                {% for p in degraded.get('items', []) %}
+                <tr>
+                    <td>{{ p.project_label }}</td>
+                    <td>{{ p.active_count }}</td>
+                    <td>{{ p.reason }}</td>
+                    <td><a href="/owner/project/{{ p.project_key }}">Открыть</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Система OK или нет затронутых проектов</p>
+        {% endif %}
+    </section>
+
+    {% if portfolio_explanation and portfolio_explanation.get('rationales') %}
+    <section class="block">
+        <h2>Почему система так считает</h2>
+        {% for r in portfolio_explanation.get('rationales', [])[:3] %}
+        <p><strong>{{ r.headline }}</strong></p>
+        {% if r.get('evidence_items') %}<ul>{% for e in r.get('evidence_items', []) %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if portfolio_decision_support and portfolio_decision_support.get('items') %}
+    <section class="block">
+        <h2>Decision support <a href="/owner/decision-support" style="font-weight:normal; font-size:0.9rem;">→ Подробнее</a></h2>
+        {% for d in portfolio_decision_support.get('items', [])[:3] %}
+        <p><strong>{{ d.headline }}</strong></p>
+        <p>Рекомендация: {{ d.preferred_option }} — {{ d.preferred_option_reason }}</p>
+        <p>Риск при игнорировании: {{ d.risk_if_ignored }}</p>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    <!-- 6. Focus list -->
+    <section class="block">
+        <h2>Focus list (top 5 for attention)</h2>
+        {% if focus.get('items') %}
+        <table>
+            <thead><tr><th>Проект</th><th>Status</th><th>Причина</th><th>Действие</th><th></th></tr></thead>
+            <tbody>
+                {% for p in focus.get('items', []) %}
+                <tr>
+                    <td>{{ p.project_label }}</td>
+                    <td class="status-{{ p.status }}">{{ p.status }}</td>
+                    <td>{{ p.reason }}</td>
+                    <td>{{ p.suggested_action }}</td>
+                    <td><a href="/owner/project/{{ p.project_key }}">Открыть</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Focus list пуст</p>
+        {% endif %}
+    </section>
+
+    <!-- 7. Domain lifecycle (Phase 10.8) -->
+    {% if collaboration_hotspots and collaboration_hotspots.get('items') %}
+    <section class="block">
+        <h2>Collaboration hotspots <a href="/owner/collaboration" style="font-weight:normal; font-size:0.9rem;">→ Подробнее</a></h2>
+        <table>
+            <thead><tr><th>Type</th><th>Severity</th><th>Reason</th><th>Action</th></tr></thead>
+            <tbody>
+            {% for h in (collaboration_hotspots.get('items', [])[:5]) %}
+            <tr>
+                <td>{{ h.hotspot_type }}</td>
+                <td>{{ h.severity }}</td>
+                <td>{{ h.reason }}</td>
+                <td>{{ h.recommended_collaboration_action }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+
+    {% if lifecycle_summary %}
+    <section class="block">
+        <h2>Domain lifecycle ({{ lifecycle_summary.window_days }} дн.)</h2>
+        <p>{{ lifecycle_summary.summary }}</p>
+        {% if lifecycle_summary.drifting %}
+        <p><strong>Дрифт:</strong> {% for l in lifecycle_summary.drifting %}<a href="/owner/project/{{ l.project_key }}">{{ l.project_key }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+        {% endif %}
+        {% if lifecycle_summary.unstable_or_override_heavy %}
+        <p><strong>Нестабильные / override-heavy:</strong> {% for l in lifecycle_summary.unstable_or_override_heavy %}<a href="/owner/project/{{ l.project_key }}">{{ l.project_key }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if evolution_transition_summary and evolution_transition_summary.attention_items_count %}
+    <section class="block">
+        <h2>Domain evolution (11.9)</h2>
+        <p>Attention: <strong>{{ evolution_transition_summary.attention_items_count }}</strong> · Drift intervention: <strong>{{ evolution_transition_summary.drift_requiring_intervention_count }}</strong> · Diversification review: <strong>{{ evolution_transition_summary.diversification_requiring_review_count }}</strong></p>
+        {% for it in evolution_transition_summary.attention_items %}
+        <p><a href="/owner/project/{{ it.project_key }}">{{ it.project_key }}</a>: {{ it.headline }}{% if it.intervention_needed %} · {{ it.suggested_action }}{% endif %}</p>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    <!-- 8. Portfolio digest preview -->
+    <section class="block">
+        <h2>Portfolio digest ({{ digest.window_days }} days)</h2>
+        <p>
+            Backlog проектов: {{ digest.approvals_backlog_count }} ·
+            Pending total: {{ digest.approvals_backlog_total }} ·
+            Rework hotspots: {{ digest.rework_hotspots_count }} ·
+            Degraded hotspots: {{ digest.degraded_hotspots_count }}
+            {% if digest.system_degraded %} · <strong>Система degraded</strong>{% endif %}
+        </p>
+    </section>
+
+    <p style="color:#666; font-size:0.85rem;">Telegram: /portfolio, /focus, /hotspots, /approvals_backlog</p>
+</body>
+</html>

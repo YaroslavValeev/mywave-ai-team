@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refinement — Domain & Specialization Analytics</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 0.25rem; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        .block { margin-bottom: 1rem; }
+        .empty { color: #666; font-style: italic; }
+        .severity-medium { color: #ffb74d; }
+        .severity-low { color: #81c784; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner Dashboard</a>
+        <a href="/owner/portfolio">Портфель</a>
+        <a href="/owner/projects">Проекты</a>
+        <a href="/owner/domains">Домены</a>
+        <a href="/owner/refinement">Refinement</a>
+        <a href="/tasks">Задачи</a>
+    </nav>
+
+    <h1>Domain & Specialization Analytics (Refinement)</h1>
+    <p>Окно: <strong>{{ window_days }}</strong> дней. Explainable analytics по override и fallback.</p>
+    <p><a href="/owner/refinement/proposals">Refinement proposals</a> · <a href="/owner/refinement/proposals?status=proposed">Pending review</a> · <a href="/owner/tuning">Tuning</a> · <a href="/owner/tuning/outcomes">Tuning outcomes</a></p>
+
+    {% if tuning_candidates and tuning_candidates.get('items') %}
+    <section class="block">
+        <h2>Specialization tuning candidates <a href="/owner/tuning" style="font-weight:normal; font-size:0.9rem;">→ Подробнее</a></h2>
+        {% for c in tuning_candidates.get('items', [])[:3] %}
+        <p><strong>{{ c.problem_pattern }}</strong></p>
+        <p>→ {{ c.recommended_tuning_change }} · Status: {{ c.status }}</p>
+        {% endfor %}
+    </section>
+    {% endif %}
+    {% if tuning_summary and tuning_summary.pending_count %}
+    <section class="block">
+        <h2>Execution lane improvement</h2>
+        <p>Pending: {{ tuning_summary.pending_count }} · Accepted: {{ tuning_summary.accepted_count }} · Converted: {{ tuning_summary.converted_count }} · Verified: {{ tuning_summary.verified_count }}</p>
+    </section>
+    {% endif %}
+    {% if tuning_patch_summary %}
+    <section class="block">
+        <h2>Semi-automated tuning &amp; patch (11.3)</h2>
+        <p>Patchable candidates: <strong>{{ tuning_patch_summary.patchable_count }}</strong> · Manual/blocked: <strong>{{ tuning_patch_summary.manual_or_blocked_count }}</strong> · Applied tuning path: <strong>{{ tuning_patch_summary.applied_tuning_count }}</strong> · <a href="/owner/tuning">Детали</a></p>
+        {% if patchable_tuning_preview %}
+        <p><strong>Patchable tuning (preview)</strong></p>
+        <ul>{% for p in patchable_tuning_preview %}<li>{{ p.tuning_candidate_id }} — {{ (p.patchability_reason or '')[:55] }}</li>{% endfor %}</ul>
+        {% endif %}
+        {% if manual_tuning_preview %}
+        <p><strong>Needs manual</strong></p>
+        <ul>{% for p in manual_tuning_preview[:4] %}<li>{{ p.tuning_candidate_id }}</li>{% endfor %}</ul>
+        {% endif %}
+    </section>
+    {% endif %}
+    {% if tuning_outcome_summary %}
+    <section class="block">
+        <h2>Verified tuning outcomes</h2>
+        <p>Improved: {{ tuning_outcome_summary.improved_count }} · Worse: {{ tuning_outcome_summary.worse_count }} · <a href="/owner/tuning/outcomes">Сводка</a></p>
+    </section>
+    {% endif %}
+    {% if refinement_explanation and refinement_explanation.get('rationales') %}
+    <section class="block">
+        <h2>Почему система так считает</h2>
+        {% for r in refinement_explanation.get('rationales', [])[:3] %}
+        <p><strong>{{ r.headline }}</strong></p>
+        {% if r.get('evidence_items') %}<ul>{% for e in r.get('evidence_items', []) %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    <section class="block">
+        <h2>1. Override summary</h2>
+        <p>
+            Всего override: <strong>{{ override_summary.total_overrides }}</strong> ·
+            Снято: <strong>{{ override_summary.total_cleared }}</strong> ·
+            Задач с override: <strong>{{ override_summary.unique_tasks_with_override }}</strong> ·
+            Rate: <strong>{{ override_summary.override_rate }}</strong>
+        </p>
+    </section>
+
+    <section class="block">
+        <h2>2. Override hotspots</h2>
+        {% if override_hotspots %}
+        <table>
+            <thead><tr><th>Тип</th><th>Ключ</th><th>Count</th><th>Причина</th></tr></thead>
+            <tbody>
+            {% for h in override_hotspots %}
+            <tr>
+                <td>{{ h.type }}</td>
+                <td>{{ h.key }}</td>
+                <td>{{ h.count }}</td>
+                <td>{{ h.reason_summary }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет hotspots за период.</p>
+        {% endif %}
+    </section>
+
+    <section class="block">
+        <h2>3. Specialization fallback summary</h2>
+        <p>
+            Fallback событий: <strong>{{ fallback_summary.total_fallback_events }}</strong> ·
+            Selected: <strong>{{ fallback_summary.total_selected_events }}</strong> ·
+            Fallback rate: <strong>{{ fallback_summary.fallback_rate }}</strong> ·
+            Задач с fallback: <strong>{{ fallback_summary.unique_tasks_with_fallback }}</strong>
+        </p>
+    </section>
+
+    <section class="block">
+        <h2>4. Specialization hotspots</h2>
+        {% if spec_hotspots %}
+        <table>
+            <thead><tr><th>Домен</th><th>Шаг</th><th>Fallback count</th><th>Причина</th></tr></thead>
+            <tbody>
+            {% for h in spec_hotspots %}
+            <tr>
+                <td>{{ h.domain_key }}</td>
+                <td>{{ h.workflow_step }}</td>
+                <td>{{ h.fallback_count }}</td>
+                <td>{{ h.reason_summary }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет hotspots за период.</p>
+        {% endif %}
+    </section>
+
+    <section class="block">
+        <h2>5. Refinement signals</h2>
+        {% if signals %}
+        <table>
+            <thead><tr><th>Тип</th><th>Severity</th><th>Причина</th><th>Рекомендация</th></tr></thead>
+            <tbody>
+            {% for s in signals %}
+            <tr>
+                <td>{{ s.signal_type }}</td>
+                <td class="{% if s.severity == 'medium' %}severity-medium{% else %}severity-low{% endif %}">{{ s.severity }}</td>
+                <td>{{ s.reason }}</td>
+                <td>{{ s.recommended_refinement_action }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет сигналов за период.</p>
+        {% endif %}
+    </section>
+
+    <section class="block">
+        <h2>6. Refinement backlog</h2>
+        {% if backlog %}
+        <table>
+            <thead><tr><th>Тип</th><th>Severity</th><th>Причина</th><th>Рекомендуемое действие</th></tr></thead>
+            <tbody>
+            {% for b in backlog %}
+            <tr>
+                <td>{{ b.item_type }}</td>
+                <td class="{% if b.severity == 'medium' %}severity-medium{% else %}severity-low{% endif %}">{{ b.severity }}</td>
+                <td>{{ b.reason }}</td>
+                <td>{{ b.recommended_change }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Backlog пуст.</p>
+        {% endif %}
+    </section>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# app/config/owner_notifications.yaml — Phase 9.1: owner notification baseline
+# Override via env: OWNER_NOTIFY_DAILY_SUMMARY_ENABLED, OWNER_NOTIFY_DAILY_SUMMARY_TIME, etc.
+
+daily_summary_enabled: true
+daily_summary_time: "09:00"
+weekly_digest_enabled: true
+weekly_digest_day: 1
+weekly_digest_time: "09:10"
+monthly_digest_enabled: true
+monthly_digest_day: 1
+monthly_digest_time: "09:15"
+approval_alerts_enabled: true
+completion_alerts_enabled: true
+degraded_alerts_enabled: true
+recovery_alerts_enabled: true
+stuck_task_alerts_enabled: true
+stuck_waiting_approval_minutes: 1440
+stuck_no_progress_minutes: 360
+stuck_alert_cooldown_minutes: 1440

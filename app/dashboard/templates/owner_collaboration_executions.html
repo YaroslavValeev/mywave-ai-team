@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Collaboration executions</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; border-bottom: 1px solid #333; text-align: left; }
+        .nav { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/owner/collaboration">Collaboration</a>
+        <a href="/owner/collaboration/executions">Executions</a>
+        <a href="/owner/collaboration/outcomes">Outcomes</a>
+    </nav>
+    <h1>Collaboration executions</h1>
+    {% if summary %}
+    <p>Pending (окно {{ summary.window_days }} дн.): <strong>{{ summary.pending_count }}</strong> · Closed в сводке: {{ summary.closed_count }}</p>
+    {% endif %}
+    <h2>Pending / open</h2>
+    {% if pending and pending.get('items') %}
+    <table>
+        <thead><tr><th>ID</th><th>Status</th><th>Subject</th><th>Safe action</th><th>Reason</th></tr></thead>
+        <tbody>
+        {% for e in pending.get('items', []) %}
+        <tr>
+            <td><a href="/owner/collaboration/execution/{{ e.execution_id }}">{{ e.execution_id }}</a></td>
+            <td>{{ e.execution_status }}</td>
+            <td>{{ e.subject_type }}/{{ e.subject_key }}</td>
+            <td>{{ e.safe_action_key or '—' }}</td>
+            <td>{{ (e.execution_reason or '')[:60] }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>Нет открытых executions.</p>
+    {% endif %}
+    <h2>Recently closed</h2>
+    {% if closed and closed.get('items') %}
+    <table>
+        <thead><tr><th>ID</th><th>Closure</th></tr></thead>
+        <tbody>
+        {% for e in closed.get('items', []) %}
+        <tr>
+            <td><a href="/owner/collaboration/execution/{{ e.execution_id }}">{{ e.execution_id }}</a></td>
+            <td>{{ e.closure_reason }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>—</p>
+    {% endif %}
+    <p style="color:#666;">API: POST from-suggestion, POST {id}/trigger, POST {id}/close</p>
+</body>
+</html>

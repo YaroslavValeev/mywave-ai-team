@@ -1,0 +1,13 @@
+# Orchestration engine: rule_based | crewai | auto
+# auto = try CrewAI when API key present, else rule-based (production default)
+# LangGraph: deferred — use CrewAI bridge + rule fallback (ADR: no dual orchestrator)
+engine: auto
+allow_fallback: true
+retention_days: 90
+crewai_model: gpt-4o-mini
+crewai_provider: openai
+crewai_temperature: 0.2
+crewai_timeout: 120
+crewai_max_tokens: 2000
+crewai_use_responses_api: true
+# Optional override via env: ORCHESTRATION_ENGINE, ORCHESTRATION_ALLOW_FALLBACK
