@@ -335,8 +335,7 @@ def _phase_index(task) -> int:
         "WAIT_OWNER": 5,
         "APPROVED_WAIT_MERGE": 6,
         "DONE": 6,
-        "ARCHIVED": 6,
-    }
+        "ARCHIVED": 6}
     if task.status == "WAIT_OWNER" and exploration_waiting_for_scenario(task):
         # Иначе UI помечает pipeline/court как done, хотя exploration рано вышел до pipeline.
         return 1
@@ -363,8 +362,7 @@ def _workflow_steps(task, runner: dict) -> list[dict]:
                 "step_id": f"{task.id}:{phase}",
                 "name": phase,
                 "status": status,
-                "agent_roles": step_agents,
-            }
+                "agent_roles": step_agents}
         )
     return steps
 
@@ -403,8 +401,7 @@ def _workflow_summary(task) -> dict:
         "progress_done": done_steps,
         "progress_total": len(steps),
         "steps": steps,
-        "runner": runner,
-    }
+        "runner": runner}
 
 
 async def _read_task_id_from_request(request: Request) -> int:
@@ -490,8 +487,7 @@ async def office_index(request: Request, x_api_key: str | None = Header(None, al
         "office.html",
         {
             "api_key_query": build_api_key_query(request),
-            "initial_task_id": None,
-        },
+            "initial_task_id": None},
     )
 
 
@@ -510,8 +506,7 @@ async def office_task_scene(
         "office.html",
         {
             "api_key_query": build_api_key_query(request),
-            "initial_task_id": task_id,
-        },
+            "initial_task_id": task_id},
     )
 
 
@@ -528,8 +523,7 @@ async def list_tasks(request: Request):
                 "domain": t.domain or "-",
                 "status": t.status,
                 "criticality": t.criticality or "-",
-                "created_at": t.created_at.isoformat() if t.created_at else "-",
-            }
+                "created_at": t.created_at.isoformat() if t.created_at else "-"}
             for t in tasks
         ]
     return templates.TemplateResponse(request, "tasks.html", {"tasks": items, "api_key_query": api_key_query})
@@ -576,8 +570,7 @@ async def task_detail(
                 "id": h.id,
                 "step": h.step_name,
                 "md_path": h.md_path,
-                "url": f"/tasks/{task.id}/artifacts/{h.id}{access_query}",
-            }
+                "url": f"/tasks/{task.id}/artifacts/{h.id}{access_query}"}
             for h in list_regular_handoffs(task)
         ]
         verdict_handoff = latest_verdict_handoff(task)
@@ -623,8 +616,7 @@ async def task_detail(
                 "has_execution_from_scenario": bool(ex_from_scenario),
                 "can_decide": task.status not in {"DONE", "ARCHIVED", "EXECUTION_READY"}
                 and not exploration_waiting,
-                "can_mark_merged": task.status == "APPROVED_WAIT_MERGE" or bool(task.pr_url and task.status != "DONE"),
-            },
+                "can_mark_merged": task.status == "APPROVED_WAIT_MERGE" or bool(task.pr_url and task.status != "DONE")},
         )
 
 
@@ -661,8 +653,7 @@ async def artifact_detail(
                 "path": handoff.md_path,
                 "content": redact(path.read_text(encoding="utf-8")),
                 "api_key_query": access_query,
-                "office_url": f"/office/tasks/{task_id}{access_query}",
-            },
+                "office_url": f"/office/tasks/{task_id}{access_query}"},
         )
 
 
@@ -701,8 +692,7 @@ async def task_document_detail(
                 "path": document["path"],
                 "content": document["content"],
                 "api_key_query": access_query,
-                "office_url": f"/office/tasks/{task_id}{access_query}",
-            },
+                "office_url": f"/office/tasks/{task_id}{access_query}"},
         )
 
 
@@ -786,8 +776,7 @@ async def missions_console(request: Request):
             row = mission_list_row(t, proj, wf)
             item = {
                 **row,
-                "summary": (t.summary or "")[:220],
-            }
+                "summary": (t.summary or "")[:220]}
             missions.append(item)
             if item["needs_approval"]:
                 approvals.append(item)
@@ -815,8 +804,7 @@ async def missions_console(request: Request):
             "exploration_pending": exploration_pending,
             "running_count": len(running),
             "paused_count": len(paused),
-            "health": health,
-        },
+            "health": health},
     )
 
 
@@ -866,8 +854,7 @@ async def mission_console_detail(request: Request, task_id: int):
                 "id": h.id,
                 "step_name": h.step_name,
                 "path": h.md_path,
-                "url": f"/tasks/{task_id}/artifacts/{h.id}{access_query}",
-            }
+                "url": f"/tasks/{task_id}/artifacts/{h.id}{access_query}"}
             for h in list_regular_handoffs(task)
         ]
         artifacts = enrich_artifacts_for_template(artifacts_raw, ws)
@@ -875,22 +862,19 @@ async def mission_console_detail(request: Request, task_id: int):
         workflow_display = {
             **workflow,
             "steps": workflow_steps,
-            "current_step_display": friendly_current_phase(task, workflow, view_mode),
-        }
+            "current_step_display": friendly_current_phase(task, workflow, view_mode)}
         approvals = [
             {
                 "decision": d.decision,
                 "owner_approval": d.owner_approval,
                 "at": d.created_at.isoformat() if d.created_at else None,
-                "rationale": redact(d.rationale or ""),
-            }
+                "rationale": redact(d.rationale or "")}
             for d in (task.decisions or [])
         ]
         recent_events = [
             {
                 "event_type": e.event_type,
-                "created_at": e.created_at.isoformat() if e.created_at else None,
-            }
+                "created_at": e.created_at.isoformat() if e.created_at else None}
             for e in sorted(
                 task.audit_events or [],
                 key=lambda e: e.created_at.isoformat() if e.created_at else "",
@@ -934,8 +918,7 @@ async def mission_console_detail(request: Request, task_id: int):
             "pack_learning": pack_learning,
             "revenue_summary": revenue_summary,
             "growth_insight": growth_insight,
-            "owner_protocol": owner_protocol,
-        },
+            "owner_protocol": owner_protocol},
     )
 
 
@@ -999,8 +982,7 @@ async def mission_execution_pack_view(request: Request, task_id: int):
             "metrics": metrics,
             "scoring": scoring,
             "learning": learning,
-            "revenue": revenue,
-        },
+            "revenue": revenue},
     )
 
 
@@ -1102,8 +1084,7 @@ async def mission_execution_pack_action(request: Request, task_id: int):
             payload={
                 "status": status,
                 "result_type": result_type,
-                "result_value": result_value[:200],
-            },
+                "result_value": result_value[:200]},
         )
 
     if "application/json" in ctype:
@@ -1188,11 +1169,9 @@ async def artifacts_console_view(task_id: int):
                 {
                     "id": h.id,
                     "step_name": h.step_name,
-                    "path": h.md_path,
-                }
+                    "path": h.md_path}
                 for h in list_regular_handoffs(task)
-            ],
-        }
+            ]}
 
 
 @app.post("/approve", dependencies=[Depends(require_owner_key)])
@@ -1294,8 +1273,7 @@ async def audit_api_middleware(request: Request, call_next):
                     "route": path,
                     "task_id": task_id,
                     "status_code": response.status_code,
-                    "latency_ms": latency_ms,
-                }
+                    "latency_ms": latency_ms}
                 req_id = request.headers.get("X-Request-Id")
                 if req_id:
                     payload["request_id"] = req_id

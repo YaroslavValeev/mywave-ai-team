@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Домены экспертизы — Owner</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 0.25rem; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        .empty { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner Dashboard</a>
+        <a href="/owner/portfolio">Портфель</a>
+        <a href="/owner/projects">Проекты</a>
+        <a href="/owner/domains">Домены</a>
+        <a href="/tasks">Задачи</a>
+    </nav>
+
+    <h1>Домены экспертизы</h1>
+    <p>Реестр know_proff: {{ total }} доменов. Routing и контекст — без смешивания с runtime core.</p>
+
+    <section>
+        <h2>Список доменов</h2>
+        {% if domains %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Ключ</th>
+                    <th>Название</th>
+                    <th>Файл</th>
+                    <th>Тип</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in domains %}
+                <tr>
+                    <td><code>{{ d.domain_key }}</code></td>
+                    <td>{{ d.canonical_name }}</td>
+                    <td>{{ d.source_file }}</td>
+                    <td>{{ d.structure_type }}</td>
+                    <td><a href="/owner/domain/{{ d.domain_key }}">Карточка</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет доменов в реестре (проверьте KNOW_PROFF_REGISTRY_DIR).</p>
+        {% endif %}
+    </section>
+</body>
+</html>

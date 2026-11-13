@@ -88,6 +88,40 @@ DOMAIN_HINT_ORDERED: list[tuple[str, tuple[str, str]]] = [
 ]
 
 
+def validate_canonical_route(candidate: dict, routing: dict) -> list[str]:
+    """Return semantic route errors without allowing LLM-owned identifiers."""
+    errors: list[str] = []
+    domains = routing.get("domains", {}) or {}
+    domain = str(candidate.get("domain") or "").strip().upper()
+    task_type = str(candidate.get("task_type") or "").strip()
+    if domain not in domains:
+        errors.append(f"unknown domain: {domain or '<empty>'}")
+        return errors
+    task_cfg = (domains.get(domain, {}).get("task_types") or {}).get(task_type)
+    if not task_cfg:
+        errors.append(f"unknown task_type for {domain}: {task_type or '<empty>'}")
+    criticality = str(candidate.get("criticality") or "").strip().upper()
+    if criticality and criticality not in VALID_CRITICALITIES:
+        errors.append(f"invalid criticality: {criticality}")
+    mode = str(candidate.get("plan_or_execute") or "").strip().upper()
+    if mode and mode not in VALID_EXECUTION_MODES:
+        errors.append(f"invalid plan_or_execute: {mode}")
+    gate = str(candidate.get("execute_gate") or "").strip()
+    if task_cfg and gate and gate != str(task_cfg.get("execute_gate") or ""):
+        errors.append(f"non-canonical execute_gate: {gate}")
+    return errors
+
+
+def _triage_meta(result: dict, *, source: str, validation_status: str = "valid", validation_errors: list[str] | None = None) -> dict:
+    result["triage_source"] = source
+    result["triage_validation_status"] = validation_status
+    if validation_errors:
+        result["triage_validation_errors"] = list(validation_errors)
+    else:
+        result.pop("triage_validation_errors", None)
+    return result
+
+
 def _merge_crewai_triage(
     result: dict,
     crewai_result: dict,
@@ -211,12 +245,20 @@ def run_triage(owner_text: str) -> dict:
         orchestration_cfg = get_orchestration_config()
         crewai_result = run_crewai_triage(owner_text)
         if crewai_result:
-            project_result = _merge_crewai_triage(
-                project_result,
-                crewai_result,
-                routing,
-                locked_keys={"domain", "task_type", "revenue_intent_override", "marketing_plan_override"},
-            )
+            route_errors = validate_canonical_route(crewai_result, routing)
+            if route_errors:
+                if crewai_strict_required(orchestration_cfg):
+                    raise RuntimeError("CrewAI triage semantic validation failed: " + "; ".join(route_errors))
+                _triage_meta(project_result, source="fallback", validation_status="fallback", validation_errors=route_errors)
+            else:
+                _triage_meta(project_result, source="llm_normalized")
+            if not route_errors:
+                project_result = _merge_crewai_triage(
+                    project_result,
+                    crewai_result,
+                    routing,
+                    locked_keys={"domain", "task_type", "revenue_intent_override", "marketing_plan_override"},
+                )
         elif crewai_strict_required(orchestration_cfg):
             detail = get_last_crewai_error() or "empty result"
             raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")
@@ -229,18 +271,26 @@ def run_triage(owner_text: str) -> dict:
         orchestration_cfg = get_orchestration_config()
         crewai_result = run_crewai_triage(owner_text)
         if crewai_result:
-            result = _merge_crewai_triage(
-                result,
-                crewai_result,
-                routing,
-                locked_keys={
-                    "domain",
-                    "task_type",
-                    "revenue_intent_override",
-                    "marketing_plan_override",
-                    "plan_or_execute",
-                },
-            )
+            route_errors = validate_canonical_route(crewai_result, routing)
+            if route_errors:
+                if crewai_strict_required(orchestration_cfg):
+                    raise RuntimeError("CrewAI triage semantic validation failed: " + "; ".join(route_errors))
+                _triage_meta(result, source="fallback", validation_status="fallback", validation_errors=route_errors)
+            else:
+                _triage_meta(result, source="llm_normalized")
+            if not route_errors:
+                result = _merge_crewai_triage(
+                    result,
+                    crewai_result,
+                    routing,
+                    locked_keys={
+                        "domain",
+                        "task_type",
+                        "revenue_intent_override",
+                        "marketing_plan_override",
+                        "plan_or_execute",
+                    },
+                )
         elif crewai_strict_required(orchestration_cfg):
             detail = get_last_crewai_error() or "empty result"
             raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")
@@ -253,18 +303,26 @@ def run_triage(owner_text: str) -> dict:
         orchestration_cfg = get_orchestration_config()
         crewai_result = run_crewai_triage(owner_text)
         if crewai_result:
-            result = _merge_crewai_triage(
-                result,
-                crewai_result,
-                routing,
-                locked_keys={
-                    "domain",
-                    "task_type",
-                    "revenue_intent_override",
-                    "marketing_plan_override",
-                    "plan_or_execute",
-                },
-            )
+            route_errors = validate_canonical_route(crewai_result, routing)
+            if route_errors:
+                if crewai_strict_required(orchestration_cfg):
+                    raise RuntimeError("CrewAI triage semantic validation failed: " + "; ".join(route_errors))
+                _triage_meta(result, source="fallback", validation_status="fallback", validation_errors=route_errors)
+            else:
+                _triage_meta(result, source="llm_normalized")
+            if not route_errors:
+                result = _merge_crewai_triage(
+                    result,
+                    crewai_result,
+                    routing,
+                    locked_keys={
+                        "domain",
+                        "task_type",
+                        "revenue_intent_override",
+                        "marketing_plan_override",
+                        "plan_or_execute",
+                    },
+                )
         elif crewai_strict_required(orchestration_cfg):
             detail = get_last_crewai_error() or "empty result"
             raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")
@@ -312,8 +370,17 @@ def run_triage(owner_text: str) -> dict:
 
     orchestration_cfg = get_orchestration_config()
     crewai_result = run_crewai_triage(owner_text)
+    _triage_meta(result, source="rules")
     if crewai_result:
-        result = _merge_crewai_triage(result, crewai_result, routing)
+        route_errors = validate_canonical_route(crewai_result, routing)
+        if route_errors:
+            if crewai_strict_required(orchestration_cfg):
+                raise RuntimeError("CrewAI triage semantic validation failed: " + "; ".join(route_errors))
+            _triage_meta(result, source="fallback", validation_status="fallback", validation_errors=route_errors)
+        else:
+            _triage_meta(result, source="llm_normalized")
+        if not route_errors:
+            result = _merge_crewai_triage(result, crewai_result, routing)
     elif crewai_strict_required(orchestration_cfg):
         detail = get_last_crewai_error() or "empty result"
         raise RuntimeError(f"CrewAI triage required but unavailable: {detail}")

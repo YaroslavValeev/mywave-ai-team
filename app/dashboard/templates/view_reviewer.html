@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reviewer view — MyWave AI-TEAM</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 0.25rem; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .empty { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner</a>
+        <a href="/views/operator">Operator</a>
+        <a href="/views/executor">Executor</a>
+        <a href="/views/reviewer">Reviewer</a>
+    </nav>
+    <h1>Reviewer view</h1>
+    <section>
+        <h2>Pending approvals ({{ view.pending_count }})</h2>
+        {% if view.pending_approvals %}
+        <table>
+            <thead><tr><th>Task</th><th>Status</th><th>Summary</th></tr></thead>
+            <tbody>
+            {% for p in view.pending_approvals %}
+            <tr>
+                <td>{% if p.task_id %}<a href="/tasks/{{ p.task_id }}">#{{ p.task_id }}</a>{% else %}—{% endif %}</td>
+                <td>{{ p.status }}</td>
+                <td>{{ p.summary }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет ожидающих approve</p>
+        {% endif %}
+    </section>
+    <section>
+        <h2>Decision queue ({{ view.decision_queue_count }})</h2>
+        {% if view.decision_queue %}
+        <table>
+            <thead><tr><th>Task</th><th>Reason</th><th>Priority</th><th>Suggested action</th></tr></thead>
+            <tbody>
+            {% for q in view.decision_queue %}
+            <tr>
+                <td>{% if q.task_id %}<a href="/tasks/{{ q.task_id }}">#{{ q.task_id }}</a>{% else %}—{% endif %}</td>
+                <td>{{ q.reason }}</td>
+                <td>{{ q.priority }}</td>
+                <td>{{ q.suggested_next_action }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Очередь решений пуста</p>
+        {% endif %}
+    </section>
+    {% if role_suggestions and role_suggestions.get('items') %}
+    <section>
+        <h2>Рекомендуемые действия</h2>
+        {% for s in role_suggestions.get('items', []) %}
+        <p><strong>{{ s.headline }}</strong> → {{ s.recommended_next_step }}{% if s.safe_action_available %} · /do {{ s.safe_action_available }}{% endif %}</p>
+        {% endfor %}
+    </section>
+    {% endif %}
+    {% if view.collaboration_summary and view.collaboration_summary.collaboration_items %}
+    <section>
+        <h2>Collaboration ({{ view.collaboration_summary.count }})</h2>
+        <ul>
+            {% for i in view.collaboration_summary.collaboration_items %}
+            <li>{{ i.handoff_type }}: {{ i.reason }}{% if i.task_id %} — <a href="/tasks/{{ i.task_id }}">#{{ i.task_id }}</a>{% endif %}</li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+</body>
+</html>

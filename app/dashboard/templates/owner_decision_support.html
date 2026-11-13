@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Support — Owner Dashboard</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1, h2 { color: #fff; font-size: 1rem; margin-top: 1rem; }
+        .nav { margin-bottom: 1rem; }
+        .block { margin-bottom: 1rem; padding: 0.5rem; border: 1px solid #333; border-radius: 4px; }
+        .empty { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner Dashboard</a>
+        <a href="/owner/portfolio">Портфель</a>
+        <a href="/owner/collaboration">Collaboration</a>
+        <a href="/owner/decision-support">Decision Support</a>
+    </nav>
+    <h1>Decision Support ({{ scope_type }}{% if scope_key %} / {{ scope_key }}{% endif %})</h1>
+    <p>Окно: {{ window_days }} дн. <a href="/owner/decision-support?scope_type=portfolio">Portfolio</a> · <a href="/api/owner/decision-support">API</a> · <a href="/api/owner/action-suggestions">Action suggestions API</a></p>
+
+    <section class="block">
+        <h2>Decision support items</h2>
+        {% if decision_support and decision_support.get('items') %}
+        {% for d in decision_support.get('items', []) %}
+        <div style="margin-bottom:0.75rem;">
+            <p><strong>{{ d.headline }}</strong></p>
+            <p>Почему сейчас: {{ d.why_now }}</p>
+            <p>Рекомендация: {{ d.preferred_option }} — {{ d.preferred_option_reason }}</p>
+            <p>Риск при игнорировании: {{ d.risk_if_ignored }}</p>
+            {% if d.options %}<p>Варианты: {% for o in d.options %}{{ o.label }}{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="empty">Нет decision support items</p>
+        {% endif %}
+    </section>
+
+    <section class="block">
+        <h2>Collaboration action suggestions</h2>
+        {% if collaboration_suggestions and collaboration_suggestions.get('items') %}
+        {% for s in collaboration_suggestions.get('items', []) %}
+        <div style="margin-bottom:0.5rem;">
+            <p><strong>{{ s.headline }}</strong></p>
+            <p>→ {{ s.recommended_next_step }}{% if s.safe_action_available %} · /do {{ s.safe_action_available }}{% endif %}</p>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="empty">Нет suggestions</p>
+        {% endif %}
+    </section>
+    <p style="color:#666; font-size:0.85rem;">Telegram: /suggestions, /project_suggestions, /role_suggestions, /decision_support</p>
+</body>
+</html>

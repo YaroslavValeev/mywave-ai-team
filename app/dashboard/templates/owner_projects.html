@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проекты — Owner Dashboard</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 0.25rem; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        .status-healthy { color: #81c784; }
+        .status-attention { color: #ffb74d; }
+        .status-critical { color: #e57373; }
+        .empty { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner Dashboard</a>
+        <a href="/owner/portfolio">Портфель</a>
+        <a href="/owner/projects">Проекты</a>
+        <a href="/tasks">Задачи</a>
+    </nav>
+
+    <h1>Проекты</h1>
+    <p>Группы по domain / task_type. Drill-down — по ссылке.</p>
+
+    <section>
+        <h2>Список проектов</h2>
+        {% if projects.items %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Проект</th>
+                    <th>Health</th>
+                    <th>Active</th>
+                    <th>Pending</th>
+                    <th>Rework</th>
+                    <th>Long-running</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in projects.items %}
+                <tr>
+                    <td>{{ p.project_label }}</td>
+                    <td class="status-{{ p.status }}">{{ p.status }}</td>
+                    <td>{{ p.active_count }}</td>
+                    <td>{{ p.pending_count }}</td>
+                    <td>{{ p.rework_signals }}</td>
+                    <td>{{ p.long_running }}</td>
+                    <td><a href="/owner/project/{{ p.project_key }}">Открыть</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет проектов с задачами. Все задачи в группе general — <a href="/owner/project/general">general</a></p>
+        {% endif %}
+    </section>
+
+    <p style="color:#666; font-size:0.85rem;">Telegram: /projects — список, /project &lt;key&gt; — карточка проекта.</p>
+</body>
+</html>

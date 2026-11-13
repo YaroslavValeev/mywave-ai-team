@@ -1,0 +1,15 @@
+# Domain alias map (Phase 9.9). Copy for app runtime.
+
+mapping:
+  legal: {canonical: legal, source_file: layer.txt, aliases: [legal, юрист, юридический, law, compliance]}
+  analytics: {canonical: analytics, source_file: Analiz.txt, aliases: [analytics, analiz, аналитика, анализ данных, data analyst, BI]}
+  development: {canonical: development, source_file: Creating.txt, aliases: [development, creating, разработка, креатив, engineering]}
+  programming_engineer: {canonical: programming_engineer, source_file: "Programming ingeneer.txt", aliases: [programming_engineer, "programming ingeneer", ingeneer, программирование, код, разработка ПО]}
+  finance: {canonical: finance, source_file: Financ.txt, aliases: [finance, financ, финансы, бухгалтерия, CFO]}
+  social_media: {canonical: social_media, source_file: "Sociol media.txt", aliases: [social_media, "sociol media", соцмедиа, SMM отдел]}
+  brand_manager: {canonical: brand_manager, source_file: "Brand manager.txt", aliases: [brand_manager, "brand manager", бренд, позиционирование]}
+  copywriting: {canonical: copywriting, source_file: Copiwriter.txt, aliases: [copywriting, copiwriter, копирайтинг, контент]}
+  marketing: {canonical: marketing, source_file: marketing.txt, aliases: [marketing, маркетинг, 4Cs, AIDA, STP]}
+  sales: {canonical: sales, source_file: Sales.txt, aliases: [sales, продажи, менеджер по продажам]}
+  smm: {canonical: smm, source_file: Smm.txt, aliases: [smm, SMM, соцсети, платформы]}
+  social_engineering: {canonical: social_engineering, source_file: "Social ingeneer.txt", aliases: [social_engineering, "social ingeneer", социнженерия, безопасность, фишинг]}

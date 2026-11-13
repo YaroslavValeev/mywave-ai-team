@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ domain.canonical_name }} — Owner</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1, h2 { color: #fff; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        .card { background: #252540; padding: 1rem; border-radius: 6px; margin: 1rem 0; }
+        .meta { color: #888; font-size: 0.9rem; }
+        ul { margin: 0.25rem 0; padding-left: 1.25rem; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner Dashboard</a>
+        <a href="/owner/domains">Домены</a>
+    </nav>
+
+    <h1>{{ domain.canonical_name }}</h1>
+    <p class="meta">Ключ: <code>{{ domain.domain_key }}</code> · Файл: {{ domain.source_file }} · Тип: {{ domain.structure_type }}</p>
+
+    <section class="card">
+        <h2>Описание</h2>
+        <p>{{ domain.summary or "—" }}</p>
+    </section>
+
+    {% if domain.routing_keywords %}
+    <section class="card">
+        <h2>Ключевые слова для routing</h2>
+        <ul>
+            {% for kw in domain.routing_keywords %}
+            <li>{{ kw }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    {% if domain.typical_requests %}
+    <section class="card">
+        <h2>Типовые запросы</h2>
+        <ul>
+            {% for r in domain.typical_requests %}
+            <li>{{ r }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    {% if profile %}
+    <section class="card">
+        <h2>Экспертный профиль</h2>
+        <p><strong>{{ profile.profile_name }}</strong></p>
+        <p>{{ profile.scope or "—" }}</p>
+        {% if profile.strengths %}
+        <p>Сильные стороны: {{ profile.strengths | join(", ") }}</p>
+        {% endif %}
+    </section>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patch — {{ proposal.proposal_id }}</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1, h2 { color: #fff; font-size: 1rem; margin-top: 1rem; }
+        .nav { margin-bottom: 1rem; }
+        .block { margin-bottom: 0.75rem; }
+        .apply-allowed { color: #81c784; }
+        .apply-blocked { color: #e57373; }
+        pre { background: #333; padding: 0.5rem; overflow-x: auto; font-size: 0.85rem; }
+        button, .btn { background: #333; color: #4fc3f7; border: 1px solid #4fc3f7; padding: 0.35rem 0.75rem; cursor: pointer; text-decoration: none; display: inline-block; margin-right: 0.5rem; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/owner/refinement">Refinement</a>
+        <a href="/owner/refinement/proposals">Proposals</a>
+        <a href="/owner/refinement/proposal/{{ proposal.proposal_id }}">← Proposal</a>
+    </nav>
+    <h1>Controlled patch: {{ proposal.proposal_id }}</h1>
+    {% if patch.patch_id %}
+    <p>Patch type: <strong>{{ patch.patch_type }}</strong> · Risk: {{ patch.risk_level }} · Apply allowed: <span class="{% if patch.apply_allowed %}apply-allowed{% else %}apply-blocked{% endif %}">{{ patch.apply_allowed }}</span></p>
+    <div class="block">
+        <h2>Target</h2>
+        <p>{{ patch.target_file }}</p>
+        <p>{{ patch.diff_summary }}</p>
+    </div>
+    {% if dry_run %}
+    <div class="block">
+        <h2>Dry-run</h2>
+        <p>Validation: {{ dry_run.validation_preview.status if dry_run.validation_preview else '-' }} · Apply allowed: {{ dry_run.apply_allowed }}</p>
+        {% if dry_run.reason %}<p>{{ dry_run.reason }}</p>{% endif %}
+    </div>
+    {% endif %}
+    <p>
+        <a href="/api/owner/refinement/proposal/{{ proposal.proposal_id }}/patch">GET patch (JSON)</a>
+        <a class="btn" href="/api/owner/refinement/proposal/{{ proposal.proposal_id }}/patch/dry-run" data-method="post">Dry-run (POST)</a>
+        <a class="btn" href="/api/owner/refinement/proposal/{{ proposal.proposal_id }}/patch/validate" data-method="post">Validate (POST)</a>
+        {% if patch.apply_allowed and proposal.status == 'accepted' %}
+        <form action="/api/owner/refinement/proposal/{{ proposal.proposal_id }}/patch/apply" method="post" style="display:inline;" onsubmit="return confirm('Apply patch to registry?');">
+            <input type="hidden" name="actor" value="web">
+            <button type="submit">Apply patch</button>
+        </form>
+        {% endif %}
+    </p>
+    {% else %}
+    <p class="apply-blocked">Patch error or not applicable: {{ patch.error|default('unknown') }}</p>
+    <p><a href="/owner/refinement/proposal/{{ proposal.proposal_id }}">← Back to proposal</a></p>
+    {% endif %}
+</body>
+</html>

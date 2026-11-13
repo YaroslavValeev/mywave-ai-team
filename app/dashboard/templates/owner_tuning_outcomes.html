@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tuning outcomes — verified</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .nav { margin-bottom: 1rem; }
+        .ok { color: #81c784; }
+        .bad { color: #e57373; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/owner">Owner</a>
+        <a href="/owner/tuning">Tuning</a>
+        <a href="/owner/tuning/outcomes">Outcomes</a>
+        <a href="/owner/effectiveness">Cross-layer</a>
+    </nav>
+    <h1>Verified tuning outcomes ({{ window_days }} дн.)</h1>
+    {% if summary %}
+    <p>
+        Improved: <span class="ok">{{ summary.improved_count }}</span> ·
+        Worse: <span class="bad">{{ summary.worse_count }}</span> ·
+        Unchanged: {{ summary.unchanged_count }} ·
+        Pending measure: {{ summary.pending_measurement_count }} ·
+        No patch: {{ summary.not_patch_applied_count }}
+    </p>
+    {% endif %}
+    {% if cross_layer_synthesis %}
+    <p><a href="/owner/effectiveness">Cross-layer synthesis</a> (11.6): {% for s in cross_layer_synthesis.slices %}{{ s.layer }} eff={{ s.effective_count }}/ineff={{ s.ineffective_count }}{% if not loop.last %} · {% endif %}{% endfor %}{% if cross_layer_synthesis.alignment_items %} · <span style="color:#ffb74d;">{{ cross_layer_synthesis.alignment_items|length }} конфликт(ов)</span>{% endif %}</p>
+    {% endif %}
+    <table>
+        <thead><tr><th>Candidate</th><th>Status</th><th>Reason</th><th>Baseline</th><th>Post</th></tr></thead>
+        <tbody>
+        {% for o in outcomes %}
+        <tr>
+            <td><a href="/api/owner/tuning/{{ o.tuning_candidate_id }}">{{ o.tuning_candidate_id }}</a></td>
+            <td>{{ o.outcome_status }}</td>
+            <td>{{ (o.outcome_reason or '')[:80] }}</td>
+            <td>{{ (o.baseline_signal_level or '—')[:40] }}</td>
+            <td>{{ (o.post_apply_signal_level or '—')[:40] }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">Нет записей. После apply tuning-sourced proposal появится baseline; затем POST evaluate-outcome.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <p style="color:#666;">API: GET /api/owner/tuning/outcomes · POST /api/owner/tuning/&lt;id&gt;/evaluate-outcome</p>
+</body>
+</html>

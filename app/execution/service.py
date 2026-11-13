@@ -70,16 +70,18 @@ def _validated_request(task: Any) -> dict[str, str]:
 
 
 def _has_owner_approval(task: Any) -> bool:
-    return any(
-        bool(decision.owner_approval) and str(decision.decision).lower() in {"a", "approve"}
-        for decision in task.decisions
-    )
+    from app.execution.approval import latest_decision
+    decision = latest_decision(task)
+    return bool(decision and decision.owner_approval and decision.decision.lower() in {"a", "approve"})
 
 
 def execution_capabilities(task: Any, runner: dict | None = None) -> dict[str, Any]:
     active = bool((runner or {}).get("is_active"))
     try:
-        _validated_request(task)
+        request = _validated_request(task)
+        if _has_owner_approval(task):
+            from app.execution.approval import validated_approved_patch
+            validated_approved_patch(task, request)
         configured = True
         reason = "Owner approve получен. Можно запустить code -> tests -> PR."
     except ExecutionRequestError as exc:
@@ -96,22 +98,23 @@ def execution_capabilities(task: Any, runner: dict | None = None) -> dict[str, A
     return {"can_start": can_start, "configured": configured, "approved": approved, "reason": reason}
 
 
-def _apply_patch(workspace_path: str, patch_path: str, cancel_check) -> None:
+def _apply_patch(workspace_path: str, patch_bytes: bytes, cancel_check) -> None:
     cancel_check()
     for command in (
-        ["git", "apply", "--check", patch_path],
-        ["git", "apply", "--whitespace=error", patch_path],
+        ["git", "apply", "--check", "-"],
+        ["git", "apply", "--whitespace=error", "-"],
     ):
         result = subprocess.run(
             command,
             cwd=workspace_path,
             capture_output=True,
-            text=True,
+            input=patch_bytes,
             timeout=120,
             check=False,
         )
         if result.returncode != 0:
-            raise ExecutionRequestError((result.stderr or result.stdout or "git apply failed").strip())
+            output = result.stderr or result.stdout or b"git apply failed"
+            raise ExecutionRequestError(output.decode("utf-8", errors="replace").strip())
         cancel_check()
 
 
@@ -148,6 +151,8 @@ def start_approved_execution(task_id: int) -> dict[str, Any]:
         if not capabilities["can_start"]:
             raise ExecutionRequestError(capabilities["reason"])
         request = _validated_request(task)
+        from app.execution.approval import validated_approved_patch
+        approved_patch = validated_approved_patch(task, request)
         task_data = {"id": task.id, "summary": task.summary or ""}
         repo.update_task(task_id, status="EXECUTING", summary="Команда применяет утверждённый patch в изолированной git-ветке.")
         log_audit(
@@ -159,6 +164,20 @@ def start_approved_execution(task_id: int) -> dict[str, Any]:
 
     branch_name = f"execution/task-{task_id}-{uuid.uuid4().hex[:8]}"
 
+    def apply_approved_patch(workspace, control):
+        # Re-read owner decisions and mutable request after the background queue wait.
+        with Session() as session:
+            current = TaskRepository(session).get_task(task_id)
+            if not current or current.status != "EXECUTING":
+                raise ExecutionRequestError("Execution is no longer authorized.")
+            current_request = _validated_request(current)
+            if current_request != request:
+                raise ExecutionRequestError("Execution request changed after it was queued.")
+            current_patch = validated_approved_patch(current, current_request)
+            if current_patch != approved_patch:
+                raise ExecutionRequestError("Patch changed after execution was queued.")
+        _apply_patch(workspace, approved_patch, control.check_cancelled)
+
     def target(control) -> dict:
         try:
             control.set_phase("execution", message="Применяю утверждённый patch.", current_step="DEV")
@@ -166,9 +185,7 @@ def start_approved_execution(task_id: int) -> dict[str, Any]:
                 run_pr_loop(
                     task_id,
                     request["workspace_path"],
-                    apply_callback=lambda workspace, _: _apply_patch(
-                        workspace, request["patch_path"], control.check_cancelled
-                    ),
+                    apply_callback=lambda workspace, _: apply_approved_patch(workspace, control),
                     mode="patch",
                     task_data_override=task_data,
                     task_update_callback=lambda *args, **kwargs: None,

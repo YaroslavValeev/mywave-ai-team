@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Intervention plans — Owner</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.25rem; border-bottom: 1px solid #333; padding-bottom: 0.25rem; }
+        table { border-collapse: collapse; font-size: 0.88rem; }
+        th, td { padding: 0.35rem 0.6rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .nav { margin-bottom: 1rem; }
+        .muted { color: #888; font-size: 0.85rem; }
+        .block { margin-bottom: 1rem; }
+        .empty { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/owner">Owner</a>
+        <a href="/owner/portfolio">Портфель</a>
+        <a href="/owner/effectiveness">Cross-layer</a>
+        <a href="/owner/decision-support">Decision support</a>
+        <a href="/owner/interventions">Interventions</a>
+    </nav>
+    <h1>Intervention plans (Phase 11.7 / 12.0)</h1>
+    <p class="muted">Окно: {{ window_days }} дн. · Приоритизированные вмешательства. Advisory, not autonomous.</p>
+    {% if request.query_params.get('deferred') %}<p style="color:#81c784;">✅ Отложено. Не попадёт в do_now 24ч.</p>{% endif %}
+    {% if request.query_params.get('error') %}<p style="color:#e57373;">Ошибка: {{ request.query_params.get('error') }}</p>{% endif %}
+
+    {% if adaptive_ds and adaptive_ds.top_problem %}
+    <section class="block" style="background:#252540; padding:1rem; border-radius:6px;">
+        <h2>Что делать сейчас (12.0)</h2>
+        <p><strong>{{ adaptive_ds.top_problem }}</strong></p>
+        <p>{% if adaptive_ds.safe_action_available and adaptive_ds.safe_action_key %}<a href="/owner/decision-support">/do {{ adaptive_ds.safe_action_key }}</a>{% else %}{{ adaptive_ds.top_action }}{% endif %}</p>
+        {% if adaptive_ds.defer_count %}<p class="muted">Отложить: {{ adaptive_ds.defer_count }}</p>{% endif %}
+    </section>
+    {% endif %}
+
+    {% if portfolio_plan and (portfolio_plan.do_now or portfolio_plan.do_next) %}
+    <section class="block">
+        <h2>Portfolio — preferred sequence</h2>
+        <p><strong>{{ portfolio_plan.plan_headline }}</strong></p>
+        {% if portfolio_plan.do_now %}
+        <p><strong>1. Сейчас:</strong> {{ portfolio_plan.do_now.reason }}{% if portfolio_plan.do_now.safe_action_key %} · <a href="/owner/decision-support">/do {{ portfolio_plan.do_now.safe_action_key }}</a>{% endif %}</p>
+        {% endif %}
+        {% if portfolio_plan.do_next %}
+        <p><strong>2. Далее:</strong> {{ portfolio_plan.do_next.reason }}{% if portfolio_plan.do_next.safe_action_key %} · <a href="/owner/decision-support">/do {{ portfolio_plan.do_next.safe_action_key }}</a>{% endif %}</p>
+        {% endif %}
+        {% if portfolio_plan.defer %}
+        <p><strong>3. Отложить ({{ portfolio_plan.defer|length }}):</strong></p>
+        <ul>{% for d in portfolio_plan.defer[:5] %}<li>{{ (d.reason or '')[:80] }}{% if d.safe_action_key %} · /do {{ d.safe_action_key }}{% endif %}</li>{% endfor %}</ul>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if cross_layer_plan and cross_layer_plan.interventions %}
+    <section class="block">
+        <h2>Cross-layer conflict bundle</h2>
+        <p>{{ cross_layer_plan.plan_headline }}</p>
+        <table>
+            <thead><tr><th>Причина</th><th>Safe action</th></tr></thead>
+            <tbody>
+            {% for iv in cross_layer_plan.interventions %}
+            <tr>
+                <td>{{ iv.reason or '—' }}</td>
+                <td>{% if iv.safe_action_key %}/do {{ iv.safe_action_key }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+
+    {% if priority_interventions and priority_interventions.get('items') %}
+    <section class="block">
+        <h2>Top priority interventions</h2>
+        <p class="muted" style="font-size:0.8rem;">Phase 12.3: «Отложить» — не показывать в do_now 24ч.</p>
+        <table>
+            <thead><tr><th>#</th><th>Тип</th><th>Причина</th><th>Urgency</th><th>Safe action</th><th>Defer</th></tr></thead>
+            <tbody>
+            {% for iv in priority_interventions['items'] %}
+            <tr>
+                <td>{{ iv.rank }}</td>
+                <td>{{ iv.intervention_type }}</td>
+                <td>{{ (iv.reason or '')[:70] }}{% if (iv.reason or '')|length > 70 %}…{% endif %}</td>
+                <td>{{ iv.urgency }}</td>
+                <td>{% if iv.safe_action_key %}<a href="/owner/decision-support">/do {{ iv.safe_action_key }}</a>{% else %}—{% endif %}</td>
+                <td>{% if iv.intervention_id %}<form action="/owner/interventions/defer" method="post" style="display:inline;"><input type="hidden" name="intervention_id" value="{{ iv.intervention_id }}"><button type="submit" style="padding:0.2rem 0.5rem;font-size:0.8rem;">Отложить</button></form>{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% else %}
+    <section class="block">
+        <h2>Top priority interventions</h2>
+        <p class="empty">Нет приоритетных вмешательств за период.</p>
+    </section>
+    {% endif %}
+
+    <p class="muted">API: GET /api/owner/interventions · /api/owner/intervention/project/{key} · /api/owner/intervention/portfolio · /api/owner/intervention/cross-layer</p>
+    <p class="muted">Telegram: /interventions · /project_intervention &lt;key&gt; · /portfolio_intervention · /cross_layer_intervention</p>
+</body>
+</html>

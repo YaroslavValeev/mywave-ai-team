@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operator view — MyWave AI-TEAM</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 0.25rem; }
+        .status-ok { background: #1b5e20; color: #c8e6c9; padding: 0.25rem 0.5rem; border-radius: 4px; }
+        .status-degraded { background: #b71c1c; color: #ffcdd2; padding: 0.25rem 0.5rem; border-radius: 4px; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .empty { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner</a>
+        <a href="/views/operator">Operator</a>
+        <a href="/views/executor">Executor</a>
+        <a href="/views/reviewer">Reviewer</a>
+    </nav>
+    <h1>Operator view</h1>
+    <section>
+        <h2>Runtime</h2>
+        <p>
+            {% if view.runtime.state == 'DEGRADED' or not view.runtime.molt_ok %}
+            <span class="status-degraded">{{ view.runtime.state }}</span>
+            {% else %}
+            <span class="status-ok">{{ view.runtime.state }}</span>
+            {% endif %}
+            Transport: {{ view.runtime.transport_mode }} · Molt: {{ view.runtime.molt_message }} · Active tasks: {{ view.runtime.active_tasks_count }}
+        </p>
+    </section>
+    <section>
+        <h2>Blockers ({{ view.blockers_count }})</h2>
+        {% if view.degraded_now %}<p><span class="status-degraded">DEGRADED</span></p>{% endif %}
+        {% if view.blockers %}
+        <table>
+            <thead><tr><th>Task</th><th>Kind</th><th>Summary</th></tr></thead>
+            <tbody>
+            {% for b in view.blockers %}
+            <tr>
+                <td>{% if b.task_id %}<a href="/tasks/{{ b.task_id }}">#{{ b.task_id }}</a>{% else %}—{% endif %}</td>
+                <td>{{ b.kind }}</td>
+                <td>{{ b.summary }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет блокеров</p>
+        {% endif %}
+    </section>
+    <section>
+        <h2>Long-running / Stuck ({{ view.long_running_count }})</h2>
+        {% if view.long_running %}
+        <table>
+            <thead><tr><th>Task</th><th>Reason</th><th>Age (h)</th><th>Summary</th></tr></thead>
+            <tbody>
+            {% for r in view.long_running %}
+            <tr>
+                <td>{% if r.task_id %}<a href="/tasks/{{ r.task_id }}">#{{ r.task_id }}</a>{% else %}—{% endif %}</td>
+                <td>{{ r.reason }}</td>
+                <td>{{ r.age_hours }}</td>
+                <td>{{ r.summary }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет long-running</p>
+        {% endif %}
+    </section>
+    {% if role_suggestions and role_suggestions.get('items') %}
+    <section>
+        <h2>Рекомендуемые действия</h2>
+        {% for s in role_suggestions.get('items', []) %}
+        <p><strong>{{ s.headline }}</strong> → {{ s.recommended_next_step }}{% if s.safe_action_available %} · /do {{ s.safe_action_available }}{% endif %}</p>
+        {% endfor %}
+    </section>
+    {% endif %}
+    {% if view.collaboration_summary and view.collaboration_summary.collaboration_items %}
+    <section>
+        <h2>Collaboration ({{ view.collaboration_summary.count }})</h2>
+        <ul>
+            {% for i in view.collaboration_summary.collaboration_items %}
+            <li>{{ i.handoff_type }}: {{ i.reason }}{% if i.task_id %} — <a href="/tasks/{{ i.task_id }}">#{{ i.task_id }}</a>{% endif %}</li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+</body>
+</html>

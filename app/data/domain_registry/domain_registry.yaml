@@ -1,0 +1,135 @@
+# Domain expertise registry (Phase 9.9). Copy for app runtime when docs/ not available.
+
+domains:
+  legal:
+    domain_key: legal
+    canonical_name: Юридический отдел
+    source_file: layer.txt
+    aliases: [legal, юрист, юридический, law, compliance]
+    structure_type: A
+    summary: Роли, подходы, навыки, методы, задачи, инструменты юридического отдела (договоры, litigation, compliance, privacy).
+    routing_keywords: [договор, юрист, право, иск, претензия, согласование, compliance, лицензия, персональные данные, трудовой, корпоративное право]
+    typical_requests: [проверить договор, согласовать документ, претензия, суд, лицензия, персональные данные]
+    fallback_priority: 10
+    notes: Готов к routing.
+  analytics:
+    domain_key: analytics
+    canonical_name: Аналитика данных
+    source_file: Analiz.txt
+    aliases: [analytics, analiz, аналитика, анализ данных, data analyst, BI]
+    structure_type: A
+    summary: Data/Product/Business Analyst, Data Scientist, BI; подходы, навыки, инструменты, метрики.
+    routing_keywords: [анализ, данные, дашборд, метрики, отчёт, BI, SQL, дата-аналитик, воронка, когорты, A/B]
+    typical_requests: [построить отчёт, дашборд, анализ данных, метрики, воронка]
+    fallback_priority: 3
+    notes: Готов к routing.
+  development:
+    domain_key: development
+    canonical_name: Разработка (стратегия, креатив)
+    source_file: Creating.txt
+    aliases: [development, creating, разработка, креатив, engineering, CTO, архитектор]
+    structure_type: A
+    summary: CTO, Tech Lead, Architect, Backend/Frontend/Fullstack, R&D; Agile, архитектура, инструменты.
+    routing_keywords: [разработка, архитектура, бэклог, ретро, код-ревью, Agile, CTO, техлид, продукт]
+    typical_requests: [архитектура системы, план разработки, бэклог, ретро]
+    fallback_priority: 2
+    notes: Готов к routing.
+  programming_engineer:
+    domain_key: programming_engineer
+    canonical_name: Программирование и анализ кода
+    source_file: Programming ingeneer.txt
+    aliases: [programming_engineer, programming ingeneer, ingeneer, программирование, код, разработка ПО, TDD, CI/CD]
+    structure_type: A
+    summary: Software Engineer, DevOps, QA, Security, SRE; TDD, DDD, CI/CD, задачи (баги, техдолг, уязвимости).
+    routing_keywords: [код, программирование, баг, рефакторинг, тесты, деплой, CI/CD, код-ревью, техдолг]
+    typical_requests: [исправить баг, рефакторинг, написать тесты, код-ревью]
+    fallback_priority: 1
+    notes: Готов к routing.
+  finance:
+    domain_key: finance
+    canonical_name: Финансы и бухгалтерия
+    source_file: Financ.txt
+    aliases: [finance, financ, финансы, бухгалтерия, CFO, главбух]
+    structure_type: A
+    summary: Главбух, CFO, казначей, контролер; РСБУ, бюджетирование, cash flow, метрики.
+    routing_keywords: [бюджет, финансы, отчётность, РСБУ, cash flow, CFO, бухгалтерия, казначей]
+    typical_requests: [бюджет, отчётность, cash flow, прогноз]
+    fallback_priority: 8
+    notes: Готов к routing.
+  social_media:
+    domain_key: social_media
+    canonical_name: Социальные медиа
+    source_file: Sociol media.txt
+    aliases: [social_media, sociol media, соцмедиа, SMM отдел, контент, комьюнити]
+    structure_type: A
+    summary: SMM, контент, комьюнити, influencer, аналитика; платформы, метрики, тренды.
+    routing_keywords: [SMM, соцсети, контент, комьюнити, посты, вовлечённость, платформы]
+    typical_requests: [контент-план, посты, комьюнити, SMM-стратегия]
+    fallback_priority: 6
+    notes: Готов к routing.
+  brand_manager:
+    domain_key: brand_manager
+    canonical_name: Бренд-менеджмент
+    source_file: Brand manager.txt
+    aliases: [brand_manager, brand manager, бренд, позиционирование, бренд-бук]
+    structure_type: B
+    summary: Стратегия бренда, позиционирование, бренд-айдентика, архитектура бренда, бренд-бук.
+    routing_keywords: [бренд, позиционирование, УТП, айдентика, логотип, бренд-бук, целевая аудитория]
+    typical_requests: [позиционирование, бренд-бук, айдентика, УТП]
+    fallback_priority: 9
+    notes: Готов к routing.
+  copywriting:
+    domain_key: copywriting
+    canonical_name: Копирайтинг
+    source_file: Copiwriter.txt
+    aliases: [copywriting, copiwriter, копирайтинг, контент, SEO-копирайтер]
+    structure_type: B
+    summary: Копирайтинг, роли, навыки, техники влияния, SEO, инструменты.
+    routing_keywords: [текст, копирайт, заголовок, CTA, сторителлинг, лендинг, SEO]
+    typical_requests: [написать текст, лендинг, заголовки, CTA, SEO-текст]
+    fallback_priority: 7
+    notes: Готов к routing.
+  marketing:
+    domain_key: marketing
+    canonical_name: Маркетинг
+    source_file: marketing.txt
+    aliases: [marketing, маркетинг, 4Cs, AIDA, STP, воронка]
+    structure_type: B
+    summary: Фреймворки и модели — 4Cs, AIDA, STP, SWOT, RACE, SOSTAC, воронка, 5Ps.
+    routing_keywords: [маркетинг, воронка, AIDA, STP, сегментация, каналы, продвижение]
+    typical_requests: [маркетинговая стратегия, воронка, сегментация, кампания]
+    fallback_priority: 5
+    notes: Готов к routing.
+  sales:
+    domain_key: sales
+    canonical_name: Продажи
+    source_file: Sales.txt
+    aliases: [sales, продажи, менеджер по продажам, KAM, BD]
+    structure_type: B
+    summary: Менеджер по продажам, Head of Sales, KAM, BD; стратегии (SPIN, BANT, Challenger), навыки, техники.
+    routing_keywords: [продажи, сделку, клиент, переговоры, воронка продаж, SPIN, BANT, KAM]
+    typical_requests: [закрыть сделку, скрипт продаж, переговоры, воронка продаж]
+    fallback_priority: 7
+    notes: Готов к routing.
+  smm:
+    domain_key: smm
+    canonical_name: SMM
+    source_file: Smm.txt
+    aliases: [smm, SMM, соцсети, платформы, SOSTAC, PESO]
+    structure_type: B
+    summary: "SMM: модели (SOSTAC, PESO, RACE), платформы (Facebook, Instagram, YouTube, TikTok, LinkedIn)."
+    routing_keywords: [SMM, соцсети, Instagram, Facebook, TikTok, контент-план, охваты]
+    typical_requests: [вести соцсети, контент-план, охваты, реклама в соцсетях]
+    fallback_priority: 6
+    notes: Готов к routing.
+  social_engineering:
+    domain_key: social_engineering
+    canonical_name: Социальная инженерия (безопасность)
+    source_file: Social ingeneer.txt
+    aliases: [social_engineering, social ingeneer, социнженерия, безопасность, фишинг, OSINT]
+    structure_type: B
+    summary: Принципы, разведка (OSINT), типы атак (фишинг, вишинг), защита, этика.
+    routing_keywords: [фишинг, социнженерия, безопасность, OSINT, атака, защита, уязвимость человека]
+    typical_requests: [защита от фишинга, обучение сотрудников, OSINT]
+    fallback_priority: 11
+    notes: Готов к routing.

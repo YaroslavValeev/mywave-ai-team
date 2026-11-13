@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tuning — Agent Specialization</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1, h2 { color: #fff; font-size: 1rem; margin-top: 1rem; }
+        .nav { margin-bottom: 1rem; }
+        .block { margin-bottom: 1rem; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .empty { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/owner">Owner</a>
+        <a href="/owner/refinement">Refinement</a>
+        <a href="/owner/tuning">Tuning</a>
+        <a href="/owner/tuning/outcomes">Outcomes</a>
+    </nav>
+    <h1>Specialization Tuning ({{ window_days }} дн.)</h1>
+    <p>
+        <a href="/owner/tuning">All</a> ·
+        <a href="/owner/tuning?status=pending_review">Pending</a> ·
+        <a href="/owner/tuning?status=accepted">Accepted</a> ·
+        <a href="/owner/tuning?status=converted">Converted</a> ·
+        <a href="/api/owner/tuning/proposals/generate" style="color:#81c784;">Generate</a> (POST)
+    </p>
+    {% if tuning_summary %}
+    <p>Pending: {{ tuning_summary.pending_count }} · Accepted: {{ tuning_summary.accepted_count }} · Converted: {{ tuning_summary.converted_count }} · Verified: {{ tuning_summary.verified_count }}</p>
+    {% endif %}
+    {% if tuning_patch_summary %}
+    <section class="block">
+        <h2>Patchable tuning (Phase 11.3)</h2>
+        <p>Patchable: <strong>{{ tuning_patch_summary.patchable_count }}</strong> · Manual/blocked: <strong>{{ tuning_patch_summary.manual_or_blocked_count }}</strong> · Applied path: <strong>{{ tuning_patch_summary.applied_tuning_count }}</strong></p>
+        {% if patchable_tuning %}
+        <table>
+            <thead><tr><th>ID</th><th>Patchable</th><th>Reason</th><th>Proposal</th></tr></thead>
+            <tbody>
+            {% for p in patchable_tuning[:10] %}
+            <tr>
+                <td>{{ p.tuning_candidate_id }}</td>
+                <td>{{ p.patchable }}</td>
+                <td>{{ (p.patchability_reason or '')[:70] }}</td>
+                <td>{{ p.proposal_id or '—' }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </section>
+    {% endif %}
+    {% if manual_tuning %}
+    <section class="block">
+        <h2>Needs manual tuning</h2>
+        <table>
+            <thead><tr><th>ID</th><th>Reason</th></tr></thead>
+            <tbody>
+            {% for p in manual_tuning[:8] %}
+            <tr><td>{{ p.tuning_candidate_id }}</td><td>{{ (p.patchability_reason or '')[:80] }}</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+    {% if tuning_outcome_summary %}
+    <section class="block">
+        <h2>Verified tuning outcomes</h2>
+        <p><a href="/owner/tuning/outcomes">Все outcomes</a> · Improved: {{ tuning_outcome_summary.improved_count }} · Worse/unchanged: {{ tuning_outcome_summary.worse_count }}+{{ tuning_outcome_summary.unchanged_count }} · Pending: {{ tuning_outcome_summary.pending_measurement_count }}</p>
+        {% if improved_outcomes %}
+        <p><strong>Improved execution lanes</strong></p>
+        <ul>{% for o in improved_outcomes %}<li>{{ o.tuning_candidate_id }}: {{ (o.outcome_reason or '')[:60] }}</li>{% endfor %}</ul>
+        {% endif %}
+        {% if no_improvement_outcomes %}
+        <p><strong>No improvement / worse after patch</strong></p>
+        <ul>{% for o in no_improvement_outcomes %}<li>{{ o.tuning_candidate_id }}: {{ o.outcome_status }} — {{ (o.outcome_reason or '')[:50] }}</li>{% endfor %}</ul>
+        {% endif %}
+    </section>
+    {% endif %}
+    <section class="block">
+        <h2>Tuning candidates</h2>
+        {% if tuning_candidates and tuning_candidates.get('items') %}
+        <table>
+            <thead><tr><th>ID</th><th>Problem</th><th>Recommendation</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+            {% for c in tuning_candidates.get('items', []) %}
+            <tr>
+                <td><a href="/api/owner/tuning/{{ c.tuning_candidate_id }}">{{ c.tuning_candidate_id }}</a></td>
+                <td>{{ c.problem_pattern[:60] }}{% if c.problem_pattern|length > 60 %}...{% endif %}</td>
+                <td>{{ c.recommended_tuning_change[:50] }}{% if c.recommended_tuning_change|length > 50 %}...{% endif %}</td>
+                <td>{{ c.status }}</td>
+                <td>
+                    {% if c.status == 'pending_review' %}
+                    POST /api/owner/tuning/{{ c.tuning_candidate_id }}/review (body: decision=accept|reject)
+                    {% elif c.status == 'accepted' and not c.proposal_id %}
+                    POST /api/owner/tuning/{{ c.tuning_candidate_id }}/to-proposal
+                    {% elif c.status in ('accepted','converted') %}
+                    POST /api/owner/tuning/{{ c.tuning_candidate_id }}/verify (body: outcome=improved|unchanged|worse)
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет candidates. <a href="/api/owner/tuning/proposals/generate">Generate</a> (POST)</p>
+        {% endif %}
+    </section>
+    <p style="color:#666;">Telegram: /tuning_candidates, /tuning_candidate &lt;id&gt;, /review_tuning, /convert_tuning, /verify_tuning · /patchable_tuning, /tuning_outcomes, /tuning_outcome &lt;id&gt; [evaluate]</p>
+</body>
+</html>

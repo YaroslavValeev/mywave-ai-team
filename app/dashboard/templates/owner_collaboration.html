@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaboration — Owner Dashboard</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 0.25rem; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        .block { margin-bottom: 1rem; }
+        .empty { color: #666; font-style: italic; }
+        .severity-high { color: #e57373; }
+        .severity-medium { color: #ffb74d; }
+        .severity-low { color: #81c784; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner Dashboard</a>
+        <a href="/owner/portfolio">Портфель</a>
+        <a href="/owner/projects">Проекты</a>
+        <a href="/owner/collaboration">Collaboration</a>
+        <a href="/owner/collaboration/executions">Executions</a>
+        <a href="/owner/collaboration/outcomes">Outcomes</a>
+    </nav>
+
+    <h1>Collaboration ({{ window_days }} дн.)</h1>
+
+    {% if collaboration_explanation and collaboration_explanation.get('rationales') %}
+    <section class="block">
+        <h2>Почему система так считает</h2>
+        {% for r in collaboration_explanation.get('rationales', [])[:3] %}
+        <p><strong>{{ r.headline }}</strong></p>
+        {% if r.get('evidence_items') %}<ul>{% for e in r.get('evidence_items', []) %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    <section class="block">
+        <h2>Cross-role handoffs ({{ handoffs.count }})</h2>
+        {% if handoffs.get('items') %}
+        <table>
+            <thead><tr><th>Handoff</th><th>Task</th><th>Project</th><th>Reason</th></tr></thead>
+            <tbody>
+            {% for h in handoffs.get('items', []) %}
+            <tr>
+                <td>{{ h.handoff_type }}</td>
+                <td>{% if h.task_id %}<a href="/tasks/{{ h.task_id }}">#{{ h.task_id }}</a>{% else %}—{% endif %}</td>
+                <td>{{ h.project_key or '—' }}</td>
+                <td>{{ h.reason }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет активных handoff</p>
+        {% endif %}
+    </section>
+
+    <section class="block">
+        <h2>Collaboration hotspots ({{ hotspots.count }})</h2>
+        {% if hotspots.get('items') %}
+        <table>
+            <thead><tr><th>Type</th><th>Severity</th><th>Project</th><th>Reason</th><th>Action</th></tr></thead>
+            <tbody>
+            {% for h in hotspots.get('items', []) %}
+            <tr>
+                <td>{{ h.hotspot_type }}</td>
+                <td class="severity-{{ h.severity }}">{{ h.severity }}</td>
+                <td>{% if h.project_key %}<a href="/owner/project/{{ h.project_key }}">{{ h.project_key }}</a>{% else %}—{% endif %}</td>
+                <td>{{ h.reason }}</td>
+                <td>{{ h.recommended_collaboration_action }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет hotspots</p>
+        {% endif %}
+    </section>
+
+    <section class="block">
+        <h2>Role bottlenecks</h2>
+        <p>См. hotspots по типам approval_bottleneck, review_execution_loop, runtime_escalation_gap, owner_attention_gap.</p>
+    </section>
+
+    <section class="block">
+        <h2>Collaboration recommendations ({{ recommendations.count }})</h2>
+        {% if recommendations.get('items') %}
+        <table>
+            <thead><tr><th>From → To</th><th>Project</th><th>Reason</th><th>Action</th><th>Urgency</th></tr></thead>
+            <tbody>
+            {% for r in recommendations.get('items', []) %}
+            <tr>
+                <td>{{ r.source_role }} → {{ r.target_role }}</td>
+                <td>{{ r.project_key or '—' }}</td>
+                <td>{{ r.reason }}</td>
+                <td>{{ r.recommended_action }}</td>
+                <td class="severity-{{ r.urgency if r.urgency == 'high' else 'medium' }}">{{ r.urgency }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет рекомендаций</p>
+        {% endif %}
+    </section>
+
+    {% if collab_exec_summary %}
+    <section class="block">
+        <h2>Collaboration executions (11.4)</h2>
+        <p class="empty">pending: {{ collab_exec_summary.pending_count or 0 }} · closed: {{ collab_exec_summary.closed_count or 0 }} · <a href="/owner/collaboration/executions">список</a></p>
+        {% if collab_exec_pending and collab_exec_pending.get('items') %}
+        <p><strong>Открытые:</strong> {% for e in collab_exec_pending.get('items', [])[:5] %}<a href="/owner/collaboration/execution/{{ e.execution_id }}">{{ e.execution_id }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if collab_outcome_summary %}
+    <section class="block">
+        <h2>Collaboration effectiveness (11.5) <a href="/owner/collaboration/outcomes" style="font-weight:normal;font-size:0.85rem;">→ подробнее</a></h2>
+        <p>effective: <strong>{{ collab_outcome_summary.effective_executions_count }}</strong> ·
+           ineffective: <strong>{{ collab_outcome_summary.ineffective_executions_count }}</strong> ·
+           follow-up: <strong>{{ collab_outcome_summary.followup_needed_count }}</strong></p>
+        <p style="color:#666;font-size:0.85rem;">{{ collab_outcome_summary.evidence_source or '' }}</p>
+    </section>
+    {% endif %}
+
+    <p style="color:#666; font-size:0.85rem;">Telegram: /collaboration, /handoffs, /collaboration_executions, /collaboration_outcomes, /collaboration_outcome &lt;id&gt;, /collaboration_followup, /collaboration_execution &lt;id&gt;, /trigger_collaboration &lt;id&gt;, /close_collaboration &lt;id&gt;</p>
+</body>
+</html>

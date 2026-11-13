@@ -104,3 +104,60 @@ def get_orchestration_config() -> dict:
         "llm_cloud_model": os.getenv("LLM_CLOUD_MODEL", "").strip(),
         "llm_cloud_provider": os.getenv("LLM_CLOUD_PROVIDER", "openai").strip(),
     }
+
+
+def get_owner_notification_config() -> dict:
+    """Phase 9.1: owner notification settings (daily summary, alerts). Env: OWNER_NOTIFY_*."""
+    cfg = _load_yaml("owner_notifications")
+    defaults = {
+        "daily_summary_enabled": True,
+        "daily_summary_time": "09:00",
+        "weekly_digest_enabled": True,
+        "weekly_digest_day": 1,
+        "weekly_digest_time": "09:10",
+        "approval_alerts_enabled": True,
+        "completion_alerts_enabled": True,
+        "degraded_alerts_enabled": True,
+        "recovery_alerts_enabled": True,
+        "stuck_task_alerts_enabled": True,
+        "stuck_waiting_approval_minutes": 1440,
+        "stuck_no_progress_minutes": 360,
+        "stuck_alert_cooldown_minutes": 1440,
+    }
+    for k, v in defaults.items():
+        if k not in cfg:
+            cfg[k] = v
+    if os.getenv("OWNER_NOTIFY_DAILY_SUMMARY_ENABLED", "").lower() in ("0", "false", "no"):
+        cfg["daily_summary_enabled"] = False
+    if t := os.getenv("OWNER_NOTIFY_DAILY_SUMMARY_TIME"):
+        cfg["daily_summary_time"] = t
+    if os.getenv("OWNER_NOTIFY_WEEKLY_DIGEST_ENABLED", "").lower() in ("0", "false", "no"):
+        cfg["weekly_digest_enabled"] = False
+    if t := os.getenv("OWNER_NOTIFY_WEEKLY_DIGEST_TIME"):
+        cfg["weekly_digest_time"] = t
+    if d := os.getenv("OWNER_NOTIFY_WEEKLY_DIGEST_DAY"):
+        try:
+            cfg["weekly_digest_day"] = int(d)
+        except (TypeError, ValueError):
+            pass
+    if os.getenv("OWNER_NOTIFY_APPROVAL_ALERTS_ENABLED", "").lower() in ("0", "false", "no"):
+        cfg["approval_alerts_enabled"] = False
+    if os.getenv("OWNER_NOTIFY_COMPLETION_ALERTS_ENABLED", "").lower() in ("0", "false", "no"):
+        cfg["completion_alerts_enabled"] = False
+    if os.getenv("OWNER_NOTIFY_DEGRADED_ALERTS_ENABLED", "").lower() in ("0", "false", "no"):
+        cfg["degraded_alerts_enabled"] = False
+    if os.getenv("OWNER_NOTIFY_RECOVERY_ALERTS_ENABLED", "").lower() in ("0", "false", "no"):
+        cfg["recovery_alerts_enabled"] = False
+    if os.getenv("OWNER_NOTIFY_STUCK_TASK_ALERTS_ENABLED", "").lower() in ("0", "false", "no"):
+        cfg["stuck_task_alerts_enabled"] = False
+    for key, env_key, cast in [
+        ("stuck_waiting_approval_minutes", "OWNER_NOTIFY_STUCK_WAITING_APPROVAL_MINUTES", int),
+        ("stuck_no_progress_minutes", "OWNER_NOTIFY_STUCK_NO_PROGRESS_MINUTES", int),
+        ("stuck_alert_cooldown_minutes", "OWNER_NOTIFY_STUCK_ALERT_COOLDOWN_MINUTES", int),
+    ]:
+        if v := os.getenv(env_key):
+            try:
+                cfg[key] = cast(v)
+            except (TypeError, ValueError):
+                pass
+    return cfg

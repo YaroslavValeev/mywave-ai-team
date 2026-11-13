@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposal — {{ proposal.proposal_id }}</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1, h2 { color: #fff; font-size: 1rem; margin-top: 1rem; }
+        .nav { margin-bottom: 1rem; }
+        .block { margin-bottom: 0.75rem; }
+        .status-proposed { color: #ffb74d; }
+        .status-accepted { color: #81c784; }
+        .status-rejected { color: #e57373; }
+        .status-applied { color: #4fc3f7; }
+        pre { background: #333; padding: 0.5rem; overflow-x: auto; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/owner/refinement">Refinement</a>
+        <a href="/owner/refinement/proposals">Proposals</a>
+    </nav>
+    <h1>Proposal: {{ proposal.proposal_id }}</h1>
+    <p>Type: <strong>{{ proposal.proposal_type }}</strong> · Status: <span class="status-{{ proposal.status }}">{{ proposal.status }}</span> · Severity: {{ proposal.severity }}</p>
+
+    {% if tuning_trace and tuning_trace.get('candidate_id') %}
+    <div class="block">
+        <h2>Tuning trace (11.3)</h2>
+        <p>Candidate: <a href="/owner/tuning">{{ tuning_trace.candidate_id }}</a> · <a href="/api/owner/tuning/{{ tuning_trace.candidate_id }}/patchability">patchability</a> · <a href="/api/owner/tuning/{{ tuning_trace.candidate_id }}/outcome">outcome</a></p>
+        {% if tuning_trace.patchability %}
+        <p>Patchable: <strong>{{ tuning_trace.patchability.patchable }}</strong> — {{ tuning_trace.patchability.patchability_reason }}</p>
+        {% endif %}
+        {% if tuning_trace.outcome and tuning_trace.outcome.get('outcome_status') %}
+        <p>Outcome: <strong>{{ tuning_trace.outcome.outcome_status }}</strong> — {{ tuning_trace.outcome.outcome_reason }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if proposal_explanation and proposal_explanation.get('rationales') %}
+    <div class="block">
+        <h2>Почему система так считает</h2>
+        {% for r in proposal_explanation.get('rationales', [])[:3] %}
+        <p><strong>{{ r.headline }}</strong></p>
+        {% if r.get('evidence_items') %}<ul>{% for e in r.get('evidence_items', []) %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="block">
+        <h2>Target</h2>
+        <p>{{ proposal.target_layer }} / {{ proposal.target_key }}</p>
+    </div>
+    <div class="block">
+        <h2>Reason</h2>
+        <p>{{ proposal.reason }}</p>
+    </div>
+    {% if proposal.evidence_summary %}
+    <div class="block">
+        <h2>Evidence</h2>
+        <p>{{ proposal.evidence_summary }}</p>
+    </div>
+    {% endif %}
+    <div class="block">
+        <h2>Recommended change</h2>
+        <p>{{ proposal.recommended_change }}</p>
+    </div>
+    {% if proposal.reviewer %}<p>Reviewer: {{ proposal.reviewer }}{% if proposal.reviewed_at %} at {{ proposal.reviewed_at }}{% endif %}</p>{% endif %}
+    {% if proposal.notes %}<p>Notes: {{ proposal.notes }}</p>{% endif %}
+    <p>
+        <a href="/api/owner/refinement/proposal/{{ proposal.proposal_id }}/export">Export patch candidate</a>
+        · <a href="/owner/refinement/proposal/{{ proposal.proposal_id }}/patch">Patch (dry-run / apply)</a>
+        {% if proposal.status == 'proposed' %} · Review via API: POST .../review body: {&quot;decision&quot;: &quot;accept&quot;|&quot;reject&quot;, &quot;notes&quot;: &quot;...&quot;} {% endif %}
+        {% if proposal.status == 'accepted' %} · Mark applied: POST .../apply · Safe patch apply: <a href="/owner/refinement/proposal/{{ proposal.proposal_id }}/patch">/patch</a> {% endif %}
+    </p>
+</body>
+</html>

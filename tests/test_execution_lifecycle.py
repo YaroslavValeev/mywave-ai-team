@@ -1,4 +1,12 @@
 from pathlib import Path
+import subprocess
+
+from app.execution.approval import record_bound_approval
+
+
+def _init_repository(workspace):
+    subprocess.run(["git", "init", str(workspace)], check=True, capture_output=True)
+    subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--allow-empty", "-m", "test base"], cwd=workspace, check=True, capture_output=True)
 
 import pytest
 
@@ -53,6 +61,59 @@ def _configure_execution(repo, task_id: int, workspace: Path, patch_path: Path):
     )
 
 
+@pytest.mark.parametrize("change", ["patch", "base", "workspace", "rework", "missing_binding"])
+def test_execution_approval_binds_exact_request(db_session, tmp_path, monkeypatch, change):
+    repo = TaskRepository(db_session)
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    _init_repository(workspace)
+    patch = tmp_path / "approved.patch"
+    patch.write_bytes(b"approved patch bytes\n")
+    monkeypatch.setenv("ARTIFACTS_DIR", str(tmp_path))
+    monkeypatch.setenv("EXECUTION_ALLOWED_ROOTS", str(tmp_path))
+    task = repo.create_task(owner_text="Approved code change")
+    _configure_execution(repo, task.id, workspace, patch)
+    if change == "missing_binding":
+        repo.add_decision(task.id, decision="a", owner_approval=True)
+    else:
+        record_bound_approval(repo, repo.get_task(task.id))
+        assert execution_capabilities(repo.get_task(task.id))["can_start"]
+    if change == "patch":
+        patch.write_bytes(b"different patch\n")
+    elif change == "base":
+        subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+                        "commit", "--allow-empty", "-m", "changed base"], cwd=workspace, check=True, capture_output=True)
+    elif change == "workspace":
+        other = tmp_path / "other"
+        other.mkdir()
+        _init_repository(other)
+        _configure_execution(repo, task.id, other, patch)
+    elif change == "rework":
+        repo.add_decision(task.id, decision="r", owner_approval=False)
+    monkeypatch.setattr(service, "get_orchestration_runtime", lambda: _FakeRuntime())
+    assert not execution_capabilities(repo.get_task(task.id))["can_start"]
+    with pytest.raises(ExecutionRequestError):
+        service.start_approved_execution(task.id)
+    assert repo.get_task(task.id).status == "EXECUTION_READY"
+
+
+def test_patch_application_uses_captured_bytes(tmp_path, monkeypatch):
+    patch = tmp_path / "source.patch"
+    patch.write_bytes(b"approved bytes")
+    approved = patch.read_bytes()
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs["input"]))
+        patch.write_bytes(b"unapproved replacement")
+        return subprocess.CompletedProcess(command, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr(service.subprocess, "run", fake_run)
+    service._apply_patch(str(tmp_path), approved, lambda: None)
+    assert len(calls) == 2
+    assert all(command[-1] == "-" and data == approved for command, data in calls)
+
+
 def test_execution_requires_explicit_owner_approval(db_session, tmp_path, monkeypatch):
     repo = TaskRepository(db_session)
     task = repo.create_task(owner_text="Изменить код через PR")
@@ -105,6 +166,8 @@ def test_start_execution_moves_task_to_executing_and_starts_background_job(
     repo.add_decision(task.id, decision="approve", owner_approval=True)
     monkeypatch.setenv("EXECUTION_ALLOWED_ROOTS", str(workspace))
     monkeypatch.setenv("ARTIFACTS_DIR", str(artifacts))
+    _init_repository(workspace)
+    record_bound_approval(repo, repo.get_task(task.id))
     fake_runtime = _FakeRuntime()
     monkeypatch.setattr(service, "get_orchestration_runtime", lambda: fake_runtime)
 
@@ -169,6 +232,7 @@ def test_canonical_owner_approved_execution_reaches_done(db_session, tmp_path, m
 
     monkeypatch.setattr(service, "run_pr_loop", _fake_pr_loop)
 
+    _init_repository(workspace)
     approved = apply_owner_decision(repo, task.id, "approve", source="test")
     assert approved["status"] == "EXECUTION_READY"
 

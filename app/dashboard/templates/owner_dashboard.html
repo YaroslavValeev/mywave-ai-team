@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Dashboard — MyWave AI-TEAM</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 1rem 2rem; background: #1a1a2e; color: #eee; }
+        a { color: #4fc3f7; }
+        h1 { color: #fff; }
+        h2 { font-size: 1rem; color: #aaa; margin-top: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 0.25rem; }
+        .status-cue { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 4px; font-weight: bold; margin-left: 0.5rem; }
+        .status-ok { background: #1b5e20; color: #c8e6c9; }
+        .status-degraded { background: #b71c1c; color: #ffcdd2; }
+        .status-pending { background: #e65100; color: #ffe0b2; }
+        .status-attention { background: #f57f17; color: #fff9c4; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+        th, td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #888; }
+        ul { margin: 0.25rem 0; padding-left: 1.25rem; }
+        .nav { margin-bottom: 1rem; }
+        .nav a { margin-right: 1rem; }
+        .block { margin-bottom: 1rem; }
+        .empty { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/owner">Owner Dashboard</a>
+        <a href="/owner/portfolio">Портфель</a>
+        <a href="/owner/collaboration">Collaboration</a>
+        <a href="/owner/collaboration/executions">Collab exec</a>
+        <a href="/owner/collaboration/outcomes">Collab outcomes</a>
+        <a href="/owner/projects">Проекты</a>
+        <a href="/owner/domains">Домены</a>
+        <a href="/owner/refinement">Refinement</a>
+        <a href="/owner/tuning">Tuning</a>
+        <a href="/owner/tuning/outcomes">Tuning outcomes</a>
+        <a href="/owner/effectiveness">Cross-layer</a>
+        <a href="/owner/decision-support">Decision Support</a>
+        <a href="/owner/interventions">Interventions</a>
+        <a href="/owner/readiness">Readiness</a>
+        <a href="/actions">Actions</a>
+        <a href="/tasks">Задачи</a>
+    </nav>
+
+    <h1>Owner Dashboard</h1>
+
+    {% if readiness %}
+    <section class="block" style="margin-bottom:0.5rem;">
+        <a href="/owner/readiness" style="font-size:0.9rem;">Readiness</a>:
+        {% if readiness.ready %}<span class="status-cue status-ok" style="padding:0.15rem 0.5rem; font-size:0.85rem;">ok</span>{% elif readiness.level == 'degraded' %}<span class="status-cue status-degraded" style="padding:0.15rem 0.5rem; font-size:0.85rem;">degraded</span>{% else %}<span class="status-cue status-attention" style="padding:0.15rem 0.5rem; font-size:0.85rem;">check</span>{% endif %}
+    </section>
+    {% endif %}
+    <!-- 1. Header / System status -->
+    <section class="block">
+        <h2>Состояние системы</h2>
+        <p>
+            {% if overview.status_cue == 'DEGRADED' or overview.status_cue == 'HTTP runtime down' %}
+            <span class="status-cue status-degraded">{{ overview.status_cue }}</span>
+            {% elif overview.status_cue == 'Pending approvals' %}
+            <span class="status-cue status-pending">{{ overview.status_cue }}</span>
+            {% elif overview.status_cue == 'Attention needed' %}
+            <span class="status-cue status-attention">{{ overview.status_cue }}</span>
+            {% else %}
+            <span class="status-cue status-ok">{{ overview.status_cue }}</span>
+            {% endif %}
+            Transport: {{ overview.transport_mode }} · Molt: {{ overview.molt_message }}
+        </p>
+        <p>
+            Активных задач: <strong>{{ overview.active_tasks_count }}</strong> ·
+            Ожидают решения: <strong>{{ overview.pending_approvals_count }}</strong> ·
+            Артефактов: <strong>{{ overview.recent_artifacts_count }}</strong>
+        </p>
+    </section>
+
+    <!-- 2. Next actions -->
+    <section class="block">
+        <h2>Next actions {% if next_actions.get('preferred_intervention_ref') %}<a href="{{ next_actions.preferred_intervention_ref }}" style="font-weight:normal;font-size:0.85rem;">→ Interventions</a>{% endif %}</h2>
+        {% if next_actions.get('top_intervention_headline') %}
+        <p style="color:#ffb74d; margin-bottom:0.5rem;"><strong>Intervention:</strong> {{ next_actions.top_intervention_headline }}</p>
+        {% endif %}
+        {% if next_actions.get('items') %}
+        <table>
+            <thead><tr><th>Тип</th><th>Task</th><th>Причина</th><th>Приоритет</th><th>Действие</th></tr></thead>
+            <tbody>
+            {% for a in next_actions.get('items', []) %}
+            <tr>
+                <td>{{ a.action_type }}</td>
+                <td>{% if a.task_id %}<a href="/tasks/{{ a.task_id }}">#{{ a.task_id }}</a>{% else %}—{% endif %}</td>
+                <td>{{ a.reason }}</td>
+                <td>{{ a.priority }}</td>
+                <td>{{ a.suggested_action }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет приоритетных действий</p>
+        {% endif %}
+    </section>
+
+    <!-- 3. Blockers -->
+    <section class="block">
+        <h2>Blockers ({{ blockers.blockers_count }})</h2>
+        {% if blockers.get('items') %}
+        <table>
+            <thead><tr><th>Task</th><th>Тип</th><th>Кратко</th></tr></thead>
+            <tbody>
+            {% for b in blockers.get('items', []) %}
+            <tr>
+                <td><a href="/tasks/{{ b.task_id }}">#{{ b.task_id }}</a></td>
+                <td>{{ b.kind }}</td>
+                <td>{{ b.summary }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет блокеров</p>
+        {% endif %}
+    </section>
+
+    <!-- 4. Decision queue -->
+    <section class="block">
+        <h2>Decision queue ({{ decision_queue.count }})</h2>
+        {% if decision_queue.get('items') %}
+        <table>
+            <thead><tr><th>Task</th><th>Причина</th><th>Приоритет</th><th>Рекомендуемое действие</th></tr></thead>
+            <tbody>
+            {% for q in decision_queue.get('items', []) %}
+            <tr>
+                <td>{% if q.task_id %}<a href="/tasks/{{ q.task_id }}">#{{ q.task_id }}</a>{% else %}—{% endif %}</td>
+                <td>{{ q.reason }}</td>
+                <td>{{ q.priority }}</td>
+                <td>{{ q.suggested_next_action }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Очередь решений пуста</p>
+        {% endif %}
+    </section>
+
+    <!-- 4b. Collaboration hotspots (Phase 10.9) -->
+    {% if collaboration_hotspots and collaboration_hotspots.get('items') %}
+    <section class="block">
+        <h2>Collaboration <a href="/owner/collaboration" style="font-weight:normal; font-size:0.9rem;">→ Подробнее</a></h2>
+        <p>Hotspots: {% for h in collaboration_hotspots.get('items', []) %}{{ h.hotspot_type }}{% if h.reason %} ({{ h.reason[:50] }}){% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</p>
+    </section>
+    {% endif %}
+
+    <!-- 4c. Cross-layer effectiveness (Phase 11.6) -->
+    {% if cross_layer_synthesis %}
+    <section class="block">
+        <h2>Cross-layer effectiveness <a href="/owner/effectiveness" style="font-weight:normal; font-size:0.9rem;">→ Подробнее</a></h2>
+        <p>{% for s in cross_layer_synthesis.slices %}{{ s.layer }}: eff={{ s.effective_count }}/ineff={{ s.ineffective_count }}{% if not loop.last %} · {% endif %}{% endfor %}{% if cross_layer_synthesis.alignment_items %} · <span style="color:#ffb74d;">{{ cross_layer_synthesis.alignment_items|length }} конфликт(ов)</span>{% endif %}</p>
+    </section>
+    {% endif %}
+
+    <!-- 5. Project health -->
+    <section class="block">
+        <h2>Project health <a href="/owner/projects" style="font-weight:normal; font-size:0.9rem;">→ Все проекты</a></h2>
+        {% if project_health.get('items') %}
+        <table>
+            <thead><tr><th>Группа</th><th>Статус</th><th>Причина</th><th>Active</th><th>Pending</th><th></th></tr></thead>
+            <tbody>
+            {% for h in project_health.get('items', []) %}
+            <tr>
+                <td>{{ h.project }}</td>
+                <td>{{ h.status }}</td>
+                <td>{{ h.reason }}</td>
+                <td>{{ h.active_count }}</td>
+                <td>{{ h.pending_count }}</td>
+                <td><a href="/owner/project/{{ h.project }}">Открыть</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет данных по группам. <a href="/owner/projects">Проекты</a></p>
+        {% endif %}
+    </section>
+
+    <!-- 6. Recent artifacts -->
+    <section class="block">
+        <h2>Recent artifacts ({{ recent_artifacts.count }})</h2>
+        {% if recent_artifacts.get('items') %}
+        <table>
+            <thead><tr><th>Task</th><th>Summary</th><th>Report</th><th>Updated</th></tr></thead>
+            <tbody>
+            {% for r in recent_artifacts.get('items', []) %}
+            <tr>
+                <td><a href="/tasks/{{ r.task_id }}">#{{ r.task_id }}</a></td>
+                <td>{{ r.summary or '—' }}</td>
+                <td>{{ r.report_path or '—' }}</td>
+                <td>{{ r.updated_at[:19] if r.updated_at else '—' }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty">Нет недавних артефактов</p>
+        {% endif %}
+    </section>
+
+    <!-- 7. Weekly digest preview -->
+    <section class="block">
+        <h2>Weekly digest ({{ digest_preview.weekly.window_days }} days)</h2>
+        <p>
+            Completed: {{ digest_preview.weekly.completed_count }} ·
+            Pending approvals: {{ digest_preview.weekly.pending_approvals_count }} ·
+            Blockers: {{ digest_preview.weekly.blockers_count }} ·
+            Needs decision: {{ digest_preview.weekly.needs_decision_count }} ·
+            Next week priorities: {{ digest_preview.weekly.next_week_priorities_count }}
+        </p>
+        {% if digest_preview.weekly.owner_focus %}
+        <p>Focus: {{ digest_preview.weekly.owner_focus }}</p>
+        {% endif %}
+        {% if digest_preview.weekly.key_risks %}
+        <p>Risks: {{ digest_preview.weekly.key_risks | length }}</p>
+        {% endif %}
+    </section>
+
+    <!-- 8. Monthly digest preview -->
+    <section class="block">
+        <h2>Monthly digest ({{ digest_preview.monthly.window_days }} days)</h2>
+        <p>
+            Completed: {{ digest_preview.monthly.completed_count }} ·
+            Active: {{ digest_preview.monthly.active_count }} ·
+            Pending approvals: {{ digest_preview.monthly.pending_approvals_count }} ·
+            Top recommendations: {{ digest_preview.monthly.top_recommendations_count }}
+        </p>
+    </section>
+
+    <!-- 9. Available actions (Phase 9.8) -->
+    <section class="block">
+        <h2>Available actions</h2>
+        <p><a href="/actions">Открыть страницу действий</a> — refresh, recheck Molt, smoke-check, send digest now и др.</p>
+    </section>
+
+    <p class="block" style="color:#666; font-size:0.85rem;">Команды и уведомления — в Telegram. Действия из dashboard и /actions логируются в audit.</p>
+</body>
+</html>
