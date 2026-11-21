@@ -33,7 +33,7 @@ from app.shared.dashboard_session import (
 )
 from app.shared.redaction import redact, scrub_secrets
 from app.shared.system_health import collect_system_health
-from app.dashboard.api_router import router as api_router
+from app.dashboard.api_router import router as api_router, apply_owner_decision, apply_merge_confirmation
 from app.dashboard.owner_productization_routes import router as owner_productization_router
 from app.dashboard.business_view import (
     access_query_with_view,
