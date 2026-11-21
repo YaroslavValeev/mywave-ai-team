@@ -1,6 +1,6 @@
-"""Owner productization — Phase 9.4 dashboard only (safe incremental mount).
+"""Owner productization routes — Phase 9.4–9.6 (incremental).
 
-Do not dump all nested /owner* routes here; expand page-by-page in follow-up PRs.
+Mounted into live dashboard without replacing mission/runtime UI.
 """
 from __future__ import annotations
 
@@ -28,6 +28,44 @@ from app.presenters.owner_dashboard_presenters import (
     present_dashboard_project_health,
     present_dashboard_recent_artifacts,
     present_dashboard_digest_preview,
+)
+from app.services.project_queries import (
+    list_projects,
+    get_project_overview,
+    get_project_health,
+    get_project_risks,
+    get_project_decision_queue,
+    get_project_tasks,
+    get_project_pending_approvals,
+    get_project_recent_artifacts,
+)
+from app.presenters.project_presenters import (
+    present_project_list,
+    present_project_overview,
+    present_project_health,
+    present_project_tasks,
+    present_project_approvals,
+    present_project_artifacts,
+    present_project_risks,
+    present_project_decision_queue,
+)
+from app.services.owner_portfolio import (
+    get_portfolio_overview,
+    get_top_problem_projects,
+    get_approvals_backlog_by_project,
+    get_rework_hotspots,
+    get_degraded_hotspots,
+    get_portfolio_focus_list,
+    get_portfolio_digest,
+)
+from app.presenters.owner_portfolio_presenters import (
+    present_portfolio_overview,
+    present_top_problem_projects,
+    present_approvals_backlog_by_project,
+    present_rework_hotspots,
+    present_degraded_hotspots,
+    present_portfolio_focus_list,
+    present_portfolio_digest,
 )
 
 router = APIRouter(tags=["owner-productization"])
@@ -93,3 +131,94 @@ async def owner_dashboard(request: Request):
             "cross_layer_synthesis": cross_layer_synthesis,
         },
     )
+
+
+@router.get("/owner/projects", response_class=HTMLResponse, dependencies=[Depends(require_owner_key)])
+async def owner_projects_list(request: Request):
+    """Phase 9.5: project list."""
+    projects = present_project_list(list_projects(limit=50))
+    return templates.TemplateResponse(request, "owner_projects.html", {"projects": projects})
+
+
+@router.get("/owner/project/{project_key}", response_class=HTMLResponse, dependencies=[Depends(require_owner_key)])
+async def owner_project_detail(request: Request, project_key: str, window_days: int = 30):
+    """Phase 9.5: project drill-down (core fields; extras optional)."""
+    overview = present_project_overview(get_project_overview(project_key))
+    health = present_project_health(get_project_health(project_key))
+    tasks = present_project_tasks(get_project_tasks(project_key, limit=20))
+    approvals = present_project_approvals(get_project_pending_approvals(project_key, limit=20))
+    artifacts = present_project_artifacts(get_project_recent_artifacts(project_key, limit=20))
+    risks = present_project_risks(get_project_risks(project_key, limit=10))
+    decision_queue = present_project_decision_queue(get_project_decision_queue(project_key, limit=10))
+
+    ctx = {
+        "overview": overview,
+        "health": health,
+        "tasks": tasks,
+        "approvals": approvals,
+        "artifacts": artifacts,
+        "risks": risks,
+        "decision_queue": decision_queue,
+        "lifecycle_presented": None,
+        "evolution_refinement": None,
+        "project_handoffs": None,
+        "project_explanation": None,
+        "project_suggestions": None,
+        "project_collab_executions": None,
+        "project_collab_outcomes": None,
+        "project_intervention": None,
+        "window_days": window_days,
+    }
+    try:
+        from app.services.project_domain_lifecycle import get_project_domain_lifecycle
+        from app.presenters.project_domain_lifecycle_presenters import present_project_domain_lifecycle
+
+        ctx["lifecycle_presented"] = present_project_domain_lifecycle(
+            get_project_domain_lifecycle(project_key, window_days=window_days)
+        )
+    except Exception:
+        pass
+    return templates.TemplateResponse(request, "owner_project_detail.html", ctx)
+
+
+@router.get("/owner/portfolio", response_class=HTMLResponse, dependencies=[Depends(require_owner_key)])
+async def owner_portfolio_page(request: Request, window_days: int = 30):
+    """Phase 9.6: portfolio view (core + safe optional blocks)."""
+    overview = present_portfolio_overview(get_portfolio_overview())
+    top_problem = present_top_problem_projects(get_top_problem_projects(limit=10))
+    backlog = present_approvals_backlog_by_project(get_approvals_backlog_by_project(limit=15))
+    rework = present_rework_hotspots(get_rework_hotspots(limit=10))
+    degraded = present_degraded_hotspots(get_degraded_hotspots(limit=10))
+    focus = present_portfolio_focus_list(get_portfolio_focus_list(limit=5))
+    digest = present_portfolio_digest(get_portfolio_digest(window_days=7))
+
+    ctx = {
+        "overview": overview,
+        "top_problem": top_problem,
+        "backlog": backlog,
+        "rework": rework,
+        "degraded": degraded,
+        "focus": focus,
+        "digest": digest,
+        "lifecycle_summary": None,
+        "evolution_transition_summary": None,
+        "collaboration_hotspots": None,
+        "portfolio_explanation": None,
+        "portfolio_decision_support": None,
+        "portfolio_collab_executions": None,
+        "portfolio_collab_outcome_summary": None,
+        "portfolio_cross_layer_synthesis": None,
+        "portfolio_intervention_plans": None,
+        "portfolio_cross_layer_bundle": None,
+        "window_days": window_days,
+    }
+    try:
+        from app.services.collaboration_outcomes import get_collaboration_hotspots
+        from app.presenters.collaboration_presenters import present_collaboration_hotspots
+
+        ctx["collaboration_hotspots"] = present_collaboration_hotspots(
+            get_collaboration_hotspots(window_days=window_days, limit=10)
+        )
+    except Exception:
+        pass
+    return templates.TemplateResponse(request, "owner_portfolio.html", ctx)
