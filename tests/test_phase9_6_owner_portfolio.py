@@ -1,6 +1,7 @@
-import pytest
-# tests/test_phase9_6_owner_portfolio.py — Phase 9.6: portfolio view and cross-project control
 from __future__ import annotations
+import pytest
+
+# tests/test_phase9_6_owner_portfolio.py — Phase 9.6: portfolio view and cross-project control
 
 from app.services.owner_portfolio import (
     get_portfolio_overview,
@@ -109,9 +110,8 @@ def test_portfolio_routes_are_wired():
     assert r.status_code == 401
 
 
-import pytest
 
-@pytest.mark.skip(reason='Telegram owner handlers land in step A4')
+@pytest.mark.skip(reason="Telegram owner handlers land in step A4")
 def test_portfolio_commands_are_wired():
     import app.bot.handlers as h
     assert hasattr(h, "handle_owner_portfolio")

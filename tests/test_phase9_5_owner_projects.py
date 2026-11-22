@@ -1,6 +1,7 @@
-import pytest
-# tests/test_phase9_5_owner_projects.py — Phase 9.5: project model and drill-down
 from __future__ import annotations
+import pytest
+
+# tests/test_phase9_5_owner_projects.py — Phase 9.5: project model and drill-down
 
 from app.services.project_queries import (
     list_projects,
@@ -103,9 +104,8 @@ def test_owner_project_detail_route_is_wired():
     assert r.status_code == 401
 
 
-import pytest
 
-@pytest.mark.skip(reason='Telegram owner handlers land in step A4')
+@pytest.mark.skip(reason="Telegram owner handlers land in step A4")
 def test_owner_project_commands_are_wired():
     import app.bot.handlers as h
     assert hasattr(h, "handle_owner_projects")
