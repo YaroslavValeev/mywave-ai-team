@@ -5,6 +5,7 @@ Mounted into live dashboard without replacing mission/runtime UI.
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
@@ -136,7 +137,8 @@ async def owner_dashboard(request: Request):
 @router.get("/owner/projects", response_class=HTMLResponse, dependencies=[Depends(require_owner_key)])
 async def owner_projects_list(request: Request):
     """Phase 9.5: project list."""
-    projects = present_project_list(list_projects(limit=50))
+    # SimpleNamespace so Jinja `projects.items` is the list, not dict.items()
+    projects = SimpleNamespace(**present_project_list(list_projects(limit=50)))
     return templates.TemplateResponse(request, "owner_projects.html", {"projects": projects})
 
 
