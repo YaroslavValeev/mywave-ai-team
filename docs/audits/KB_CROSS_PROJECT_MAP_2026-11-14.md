@@ -59,4 +59,6 @@ Site HEAD (prod): `36e61690`.
 - [x] Карта контуров KB зафиксирована
 - [x] Связь с проектами MyWave описана
 - [x] Инструкция Owner указана
-- [ ] Owner выбрал: чистить дубли projects/*.txt / заполнять Wave 2
+- [x] Owner выбрал: чистить дубли projects/*.txt (Site PR #125)
+- [ ] Wave 2 chat/projects/ — отложено (опционально)
+- [x] Boundary Site KB ↔ Agents intake: docs/contracts/SITE_KB_AGENTS_INTAKE_BOUNDARY.md
