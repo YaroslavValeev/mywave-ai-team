@@ -1,4 +1,4 @@
-"""Owner productization routes — Phase 9.4–9.6 (incremental).
+"""Owner productization routes — Phase 9.4–9.6 + 9.9 + readiness/effectiveness (A3).
 
 Mounted into live dashboard without replacing mission/runtime UI.
 """
@@ -7,8 +7,8 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.shared.auth import require_owner_key
@@ -137,7 +137,6 @@ async def owner_dashboard(request: Request):
 @router.get("/owner/projects", response_class=HTMLResponse, dependencies=[Depends(require_owner_key)])
 async def owner_projects_list(request: Request):
     """Phase 9.5: project list."""
-    # SimpleNamespace so Jinja `projects.items` is the list, not dict.items()
     projects = SimpleNamespace(**present_project_list(list_projects(limit=50)))
     return templates.TemplateResponse(request, "owner_projects.html", {"projects": projects})
 
@@ -224,3 +223,113 @@ async def owner_portfolio_page(request: Request, window_days: int = 30):
     except Exception:
         pass
     return templates.TemplateResponse(request, "owner_portfolio.html", ctx)
+
+
+@router.get("/views/owner", dependencies=[Depends(require_owner_key)])
+async def view_owner_redirect():
+    return RedirectResponse(url="/owner", status_code=302)
+
+
+@router.get("/owner/domains", response_class=HTMLResponse, dependencies=[Depends(require_owner_key)])
+async def owner_domains_page(request: Request):
+    from app.services.domain_registry import list_domains
+    from app.presenters.domain_presenters import present_domain_registry_list
+
+    presented = present_domain_registry_list(list_domains())
+    return templates.TemplateResponse(
+        request,
+        "owner_domains.html",
+        {"domains": presented.get("domains", []), "total": presented.get("total", 0)},
+    )
+
+
+@router.get("/owner/domain/{domain_key}", response_class=HTMLResponse, dependencies=[Depends(require_owner_key)])
+async def owner_domain_detail(request: Request, domain_key: str):
+    from app.services.domain_registry import get_domain, get_expert_profile
+    from app.presenters.domain_presenters import present_domain_card, present_expert_profile
+
+    domain = get_domain(domain_key)
+    if not domain:
+        raise HTTPException(status_code=404, detail="Domain not found")
+    return templates.TemplateResponse(
+        request,
+        "owner_domain_detail.html",
+        {
+            "domain": present_domain_card(domain),
+            "profile": present_expert_profile(get_expert_profile(domain_key)),
+        },
+    )
+
+
+@router.get("/api/owner/domains", dependencies=[Depends(require_owner_key)])
+async def api_owner_domains():
+    from app.services.domain_registry import list_domains
+    from app.presenters.domain_presenters import present_domain_registry_list
+
+    return present_domain_registry_list(list_domains())
+
+
+@router.get("/api/owner/domain/{domain_key}", dependencies=[Depends(require_owner_key)])
+async def api_owner_domain(domain_key: str):
+    from app.services.domain_registry import get_domain
+    from app.presenters.domain_presenters import present_domain_card
+
+    domain = get_domain(domain_key)
+    if not domain:
+        raise HTTPException(status_code=404, detail="Domain not found")
+    return present_domain_card(domain)
+
+
+@router.get("/api/owner/route", dependencies=[Depends(require_owner_key)])
+async def api_owner_route(text: str = ""):
+    from app.services.expert_routing import suggest_domains_for_task
+    from app.presenters.domain_presenters import present_routing_result
+
+    suggestions = suggest_domains_for_task(text or "", limit=5)
+    return present_routing_result(suggestions, task_preview=(text or "")[:200])
+
+
+@router.get("/owner/effectiveness", response_class=HTMLResponse, dependencies=[Depends(require_owner_key)])
+async def owner_effectiveness_page(request: Request, window_days: int = 30):
+    from app.services.cross_layer_effectiveness import synthesize_cross_layer_summary
+    from app.presenters.cross_layer_effectiveness_presenters import present_cross_layer_synthesis
+
+    raw = synthesize_cross_layer_summary(window_days=window_days)
+    return templates.TemplateResponse(
+        request,
+        "owner_effectiveness.html",
+        {"synthesis": present_cross_layer_synthesis(raw)},
+    )
+
+
+@router.get("/owner/readiness", response_class=HTMLResponse, dependencies=[Depends(require_owner_key)])
+async def owner_readiness_page(request: Request):
+    from app.services.production_readiness import get_production_readiness_summary
+    from app.presenters.production_readiness_presenters import (
+        present_readiness_card,
+        format_readiness_owner_text,
+    )
+
+    try:
+        from app.services.role_access import log_critical_route_access_if_enabled
+
+        log_critical_route_access_if_enabled("/owner/readiness", actor="web")
+    except Exception:
+        pass
+    summary = get_production_readiness_summary()
+    return templates.TemplateResponse(
+        request,
+        "owner_readiness.html",
+        {
+            "readiness": present_readiness_card(summary),
+            "owner_text": format_readiness_owner_text(summary),
+        },
+    )
+
+
+@router.get("/api/owner/readiness", dependencies=[Depends(require_owner_key)])
+async def api_owner_readiness():
+    from app.services.production_readiness import get_production_readiness_summary
+    from app.presenters.production_readiness_presenters import present_readiness_card
+
+    return present_readiness_card(get_production_readiness_summary())
