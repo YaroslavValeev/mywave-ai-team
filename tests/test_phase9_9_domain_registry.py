@@ -156,7 +156,6 @@ def test_domain_routes_are_wired():
 
 
 # --- G. Domain commands are wired (Telegram handlers) ---
-@pytest.mark.skip(reason="Telegram owner handlers land in step A4")
 @pytest.mark.asyncio
 async def test_domain_commands_are_wired():
     from app.bot.handlers import handle_domains, handle_domain, handle_route

@@ -1050,6 +1050,51 @@ async def handle_scenario_callback(cb: CallbackQuery):
     await cb.answer()
 
 
+# --- A4: owner domain commands (Telegram) ---
+async def handle_domains(message: Message):
+    """Список доменов экспертизы — /domains."""
+    if not is_owner(message.chat.id):
+        await message.answer("Доступ только для владельца.")
+        return
+    from app.services.domain_registry import list_domains
+    from app.presenters.domain_presenters import format_domain_list_text
+
+    await message.answer(format_domain_list_text(list_domains()))
+
+
+async def handle_domain(message: Message):
+    """Карточка домена — /domain <key>."""
+    if not is_owner(message.chat.id):
+        await message.answer("Доступ только для владельца.")
+        return
+    parts = (message.text or "").strip().split(maxsplit=1)
+    key = parts[1].strip() if len(parts) > 1 else ""
+    if not key:
+        await message.answer("Использование: /domain <key>\nПример: /domain legal")
+        return
+    from app.services.domain_registry import get_domain
+    from app.presenters.domain_presenters import format_domain_card_text
+
+    await message.answer(format_domain_card_text(get_domain(key)))
+
+
+async def handle_route(message: Message):
+    """Подбор домена по тексту — /route <текст>."""
+    if not is_owner(message.chat.id):
+        await message.answer("Доступ только для владельца.")
+        return
+    parts = (message.text or "").strip().split(maxsplit=1)
+    query = parts[1].strip() if len(parts) > 1 else ""
+    if not query:
+        await message.answer("Использование: /route <текст задачи>\nПример: /route проверить договор")
+        return
+    from app.services.expert_routing import suggest_domains_for_task
+    from app.presenters.domain_presenters import format_routing_result_text
+
+    suggestions = suggest_domains_for_task(query, limit=5)
+    await message.answer(format_routing_result_text(suggestions, task_preview=query))
+
+
 async def handle_start(message: Message):
     """Ответ на /start — подсказка, как отправить задачу."""
     await message.answer(
@@ -1064,6 +1109,9 @@ async def handle_start(message: Message):
 
 def register_handlers(dp: Dispatcher):
     dp.message.register(handle_start, Command("start"))
+    dp.message.register(handle_domains, Command("domains"))
+    dp.message.register(handle_domain, Command("domain"))
+    dp.message.register(handle_route, Command("route"))
     # Регистр не важен: #TASK, #task, # TASK, # task
     dp.message.register(
         handle_task_intake,
