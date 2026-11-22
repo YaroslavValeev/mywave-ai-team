@@ -156,34 +156,38 @@ def test_domain_routes_are_wired():
 
 
 # --- G. Domain commands are wired (Telegram handlers) ---
-@pytest.mark.asyncio
-async def test_domain_commands_are_wired():
+def test_domain_commands_are_wired():
+    import asyncio
+    from unittest.mock import AsyncMock, MagicMock, patch
     from app.bot.handlers import handle_domains, handle_domain, handle_route
 
-    msg = MagicMock()
-    msg.chat.id = 12345
-    msg.answer = AsyncMock()
+    async def _run():
+        msg = MagicMock()
+        msg.chat.id = 12345
+        msg.answer = AsyncMock()
 
-    with patch("app.bot.handlers.is_owner", return_value=True):
-        msg.text = "/domains"
-        await handle_domains(msg)
-        msg.answer.assert_called_once()
-        text = msg.answer.call_args[0][0]
-        assert "домен" in text.lower() or "12" in text or "Домены" in text
+        with patch("app.bot.handlers.is_owner", return_value=True):
+            msg.text = "/domains"
+            await handle_domains(msg)
+            msg.answer.assert_called_once()
+            text = msg.answer.call_args[0][0]
+            assert "домен" in text.lower() or "12" in text or "Домены" in text
 
-        msg.answer.reset_mock()
-        msg.text = "/domain legal"
-        await handle_domain(msg)
-        msg.answer.assert_called_once()
-        text = msg.answer.call_args[0][0]
-        assert "legal" in text or "Юридический" in text
+            msg.answer.reset_mock()
+            msg.text = "/domain legal"
+            await handle_domain(msg)
+            msg.answer.assert_called_once()
+            text = msg.answer.call_args[0][0]
+            assert "legal" in text or "Юридический" in text
 
-        msg.answer.reset_mock()
-        msg.text = "/route проверить договор"
-        await handle_route(msg)
-        msg.answer.assert_called_once()
-        text = msg.answer.call_args[0][0]
-        assert "домен" in text.lower() or "legal" in text.lower() or "Совпадения" in text
+            msg.answer.reset_mock()
+            msg.text = "/route проверить договор"
+            await handle_route(msg)
+            msg.answer.assert_called_once()
+            text = msg.answer.call_args[0][0]
+            assert "домен" in text.lower() or "legal" in text.lower() or "Совпадения" in text
+
+    asyncio.run(_run())
 
 
 # --- H. Role-domain relation is documented consistently ---
