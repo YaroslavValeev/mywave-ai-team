@@ -259,6 +259,20 @@ def run_court(
             ]
         )
 
+    # Business / finance: гипотезы, симуляции, саммари ролей, заключение, P(success)
+    from app.orchestrator.business_plan_intent import (
+        build_business_plan_draft,
+        detect_business_plan_intent,
+        render_owner_decision_pack_md,
+        telegram_decision_pack_hint,
+    )
+
+    _bp_intent = detect_business_plan_intent(task.owner_text or "", triage_result)
+    _bp_draft = build_business_plan_draft(task.owner_text or "") if _bp_intent else None
+    if _bp_draft:
+        report_lines.append("")
+        report_lines.extend(render_owner_decision_pack_md(_bp_draft))
+
     report_lines.extend([
         "",
         "## Что делать владельцу прямо сейчас",
@@ -348,6 +362,7 @@ def run_court(
             gap_analysis=gap_analysis,
             task=task,
             project=getattr(task, "project", None),
+            business_pack_draft=_bp_draft,
         )
     )
     verdict_path = court_path / "final_verdict.md"
@@ -385,6 +400,8 @@ def run_court(
     if triage_result.get("task_type") == "content_pipeline":
         draft_hint = " Черновик сообщения и чеклист контактов — в полном отчёте (artifact). ParserNews/рассылка = после approve."
         summary_core = summary_core.rstrip(".") + "." + draft_hint
+    if _bp_draft:
+        summary_core = summary_core.rstrip(".") + "." + telegram_decision_pack_hint(_bp_draft)
     if gap_analysis.get("needs_external_access"):
         summary_core = (
             f"Задача #{task_id}: запрос требует данных вне доступа сервера (ПК/аккаунты OpenAI/Google) — итог процессный, не инвентарь. "
@@ -428,6 +445,7 @@ def _build_verdict_md(
     gap_analysis: dict | None = None,
     task=None,
     project=None,
+    business_pack_draft: dict | None = None,
 ) -> str:
     gap_analysis = gap_analysis or {}
     next_action = (
@@ -501,6 +519,12 @@ def _build_verdict_md(
         project=getattr(task, "project", None),
     ):
         lines.append(f"- {point}")
+
+    if business_pack_draft:
+        from app.orchestrator.business_plan_intent import render_owner_decision_pack_md
+
+        lines.append("")
+        lines.extend(render_owner_decision_pack_md(business_pack_draft))
 
     if triage_result.get("task_type") == "content_pipeline":
         lines.extend(["", "## Контент / outreach (черновик для владельца)"])
