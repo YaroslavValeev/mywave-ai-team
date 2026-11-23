@@ -234,6 +234,27 @@ def _cookie_secure(request: Request) -> bool:
     proto = (request.headers.get("x-forwarded-proto") or request.url.scheme or "").lower()
     return proto == "https"
 
+@app.get("/login", response_class=HTMLResponse)
+async def dashboard_login_page(request: Request):
+    """Страница формы входа. next=?next=/path или / по умолчанию."""
+    next_q = (request.query_params.get("next") or "/").strip() or "/"
+    if not next_q.startswith("/") or next_q.startswith("//"):
+        next_q = "/"
+
+    class _FakeURL:
+        def __init__(self, path: str):
+            self.path = path
+            self.query = ""
+
+    class _FakeReq:
+        def __init__(self, base: Request, path: str):
+            self.base_url = base.base_url
+            self.headers = base.headers
+            self.query_params = base.query_params
+            self.url = _FakeURL(path)
+
+    return _dashboard_key_hint_response(_FakeReq(request, next_q))
+
 
 @app.post("/login")
 async def dashboard_login(request: Request):
