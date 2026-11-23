@@ -4,6 +4,7 @@ from pathlib import Path
 
 from app.config import get_routing, get_orchestration_config
 from app.dashboard.documents import extract_document_text
+from app.orchestrator.business_plan_intent import detect_business_plan_intent
 from app.orchestrator.crewai_bridge import crewai_strict_required, run_crewai_pipeline
 from app.shared.redaction import redact
 
@@ -229,6 +230,16 @@ def _build_handoff_payload(
         if step_name == "CONTENT":
             summary.append("=== Что сделать владельцу ===")
             summary.extend(draft.get("owner_now", []))
+
+    # Business / finance decision pack — гипотезы, симуляции, саммари ролей, P(success).
+    if detect_business_plan_intent(owner_brief, triage_result) or task_type == "revenue_execution":
+        from app.orchestrator.business_plan_intent import (
+            build_business_plan_draft,
+            specialist_lines_for_step,
+        )
+
+        bp_draft = build_business_plan_draft(owner_brief)
+        summary.extend(specialist_lines_for_step(bp_draft, step_name))
 
     decisions = [
         f"Keep task criticality at {criticality}.",
